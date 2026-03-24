@@ -1,0 +1,6 @@
+pyswisseph
+reportlab
+svglib
+geopy
+timezonefinder
+pytz
