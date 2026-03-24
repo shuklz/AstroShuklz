@@ -1,0 +1,47 @@
+<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" font-family="Arial,sans-serif">
+<rect width="600" height="600" fill="#fffdf5"/>
+<text x="300" y="28" text-anchor="middle" font-size="16" font-weight="bold" fill="#8B0000">जन्म कुण्डली — Sanjay Shukla</text>
+<text x="300" y="46" text-anchor="middle" font-size="11" fill="#555">27/02/1964  00:58 IST  Kolkata, India</text>
+<rect x="80" y="80" width="440" height="440" fill="none" stroke="#8B6914" stroke-width="1.5"/>
+<line x1="80" y1="80" x2="520" y2="520" stroke="#8B6914" stroke-width="1"/>
+<line x1="520" y1="80" x2="80" y2="520" stroke="#8B6914" stroke-width="1"/>
+<line x1="80" y1="300" x2="520" y2="300" stroke="#8B6914" stroke-width="1"/>
+<line x1="300" y1="80" x2="300" y2="520" stroke="#8B6914" stroke-width="1"/>
+<polygon points="255,85 345,85 300,160" fill="#FFF3C4" stroke="#C8922A" stroke-width="1"/>
+<text x="300" y="100" text-anchor="middle" font-size="9" fill="#8B0000" font-weight="bold">लग्न</text>
+<text x="300" y="133" text-anchor="middle" font-size="9" fill="#999">1</text>
+<text x="300" y="147" text-anchor="middle" font-size="9" fill="#555">Vrishchika</text>
+<text x="430" y="188" text-anchor="middle" font-size="9" fill="#999">2</text>
+<text x="430" y="202" text-anchor="middle" font-size="9" fill="#555">Dhanus</text>
+<text x="430" y="218" text-anchor="middle" font-size="13" font-weight="bold" fill="#8B4513">केᵛ<tspan font-size="9" dy="-3">16</tspan></text>
+<text x="465" y="278" text-anchor="middle" font-size="9" fill="#999">3</text>
+<text x="465" y="292" text-anchor="middle" font-size="9" fill="#555">Makara</text>
+<text x="430" y="368" text-anchor="middle" font-size="9" fill="#999">4</text>
+<text x="430" y="382" text-anchor="middle" font-size="9" fill="#555">Kumbha</text>
+<text x="430" y="398" text-anchor="middle" font-size="13" font-weight="bold" fill="#DAA520">सू<tspan font-size="9" dy="-3">13</tspan></text>
+<text x="430" y="414" text-anchor="middle" font-size="13" font-weight="bold" fill="#CC0000">मं<tspan font-size="9" dy="-3">11</tspan></text>
+<text x="430" y="430" text-anchor="middle" font-size="13" font-weight="bold" fill="#2E8B57">बु<tspan font-size="9" dy="-3">1</tspan></text>
+<text x="430" y="446" text-anchor="middle" font-size="13" font-weight="bold" fill="#1C1C8C">श<tspan font-size="9" dy="-3">3</tspan></text>
+<text x="300" y="423" text-anchor="middle" font-size="9" fill="#999">5</text>
+<text x="300" y="437" text-anchor="middle" font-size="9" fill="#555">Meena</text>
+<text x="300" y="453" text-anchor="middle" font-size="13" font-weight="bold" fill="#FF6600">गु<tspan font-size="9" dy="-3">26</tspan></text>
+<text x="300" y="469" text-anchor="middle" font-size="13" font-weight="bold" fill="#9400D3">शु<tspan font-size="9" dy="-3">25</tspan></text>
+<text x="170" y="368" text-anchor="middle" font-size="9" fill="#999">6</text>
+<text x="170" y="382" text-anchor="middle" font-size="9" fill="#555">Mesha</text>
+<text x="135" y="278" text-anchor="middle" font-size="9" fill="#999">7</text>
+<text x="135" y="292" text-anchor="middle" font-size="9" fill="#555">Vrishabha</text>
+<text x="170" y="188" text-anchor="middle" font-size="9" fill="#999">8</text>
+<text x="170" y="202" text-anchor="middle" font-size="9" fill="#555">Mithuna</text>
+<text x="170" y="218" text-anchor="middle" font-size="13" font-weight="bold" fill="#006400">राᵛ<tspan font-size="9" dy="-3">16</tspan></text>
+<text x="235" y="218" text-anchor="middle" font-size="9" fill="#999">9</text>
+<text x="235" y="232" text-anchor="middle" font-size="9" fill="#555">Karka</text>
+<text x="365" y="218" text-anchor="middle" font-size="9" fill="#999">10</text>
+<text x="365" y="232" text-anchor="middle" font-size="9" fill="#555">Simha</text>
+<text x="365" y="248" text-anchor="middle" font-size="13" font-weight="bold" fill="#4169E1">चं<tspan font-size="9" dy="-3">4</tspan></text>
+<text x="365" y="338" text-anchor="middle" font-size="9" fill="#999">11</text>
+<text x="365" y="352" text-anchor="middle" font-size="9" fill="#555">Kanya</text>
+<text x="235" y="338" text-anchor="middle" font-size="9" fill="#999">12</text>
+<text x="235" y="352" text-anchor="middle" font-size="9" fill="#555">Tula</text>
+<text x="300" y="572" text-anchor="middle" font-size="10" fill="#666">लग्न: Vrishchika (23°44'21")  राशि: Simha  नक्षत्र: Magha, पद 2</text>
+<text x="300" y="588" text-anchor="middle" font-size="9" fill="#999">Lahiri Ayanamsha · Swiss Ephemeris</text>
+</svg>

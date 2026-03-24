@@ -1,0 +1,48 @@
+<svg width="620" height="660" viewBox="0 0 620 660" xmlns="http://www.w3.org/2000/svg" font-family="Arial,sans-serif">
+<rect width="620" height="660" fill="#fffdf5"/>
+<text x="310" y="30" text-anchor="middle" font-size="17" font-weight="bold" fill="#8B0000">जन्म कुण्डली</text>
+<text x="310" y="48" text-anchor="middle" font-size="12" fill="#444">Bhavana Shukla</text>
+<text x="310" y="63" text-anchor="middle" font-size="10" fill="#777">13/12/1971  02:10 IST  ·  Bhopal</text>
+<rect x="60" y="80" width="500" height="500" fill="#FFFEF5" stroke="#8B6914" stroke-width="1.5"/>
+<line x1="60" y1="80" x2="560" y2="580" stroke="#8B6914" stroke-width="0.8"/>
+<line x1="560" y1="80" x2="60" y2="580" stroke="#8B6914" stroke-width="0.8"/>
+<line x1="60" y1="330" x2="560" y2="330" stroke="#8B6914" stroke-width="0.8"/>
+<line x1="310" y1="80" x2="310" y2="580" stroke="#8B6914" stroke-width="0.8"/>
+<polygon points="112,302 172,330 112,358" fill="#FFF3C4" stroke="#C8922A" stroke-width="1"/>
+<text x="122" y="306" text-anchor="middle" font-size="9" fill="#AAAAAA">1</text>
+<text x="122" y="320" text-anchor="middle" font-size="9" fill="#666666">Kanya</text>
+<text x="104" y="334" text-anchor="middle" font-size="8" fill="#8B0000" font-weight="bold">ल</text>
+<text x="155" y="474" text-anchor="middle" font-size="9" fill="#AAAAAA">2</text>
+<text x="155" y="488" text-anchor="middle" font-size="9" fill="#666666">Tula</text>
+<text x="155" y="506" text-anchor="middle" font-size="14" font-weight="bold" fill="#1E5FAD">चं<tspan font-size="8" baseline-shift="super">1</tspan></text>
+<text x="310" y="498" text-anchor="middle" font-size="9" fill="#AAAAAA">3</text>
+<text x="310" y="512" text-anchor="middle" font-size="9" fill="#666666">Vrishchika</text>
+<text x="310" y="530" text-anchor="middle" font-size="14" font-weight="bold" fill="#B8860B">सू<tspan font-size="8" baseline-shift="super">26</tspan></text>
+<text x="310" y="547" text-anchor="middle" font-size="14" font-weight="bold" fill="#1C7C3A">बुᵛ<tspan font-size="8" baseline-shift="super">26</tspan></text>
+<text x="310" y="564" text-anchor="middle" font-size="14" font-weight="bold" fill="#E07000">गु<tspan font-size="8" baseline-shift="super">24</tspan></text>
+<text x="465" y="474" text-anchor="middle" font-size="9" fill="#AAAAAA">4</text>
+<text x="465" y="488" text-anchor="middle" font-size="9" fill="#666666">Dhanus</text>
+<text x="465" y="506" text-anchor="middle" font-size="14" font-weight="bold" fill="#7B00CC">शु<tspan font-size="8" baseline-shift="super">23</tspan></text>
+<text x="498" y="306" text-anchor="middle" font-size="9" fill="#AAAAAA">5</text>
+<text x="498" y="320" text-anchor="middle" font-size="9" fill="#666666">Makara</text>
+<text x="498" y="338" text-anchor="middle" font-size="14" font-weight="bold" fill="#006400">राᵛ<tspan font-size="8" baseline-shift="super">12</tspan></text>
+<text x="465" y="138" text-anchor="middle" font-size="9" fill="#AAAAAA">6</text>
+<text x="465" y="152" text-anchor="middle" font-size="9" fill="#666666">Kumbha</text>
+<text x="465" y="170" text-anchor="middle" font-size="14" font-weight="bold" fill="#CC0000">मं<tspan font-size="8" baseline-shift="super">27</tspan></text>
+<text x="310" y="114" text-anchor="middle" font-size="9" fill="#AAAAAA">7</text>
+<text x="310" y="128" text-anchor="middle" font-size="9" fill="#666666">Meena</text>
+<text x="155" y="138" text-anchor="middle" font-size="9" fill="#AAAAAA">8</text>
+<text x="155" y="152" text-anchor="middle" font-size="9" fill="#666666">Mesha</text>
+<text x="218" y="378" text-anchor="middle" font-size="9" fill="#AAAAAA">9</text>
+<text x="218" y="392" text-anchor="middle" font-size="9" fill="#666666">Vrishabha</text>
+<text x="218" y="410" text-anchor="middle" font-size="14" font-weight="bold" fill="#1C1C8C">शᵛ<tspan font-size="8" baseline-shift="super">8</tspan></text>
+<text x="402" y="378" text-anchor="middle" font-size="9" fill="#AAAAAA">10</text>
+<text x="402" y="392" text-anchor="middle" font-size="9" fill="#666666">Mithuna</text>
+<text x="402" y="234" text-anchor="middle" font-size="9" fill="#AAAAAA">11</text>
+<text x="402" y="248" text-anchor="middle" font-size="9" fill="#666666">Karka</text>
+<text x="402" y="266" text-anchor="middle" font-size="14" font-weight="bold" fill="#8B3A00">केᵛ<tspan font-size="8" baseline-shift="super">12</tspan></text>
+<text x="218" y="234" text-anchor="middle" font-size="9" fill="#AAAAAA">12</text>
+<text x="218" y="248" text-anchor="middle" font-size="9" fill="#666666">Simha</text>
+<text x="310" y="610" text-anchor="middle" font-size="10" fill="#555">लग्न: Kanya 23°18'11"  ·  राशि: Tula  ·  नक्षत्र: Chitra पद 3 (Mars)</text>
+<text x="310" y="626" text-anchor="middle" font-size="8" fill="#AAAAAA">Lahiri Ayanamsha  ·  Swiss Ephemeris</text>
+</svg>
