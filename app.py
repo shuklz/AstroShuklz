@@ -55,7 +55,8 @@ def generate():
         coords = lookup_city(place, birth_year=year, birth_month=month, birth_day=day)
 
         if coords is None:
-            flash(f"Could not find '{place}'. Try a major city name like 'Mumbai' or 'New York'.", "error")
+            flash(f"Could not find '{place}'. Try a major city name like 'Mumbai' or 'New York'. "
+                  f"If your city is not listed, please email astroshuklz@shuklz.com with the city and country details and we will add it.", "error")
             return redirect(url_for("index"))
 
         lat, lon, utc_offset = coords
