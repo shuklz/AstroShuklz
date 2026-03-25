@@ -940,6 +940,230 @@ def _dasha_reading(chart, today):
     return blocks
 
 
+# ─── Hindi Data ──────────────────────────────────────────────────────────────
+
+PLANET_HI_FULL = {
+    "Sun": "\u0938\u0942\u0930\u094d\u092f", "Moon": "\u091a\u0928\u094d\u0926\u094d\u0930",
+    "Mars": "\u092e\u0902\u0917\u0932", "Mercury": "\u092c\u0941\u0927",
+    "Jupiter": "\u0917\u0941\u0930\u0941", "Venus": "\u0936\u0941\u0915\u094d\u0930",
+    "Saturn": "\u0936\u0928\u093f", "Rahu": "\u0930\u093e\u0939\u0941",
+    "Ketu": "\u0915\u0947\u0924\u0941",
+}
+
+DASHA_READING_HI = {
+    "Ketu": {
+        "nature": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915, \u0906\u0924\u094d\u092e\u0928\u093f\u0930\u0940\u0915\u094d\u0937\u0923 \u0914\u0930 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0915\u093e\u0930\u0940",
+        "themes": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u093f\u0915\u093e\u0938, \u092d\u094c\u0924\u093f\u0915 \u0907\u091a\u094d\u091b\u093e\u0913\u0902 \u0938\u0947 \u0935\u0948\u0930\u093e\u0917\u094d\u092f, \u092a\u0942\u0930\u094d\u0935 \u091c\u0928\u094d\u092e \u0915\u0930\u094d\u092e \u0938\u092e\u093e\u0927\u093e\u0928 \u0914\u0930 \u0905\u091a\u093e\u0928\u0915 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928",
+        "positive": "\u0924\u0940\u0935\u094d\u0930 \u0905\u0902\u0924\u0930\u094d\u091c\u094d\u091e\u093e\u0928, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901, \u092a\u0941\u0930\u093e\u0928\u0947 \u092a\u094d\u0930\u0924\u093f\u0930\u0942\u092a\u094b\u0902 \u0938\u0947 \u092e\u0941\u0915\u094d\u0924\u093f",
+        "challenges": "\u092d\u094d\u0930\u092e, \u0905\u092a\u094d\u0930\u0924\u094d\u092f\u093e\u0936\u093f\u0924 \u0939\u093e\u0928\u093f, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901 \u0914\u0930 \u0905\u0915\u0947\u0932\u0947\u092a\u0928 \u0915\u0940 \u092d\u093e\u0935\u0928\u093e",
+        "advice": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0938\u093e\u0927\u0928\u093e \u0905\u092a\u0928\u093e\u090f\u0901, \u092c\u0921\u093c\u0940 \u092d\u094c\u0924\u093f\u0915 \u092a\u094d\u0930\u0924\u093f\u092c\u0926\u094d\u0927\u0924\u093e\u0913\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902, \u0926\u093f\u0928\u091a\u0930\u094d\u092f\u093e \u0938\u0947 \u0938\u094d\u0925\u093f\u0930 \u0930\u0939\u0947\u0902\u0964",
+    },
+    "Venus": {
+        "nature": "\u0935\u0948\u092d\u0935\u092a\u0942\u0930\u094d\u0923, \u0938\u0943\u091c\u0928\u093e\u0924\u094d\u092e\u0915 \u0914\u0930 \u0938\u0902\u092c\u0902\u0927-\u0915\u0947\u0902\u0926\u094d\u0930\u093f\u0924",
+        "themes": "\u092a\u094d\u0930\u0947\u092e, \u0935\u093f\u0935\u093e\u0939, \u0915\u0932\u093e\u0924\u094d\u092e\u0915 \u0915\u093e\u0930\u094d\u092f, \u0927\u0928 \u0938\u0902\u091a\u092f, \u0938\u0941\u0916-\u0938\u0941\u0935\u093f\u0927\u093e \u0914\u0930 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0938\u0902\u092c\u0902\u0927",
+        "positive": "\u0906\u0930\u094d\u0925\u093f\u0915 \u0938\u092e\u0943\u0926\u094d\u0927\u093f, \u0938\u0941\u0916\u0926 \u0938\u0902\u092c\u0902\u0927, \u0915\u0932\u093e\u0924\u094d\u092e\u0915 \u0938\u092b\u0932\u0924\u093e, \u0935\u093e\u0939\u0928/\u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0940 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f",
+        "challenges": "\u0905\u0924\u093f-\u092d\u094b\u0917, \u0905\u0924\u094d\u092f\u0927\u093f\u0915 \u0916\u0930\u094d\u091a, \u0938\u0902\u092c\u0902\u0927\u094b\u0902 \u092e\u0947\u0902 \u091c\u091f\u093f\u0932\u0924\u093e",
+        "advice": "\u0938\u093e\u0930\u094d\u0925\u0915 \u0938\u0902\u092c\u0902\u0927 \u092c\u0928\u093e\u090f\u0902, \u0938\u092e\u091d\u0926\u093e\u0930\u0940 \u0938\u0947 \u0928\u093f\u0935\u0947\u0936 \u0915\u0930\u0947\u0902, \u0938\u0943\u091c\u0928\u093e\u0924\u094d\u092e\u0915 \u0930\u0941\u091a\u093f\u092f\u094b\u0902 \u0915\u094b \u0905\u092a\u0928\u093e\u090f\u0902\u0964",
+    },
+    "Sun": {
+        "nature": "\u0905\u0927\u093f\u0915\u093e\u0930\u092a\u0942\u0930\u094d\u0923, \u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u0940 \u0914\u0930 \u0906\u0924\u094d\u092e\u0905\u092d\u093f\u0935\u094d\u092f\u0915\u094d\u0924\u093f",
+        "themes": "\u0915\u0930\u093f\u092f\u0930 \u092e\u0947\u0902 \u0909\u0928\u094d\u0928\u0924\u093f, \u0928\u0947\u0924\u0943\u0924\u094d\u0935 \u0915\u0940 \u092d\u0942\u092e\u093f\u0915\u093e, \u0938\u0930\u0915\u093e\u0930\u0940 \u0938\u0902\u092a\u0930\u094d\u0915, \u092a\u093f\u0924\u093e \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0914\u0930 \u092a\u094d\u0930\u0924\u093f\u0937\u094d\u0920\u093e",
+        "positive": "\u092a\u0926 \u0914\u0930 \u0905\u0927\u093f\u0915\u093e\u0930 \u092e\u0947\u0902 \u0935\u0943\u0926\u094d\u0927\u093f, \u0938\u0930\u0915\u093e\u0930\u0940 \u0915\u0943\u092a\u093e, \u0926\u0943\u0922\u093c \u0907\u091a\u094d\u091b\u093e\u0936\u0915\u094d\u0924\u093f, \u0928\u0947\u0924\u0943\u0924\u094d\u0935 \u0915\u0947 \u0905\u0935\u0938\u0930",
+        "challenges": "\u0905\u0939\u0902\u0915\u093e\u0930 \u0938\u0902\u0918\u0930\u094d\u0937, \u0905\u0927\u093f\u0915\u093e\u0930\u093f\u092f\u094b\u0902 \u0938\u0947 \u0924\u0928\u093e\u0935\u092a\u0942\u0930\u094d\u0923 \u0938\u0902\u092c\u0902\u0927, \u0939\u0943\u0926\u092f/\u0928\u0947\u0924\u094d\u0930/\u0939\u0921\u094d\u0921\u093f\u092f\u094b\u0902 \u0938\u0947 \u0938\u0902\u092c\u0902\u0927\u093f\u0924 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901",
+        "advice": "\u0928\u092e\u094d\u0930\u0924\u093e \u0915\u0947 \u0938\u093e\u0925 \u0928\u0947\u0924\u0943\u0924\u094d\u0935 \u0915\u0930\u0947\u0902, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0915\u093e \u0927\u094d\u092f\u093e\u0928 \u0930\u0916\u0947\u0902, \u092a\u093f\u0924\u093e \u0915\u093e \u0938\u092e\u094d\u092e\u093e\u0928 \u0915\u0930\u0947\u0902\u0964",
+    },
+    "Moon": {
+        "nature": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915, \u092a\u094b\u0937\u0915 \u0914\u0930 \u092e\u093e\u0928\u0938\u093f\u0915 \u0930\u0942\u092a \u0938\u0947 \u0938\u0915\u094d\u0930\u093f\u092f",
+        "themes": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f, \u092e\u093e\u0924\u093e \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935, \u0938\u093e\u0930\u094d\u0935\u091c\u0928\u093f\u0915 \u0935\u094d\u092f\u0935\u0939\u093e\u0930, \u092f\u093e\u0924\u094d\u0930\u093e, \u092e\u093e\u0928\u0938\u093f\u0915 \u0936\u093e\u0902\u0924\u093f \u0914\u0930 \u0918\u0930\u0947\u0932\u0942 \u0938\u0941\u0916",
+        "positive": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u0902\u0924\u0941\u0937\u094d\u091f\u093f, \u092e\u093e\u0924\u093e \u0938\u0947 \u0905\u091a\u094d\u091b\u0947 \u0938\u0902\u092c\u0902\u0927, \u091c\u0928\u092a\u094d\u0930\u093f\u092f\u0924\u093e, \u092f\u093e\u0924\u094d\u0930\u093e \u0915\u0947 \u0905\u0935\u0938\u0930, \u092e\u093e\u0928\u0938\u093f\u0915 \u0938\u094d\u092a\u0937\u094d\u091f\u0924\u093e",
+        "challenges": "\u092e\u0928\u094b\u0926\u0936\u093e \u092e\u0947\u0902 \u0909\u0924\u093e\u0930-\u091a\u0922\u093c\u093e\u0935, \u091a\u093f\u0902\u0924\u093e, \u0918\u0930\u0947\u0932\u0942 \u0935\u093f\u0918\u094d\u0928 \u0914\u0930 \u0905\u0924\u093f-\u0938\u0902\u0935\u0947\u0926\u0928\u0936\u0940\u0932\u0924\u093e",
+        "advice": "\u092e\u093e\u0928\u0938\u093f\u0915 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0915\u094b \u092a\u094d\u0930\u093e\u0925\u092e\u093f\u0915\u0924\u093e \u0926\u0947\u0902, \u092a\u093e\u0928\u0940 \u0915\u0947 \u0928\u093f\u0915\u091f \u0938\u092e\u092f \u092c\u093f\u0924\u093e\u090f\u0902, \u092a\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u092c\u0902\u0927\u0928\u094b\u0902 \u0915\u094b \u092a\u094b\u0937\u093f\u0924 \u0915\u0930\u0947\u0902\u0964",
+    },
+    "Mars": {
+        "nature": "\u090a\u0930\u094d\u091c\u093e\u0935\u093e\u0928, \u0938\u093e\u0939\u0938\u0940 \u0914\u0930 \u0915\u094d\u0930\u093f\u092f\u093e-\u0915\u0947\u0902\u0926\u094d\u0930\u093f\u0924",
+        "themes": "\u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u090a\u0930\u094d\u091c\u093e, \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0947 \u092e\u093e\u092e\u0932\u0947, \u092d\u093e\u0908-\u092c\u0939\u0928, \u0938\u093e\u0939\u0938, \u0924\u0915\u0928\u0940\u0915\u0940 \u0915\u094c\u0936\u0932 \u0914\u0930 \u092a\u094d\u0930\u0924\u093f\u0938\u094d\u092a\u0930\u094d\u0927\u093e",
+        "positive": "\u092a\u094d\u0930\u0924\u093f\u0938\u094d\u092a\u0930\u094d\u0927\u093e \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e, \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0940 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f, \u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u0936\u0915\u094d\u0924\u093f, \u091a\u0941\u0928\u094c\u0924\u093f\u092f\u094b\u0902 \u0915\u093e \u0938\u093e\u092e\u0928\u093e \u0915\u0930\u0928\u0947 \u0915\u093e \u0938\u093e\u0939\u0938",
+        "challenges": "\u0926\u0941\u0930\u094d\u0918\u091f\u0928\u093e\u090f\u0901, \u0938\u0902\u0918\u0930\u094d\u0937, \u0930\u0915\u094d\u0924 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0915\u093e\u0928\u0942\u0928\u0940 \u0935\u093f\u0935\u093e\u0926 \u0914\u0930 \u0915\u094d\u0930\u094b\u0927 \u092a\u094d\u0930\u092c\u0902\u0927\u0928",
+        "advice": "\u090a\u0930\u094d\u091c\u093e \u0915\u094b \u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u0917\u0924\u093f\u0935\u093f\u0927\u093f \u0914\u0930 \u0930\u091a\u0928\u093e\u0924\u094d\u092e\u0915 \u092a\u0930\u093f\u092f\u094b\u091c\u0928\u093e\u0913\u0902 \u092e\u0947\u0902 \u0932\u0917\u093e\u090f\u0902, \u0905\u0928\u093e\u0935\u0936\u094d\u092f\u0915 \u0938\u0902\u0918\u0930\u094d\u0937\u094b\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902, \u0927\u0948\u0930\u094d\u092f \u0930\u0916\u0947\u0902\u0964",
+    },
+    "Rahu": {
+        "nature": "\u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u0940, \u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u0914\u0930 \u0938\u093e\u0902\u0938\u093e\u0930\u093f\u0915",
+        "themes": "\u092d\u094c\u0924\u093f\u0915 \u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u093e, \u0935\u093f\u0926\u0947\u0936\u0940 \u0938\u0902\u092a\u0930\u094d\u0915, \u092a\u094d\u0930\u094c\u0926\u094d\u092f\u094b\u0917\u093f\u0915\u0940, \u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u092e\u093e\u0930\u094d\u0917, \u0905\u091a\u093e\u0928\u0915 \u0909\u0924\u094d\u0925\u093e\u0928 \u0914\u0930 \u091c\u0941\u0928\u0942\u0928\u0940 \u092a\u094d\u0930\u092f\u093e\u0938",
+        "positive": "\u0905\u091a\u093e\u0928\u0915 \u0932\u093e\u092d, \u0935\u093f\u0926\u0947\u0936\u094b\u0902 \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e, \u092a\u094d\u0930\u094c\u0926\u094d\u092f\u094b\u0917\u093f\u0915\u0940 \u092e\u0947\u0902 \u0909\u0928\u094d\u0928\u0924\u093f, \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u092c\u093e\u0927\u093e\u0913\u0902 \u0915\u094b \u0924\u094b\u0921\u093c\u0928\u093e",
+        "challenges": "\u0927\u094b\u0916\u093e, \u092d\u094d\u0930\u092e, \u0928\u0936\u093e, \u092d\u092f \u0914\u0930 \u091a\u093f\u0902\u0924\u093e, \u0915\u0932\u0902\u0915 \u0914\u0930 \u092d\u094d\u0930\u093e\u092e\u0915 \u092a\u094d\u0930\u092f\u093e\u0938",
+        "advice": "\u0938\u092d\u0940 \u0935\u094d\u092f\u0935\u0939\u093e\u0930\u094b\u0902 \u092e\u0947\u0902 \u0928\u0948\u0924\u093f\u0915 \u0930\u0939\u0947\u0902, \u0936\u0949\u0930\u094d\u091f\u0915\u091f \u0914\u0930 \u091c\u0932\u094d\u0926\u0940 \u0927\u0928-\u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f \u092f\u094b\u091c\u0928\u093e\u0913\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0930\u0942\u092a \u0938\u0947 \u0938\u094d\u0925\u093f\u0930 \u0930\u0939\u0947\u0902\u0964",
+    },
+    "Jupiter": {
+        "nature": "\u092c\u0941\u0926\u094d\u0927\u093f\u092e\u093e\u0928, \u0935\u093f\u0938\u094d\u0924\u093e\u0930\u0935\u093e\u0926\u0940 \u0914\u0930 \u092a\u0930\u094b\u092a\u0915\u093e\u0930\u0940",
+        "themes": "\u091c\u094d\u091e\u093e\u0928, \u0909\u091a\u094d\u091a \u0936\u093f\u0915\u094d\u0937\u093e, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915\u0924\u093e, \u0938\u0902\u0924\u093e\u0928, \u0927\u0928, \u0917\u0941\u0930\u0941 \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935 \u0914\u0930 \u0927\u093e\u0930\u094d\u092e\u093f\u0915 \u0915\u093e\u0930\u094d\u092f",
+        "positive": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u093f\u0915\u093e\u0938, \u0936\u0948\u0915\u094d\u0937\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901, \u0938\u0902\u0924\u093e\u0928 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f, \u0927\u0928 \u0935\u0943\u0926\u094d\u0927\u093f, \u0924\u0940\u0930\u094d\u0925\u092f\u093e\u0924\u094d\u0930\u093e \u0915\u0947 \u0905\u0935\u0938\u0930",
+        "challenges": "\u0905\u0924\u093f-\u0906\u0936\u093e\u0935\u093e\u0926, \u0935\u091c\u0928 \u0935\u0943\u0926\u094d\u0927\u093f, \u092f\u0915\u0943\u0924 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901 \u0914\u0930 \u0906\u0924\u094d\u092e\u0938\u0902\u0924\u0941\u0937\u094d\u091f\u093f",
+        "advice": "\u0909\u091a\u094d\u091a \u0936\u093f\u0915\u094d\u0937\u093e \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0947\u0902, \u0917\u0941\u0930\u0941 \u0915\u0940 \u0916\u094b\u091c \u0915\u0930\u0947\u0902, \u0909\u0926\u093e\u0930\u0924\u093e \u0915\u093e \u0905\u092d\u094d\u092f\u093e\u0938 \u0915\u0930\u0947\u0902, \u0927\u0930\u094d\u092e \u0915\u0947 \u0905\u0928\u0941\u0938\u093e\u0930 \u0915\u093e\u0930\u094d\u092f \u0915\u0930\u0947\u0902\u0964",
+    },
+    "Saturn": {
+        "nature": "\u0905\u0928\u0941\u0936\u093e\u0938\u093f\u0924, \u0915\u093e\u0930\u094d\u092e\u093f\u0915 \u0914\u0930 \u0926\u0943\u0922\u093c",
+        "themes": "\u0915\u0920\u093f\u0928 \u092a\u0930\u093f\u0936\u094d\u0930\u092e, \u0905\u0928\u0941\u0936\u093e\u0938\u0928, \u0926\u0940\u0930\u094d\u0918\u093e\u092f\u0941, \u0915\u0930\u094d\u092e, \u0938\u0947\u0935\u093e, \u0935\u093f\u0932\u0902\u092c \u0914\u0930 \u0935\u094d\u092f\u0935\u0938\u094d\u0925\u093f\u0924 \u0935\u093f\u0915\u093e\u0938",
+        "positive": "\u092a\u0942\u0930\u094d\u0935 \u092a\u0930\u093f\u0936\u094d\u0930\u092e \u0915\u093e \u092b\u0932, \u0926\u0943\u0922\u093c\u0924\u093e \u0938\u0947 \u0938\u093f\u0926\u094d\u0927\u093f, \u0905\u091a\u0932 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0932\u093e\u092d, \u0915\u0930\u093f\u092f\u0930 \u0938\u094d\u0925\u093f\u0930\u0924\u093e \u0914\u0930 \u0917\u0939\u0930\u0940 \u092a\u0930\u093f\u092a\u0915\u094d\u0935\u0924\u093e",
+        "challenges": "\u0935\u093f\u0932\u0902\u092c \u0914\u0930 \u092c\u093e\u0927\u093e\u090f\u0901, \u091c\u094b\u0921\u093c\u094b\u0902/\u0939\u0921\u094d\u0921\u093f\u092f\u094b\u0902 \u0915\u0940 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0905\u0915\u0947\u0932\u0947\u092a\u0928 \u0915\u0940 \u092d\u093e\u0935\u0928\u093e, \u092d\u093e\u0930\u0940 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u093e\u0901 \u0914\u0930 \u0905\u0935\u0938\u093e\u0926",
+        "advice": "\u0905\u0928\u0941\u0936\u093e\u0938\u0928 \u0914\u0930 \u0927\u0948\u0930\u094d\u092f \u0905\u092a\u0928\u093e\u090f\u0902, \u0928\u093f\u0903\u0938\u094d\u0935\u093e\u0930\u094d\u0925 \u0938\u0947\u0935\u093e \u0915\u0930\u0947\u0902, \u0939\u0921\u094d\u0921\u093f\u092f\u094b\u0902 \u0914\u0930 \u091c\u094b\u0921\u093c\u094b\u0902 \u0915\u0940 \u0926\u0947\u0916\u092d\u093e\u0932 \u0915\u0930\u0947\u0902, \u0936\u0949\u0930\u094d\u091f\u0915\u091f \u0938\u0947 \u092c\u091a\u0947\u0902\u0964",
+    },
+    "Mercury": {
+        "nature": "\u092c\u094c\u0926\u094d\u0927\u093f\u0915, \u0938\u0902\u0935\u093e\u0926\u0936\u0940\u0932 \u0914\u0930 \u0905\u0928\u0941\u0915\u0942\u0932\u0928\u0936\u0940\u0932",
+        "themes": "\u0938\u0902\u0935\u093e\u0926, \u0935\u094d\u092f\u093e\u092a\u093e\u0930, \u0936\u093f\u0915\u094d\u0937\u093e, \u092c\u0941\u0926\u094d\u0927\u093f, \u0935\u094d\u092f\u093e\u092a\u093e\u0930, \u0932\u0947\u0916\u0928 \u0914\u0930 \u0935\u093f\u0936\u094d\u0932\u0947\u0937\u0923\u093e\u0924\u094d\u092e\u0915 \u0938\u094b\u091a",
+        "positive": "\u0935\u094d\u092f\u093e\u092a\u093e\u0930\u093f\u0915 \u0938\u092b\u0932\u0924\u093e, \u092c\u094c\u0926\u094d\u0927\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901, \u0905\u091a\u094d\u091b\u093e \u0938\u0902\u0935\u093e\u0926, \u0938\u092b\u0932 \u0935\u093e\u0930\u094d\u0924\u093e, \u0932\u0947\u0916\u0928/\u092a\u094d\u0930\u0915\u093e\u0936\u0928 \u0914\u0930 \u0928\u090f \u0915\u094c\u0936\u0932 \u0938\u0940\u0916\u0928\u093e",
+        "challenges": "\u0918\u092c\u0930\u093e\u0939\u091f, \u0924\u094d\u0935\u091a\u093e \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0905\u0928\u093f\u0930\u094d\u0923\u092f, \u0935\u093e\u0923\u0940 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0935\u094d\u092f\u093e\u092a\u093e\u0930\u093f\u0915 \u0905\u0938\u092b\u0932\u0924\u093e\u090f\u0901 \u0914\u0930 \u092c\u093f\u0916\u0930\u093e \u0927\u094d\u092f\u093e\u0928",
+        "advice": "\u0936\u093f\u0915\u094d\u0937\u093e \u0914\u0930 \u0915\u094c\u0936\u0932 \u0935\u093f\u0915\u093e\u0938 \u092e\u0947\u0902 \u0928\u093f\u0935\u0947\u0936 \u0915\u0930\u0947\u0902, \u0906\u092f \u0915\u0947 \u0938\u094d\u0930\u094b\u0924\u094b\u0902 \u092e\u0947\u0902 \u0935\u093f\u0935\u093f\u0927\u0924\u093e \u0932\u093e\u090f\u0902, \u0938\u094d\u092a\u0937\u094d\u091f \u0938\u0902\u0935\u093e\u0926 \u092c\u0928\u093e\u090f \u0930\u0916\u0947\u0902\u0964",
+    },
+}
+
+
+def _dasha_reading_hi(chart, today):
+    """Generate Hindi dasha reading text blocks."""
+    blocks = []
+    dashas = chart['dashas']
+
+    current_maha = None
+    current_maha_data = None
+    next_maha_data = None
+    for i, (lord, start, end, yrs) in enumerate(dashas):
+        if start <= today < end:
+            current_maha = lord
+            current_maha_data = (lord, start, end, yrs)
+            if i + 1 < len(dashas):
+                next_maha_data = dashas[i + 1]
+            break
+
+    if not current_maha:
+        blocks.append("\u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0926\u0936\u093e \u0915\u093e\u0932 \u0928\u093f\u0930\u094d\u0927\u093e\u0930\u093f\u0924 \u0928\u0939\u0940\u0902 \u0915\u093f\u092f\u093e \u091c\u093e \u0938\u0915\u093e\u0964")
+        return blocks
+
+    current_antar = None
+    current_antar_data = None
+    next_antar_data = None
+    ad_list = chart.get('antardasha', {}).get(current_maha, [])
+    for i, (ad_lord, ad_start, ad_end, ad_yrs) in enumerate(ad_list):
+        if ad_start <= today < ad_end:
+            current_antar = ad_lord
+            current_antar_data = (ad_lord, ad_start, ad_end, ad_yrs)
+            if i + 1 < len(ad_list):
+                next_antar_data = ad_list[i + 1]
+            break
+
+    current_prat = None
+    current_prat_data = None
+    if current_antar:
+        key = (current_maha, current_antar)
+        pd_list = chart.get('pratyantar', {}).get(key, [])
+        for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+            if pd_start <= today < pd_end:
+                current_prat = pd_lord
+                current_prat_data = (pd_lord, pd_start, pd_end, pd_yrs)
+                break
+
+    maha_hi = PLANET_HI_FULL.get(current_maha, current_maha)
+    maha_info = DASHA_READING_HI.get(current_maha, {})
+    remaining_days = (current_maha_data[2] - today).days
+    remaining_yrs = remaining_days / 365.25
+
+    # Current position
+    blocks.append("## \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0926\u0936\u093e \u0938\u094d\u0925\u093f\u0924\u093f")
+    position = f"\u0906\u092a \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u092e\u0947\u0902 <b>{maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e</b>"
+    if current_antar:
+        antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
+        position += f" \u0915\u0947 \u0905\u0902\u0924\u0930\u094d\u0917\u0924 <b>{antar_hi} \u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e</b>"
+    if current_prat:
+        prat_hi = PLANET_HI_FULL.get(current_prat, current_prat)
+        position += f" \u0914\u0930 <b>{prat_hi} \u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930</b>"
+    position += " \u091a\u0932 \u0930\u0939\u0947 \u0939\u0948\u0902\u0964"
+    if remaining_yrs > 1:
+        position += (f" {maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e <b>{current_maha_data[2].strftime('%B %Y')}</b> "
+                     f"\u0924\u0915 \u091c\u093e\u0930\u0940 \u0930\u0939\u0947\u0917\u0940 "
+                     f"(\u0932\u0917\u092d\u0917 {remaining_yrs:.1f} \u0935\u0930\u094d\u0937 \u0936\u0947\u0937)\u0964")
+    else:
+        position += (f" {maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e <b>{current_maha_data[2].strftime('%B %Y')}</b> "
+                     f"\u092e\u0947\u0902 \u0938\u092e\u093e\u092a\u094d\u0924 \u0939\u094b\u0917\u0940 "
+                     f"({remaining_days} \u0926\u093f\u0928 \u0936\u0947\u0937)\u0964")
+    blocks.append(position)
+
+    # Mahadasha reading
+    blocks.append(f"## {maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u2014 \u0906\u092a \u0915\u094d\u092f\u093e \u0905\u0928\u0941\u092d\u0935 \u0915\u0930 \u0930\u0939\u0947 \u0939\u0948\u0902")
+    blocks.append(
+        f"{maha_hi} \u0915\u093e \u0915\u093e\u0932 <b>{maha_info.get('nature', '\u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923')}</b> "
+        f"\u092a\u094d\u0930\u0915\u0943\u0924\u093f \u0915\u093e \u0939\u0948\u0964 \u0907\u0938 \u0915\u093e\u0932 \u0915\u0947 \u092a\u094d\u0930\u092e\u0941\u0916 \u0935\u093f\u0937\u092f\u094b\u0902 \u092e\u0947\u0902 \u0936\u093e\u092e\u093f\u0932 \u0939\u0948\u0902: "
+        f"{maha_info.get('themes', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u091c\u0940\u0935\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928')}\u0964")
+    blocks.append(
+        f"<b>\u0907\u0938 \u0915\u093e\u0932 \u0915\u0940 \u0936\u0915\u094d\u0924\u093f\u092f\u093e\u0901:</b> "
+        f"{maha_info.get('positive', '\u0935\u093f\u0915\u093e\u0938 \u0915\u0947 \u0905\u0935\u0938\u0930')}\u0964")
+    blocks.append(
+        f"<b>\u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u0915\u0947 \u0915\u094d\u0937\u0947\u0924\u094d\u0930:</b> "
+        f"{maha_info.get('challenges', '\u091a\u0941\u0928\u094c\u0924\u093f\u092f\u093e\u0901 \u0906 \u0938\u0915\u0924\u0940 \u0939\u0948\u0902')}\u0964")
+
+    # Antardasha
+    if current_antar:
+        antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
+        antar_info = DASHA_READING_HI.get(current_antar, {})
+        antar_end = current_antar_data[2]
+        blocks.append(f"## {antar_hi} \u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e \u2014 \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0909\u092a-\u0915\u093e\u0932 \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935")
+        blocks.append(
+            f"{maha_hi} \u0915\u0947 \u0935\u094d\u092f\u093e\u092a\u0915 \u0915\u093e\u0932 \u092e\u0947\u0902, <b>{antar_hi} "
+            f"\u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e</b> (<b>{antar_end.strftime('%B %Y')}</b> \u0924\u0915) "
+            f"<b>{antar_info.get('nature', '\u0935\u093f\u0936\u0947\u0937')}</b> \u090a\u0930\u094d\u091c\u093e \u091c\u094b\u0921\u093c\u0924\u0940 \u0939\u0948\u0964 "
+            f"\u092f\u0939 \u0909\u092a-\u0915\u093e\u0932 {antar_info.get('themes', '\u0915\u0941\u091b \u091c\u0940\u0935\u0928 \u0915\u094d\u0937\u0947\u0924\u094d\u0930\u094b\u0902')} \u092a\u0930 \u091c\u094b\u0930 \u0926\u0947\u0924\u093e \u0939\u0948\u0964")
+        blocks.append(
+            f"<b>{maha_hi}\u2013{antar_hi}</b> \u0915\u093e \u0938\u0902\u092f\u094b\u091c\u0928 \u0926\u0930\u094d\u0936\u093e\u0924\u093e \u0939\u0948 \u0915\u093f "
+            f"{maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u0915\u0947 \u0935\u094d\u092f\u093e\u092a\u0915 \u0935\u093f\u0937\u092f "
+            f"{antar_hi} \u0915\u0947 \u092a\u094d\u0930\u092d\u093e\u0935 \u0938\u0947 \u091b\u0928\u0924\u0947 \u0939\u0948\u0902 \u2014 "
+            f"{antar_info.get('positive', '\u0905\u0935\u0938\u0930')} \u0932\u093e\u0924\u0947 \u0939\u0941\u090f "
+            f"{antar_info.get('challenges', '\u0938\u0902\u092d\u093e\u0935\u093f\u0924 \u0915\u0920\u093f\u0928\u093e\u0907\u092f\u094b\u0902')} \u0915\u0947 \u092a\u094d\u0930\u0924\u093f \u0938\u091a\u0947\u0924 \u0930\u0939\u0928\u093e \u091a\u093e\u0939\u093f\u090f\u0964")
+
+    # Pratyantar
+    if current_prat:
+        prat_hi = PLANET_HI_FULL.get(current_prat, current_prat)
+        prat_info = DASHA_READING_HI.get(current_prat, {})
+        prat_end = current_prat_data[2]
+        days_left = (prat_end - today).days
+        blocks.append(f"## {prat_hi} \u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930 \u2014 \u0924\u093e\u0924\u094d\u0915\u093e\u0932\u093f\u0915 \u092a\u094d\u0930\u092d\u093e\u0935")
+        blocks.append(
+            f"\u0938\u092c\u0938\u0947 \u0924\u093e\u0924\u094d\u0915\u093e\u0932\u093f\u0915 \u0938\u094d\u0924\u0930 \u092a\u0930, <b>{prat_hi} \u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930</b> "
+            f"(\u0905\u0917\u0932\u0947 <b>{days_left} \u0926\u093f\u0928\u094b\u0902</b> \u0924\u0915, "
+            f"{prat_end.strftime('%d %B %Y')} \u0924\u0915) "
+            f"{prat_info.get('themes', '\u0935\u093f\u0936\u0947\u0937 \u092e\u093e\u092e\u0932\u094b\u0902')} \u092a\u0930 \u0905\u0932\u094d\u092a\u0915\u093e\u0932\u093f\u0915 \u0927\u094d\u092f\u093e\u0928 \u0932\u093e\u0924\u093e \u0939\u0948\u0964 "
+            f"\u0907\u0938 \u0938\u0942\u0915\u094d\u0937\u094d\u092e \u0915\u093e\u0932 \u092e\u0947\u0902 "
+            f"{prat_info.get('positive', '\u0938\u0915\u093e\u0930\u093e\u0924\u094d\u092e\u0915 \u0935\u093f\u0915\u093e\u0938')} \u0926\u0947\u0916\u0947\u0902\u0964")
+
+    # Looking ahead
+    blocks.append("## \u0906\u0917\u0947 \u0926\u0947\u0916\u0947\u0902 \u2014 \u0906\u0928\u0947 \u0935\u093e\u0932\u0947 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928")
+    if next_antar_data:
+        na_lord, na_start, na_end, na_yrs = next_antar_data
+        na_hi = PLANET_HI_FULL.get(na_lord, na_lord)
+        na_info = DASHA_READING_HI.get(na_lord, {})
+        blocks.append(
+            f"\u0905\u0917\u0932\u093e \u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928 <b>{maha_hi}\u2013{na_hi}</b> \u0939\u094b\u0917\u093e, "
+            f"\u091c\u094b <b>{na_start.strftime('%B %Y')}</b> \u0938\u0947 \u0936\u0941\u0930\u0942 \u0939\u094b\u0917\u093e\u0964 "
+            f"\u092f\u0939 <b>{na_info.get('nature', '\u092d\u093f\u0928\u094d\u0928')}</b> \u090a\u0930\u094d\u091c\u093e \u0915\u0940 \u0913\u0930 \u092c\u0926\u0932\u093e\u0935 \u0932\u093e\u090f\u0917\u093e, "
+            f"\u091c\u093f\u0938\u092e\u0947\u0902 {na_info.get('themes', '\u0928\u090f \u0935\u093f\u0937\u092f')} \u092a\u0930 \u091c\u094b\u0930 \u0939\u094b\u0917\u093e\u0964")
+    if next_maha_data:
+        nm_lord, nm_start, nm_end, nm_yrs = next_maha_data
+        nm_hi = PLANET_HI_FULL.get(nm_lord, nm_lord)
+        nm_info = DASHA_READING_HI.get(nm_lord, {})
+        blocks.append(
+            f"\u090f\u0915 \u092c\u0921\u093c\u093e \u091c\u0940\u0935\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928 \u0924\u092c \u0906\u090f\u0917\u093e \u091c\u092c <b>{nm_hi} \u092e\u0939\u093e\u0926\u0936\u093e</b> "
+            f"<b>{nm_start.strftime('%B %Y')}</b> \u092e\u0947\u0902 \u0936\u0941\u0930\u0942 \u0939\u094b\u0917\u0940 "
+            f"({nm_yrs:.1f} \u0935\u0930\u094d\u0937, {nm_end.strftime('%B %Y')} \u0924\u0915)\u0964 "
+            f"\u092f\u0939 \u0935\u0930\u094d\u0924\u092e\u093e\u0928 {maha_hi} \u0915\u0947 \u0935\u093f\u0937\u092f\u094b\u0902 \u0938\u0947 "
+            f"<b>{nm_info.get('nature', '\u092d\u093f\u0928\u094d\u0928')}</b> \u092a\u094d\u0930\u0915\u0943\u0924\u093f \u0915\u0947 \u0915\u093e\u0932 \u0915\u0940 \u0913\u0930 \u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923 \u092c\u0926\u0932\u093e\u0935 \u0939\u094b\u0917\u093e\u0964")
+        blocks.append(
+            f"<b>{nm_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u092e\u0947\u0902 \u0915\u094d\u092f\u093e \u0905\u092a\u0947\u0915\u094d\u0937\u093e \u0915\u0930\u0947\u0902:</b> "
+            f"{nm_info.get('themes', '\u0928\u090f \u091c\u0940\u0935\u0928 \u0935\u093f\u0937\u092f')}\u0964 "
+            f"\u092a\u094d\u0930\u092e\u0941\u0916 \u0936\u0915\u094d\u0924\u093f\u092f\u093e\u0901: {nm_info.get('positive', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u0905\u0935\u0938\u0930')}\u0964")
+
+    # Guidance
+    blocks.append(f"## \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0915\u093e\u0932 \u0915\u0947 \u0932\u093f\u090f \u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928")
+    blocks.append(maha_info.get('advice', '\u0938\u0902\u0924\u0941\u0932\u093f\u0924 \u0914\u0930 \u0938\u091a\u0947\u0924 \u0930\u0939\u0947\u0902\u0964'))
+
+    return blocks
+
+
 # ─── PDF Report ──────────────────────────────────────────────────────────────
 
 def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
@@ -1493,11 +1717,219 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         else:
             story.append(Paragraph(block, reading_style))
 
+    # ══════════════════════════════════════════════════════════════
+    # HINDI PAGES (हिन्दी)
+    # ══════════════════════════════════════════════════════════════
+
+    # Hindi styles
+    hi_title_style = ParagraphStyle('KHiTitle', parent=styles['Title'],
+        fontName=deva_font, fontSize=22, textColor=MAROON,
+        alignment=TA_CENTER, spaceAfter=2*mm)
+    hi_subtitle_style = ParagraphStyle('KHiSubtitle', parent=styles['Normal'],
+        fontName=deva_font, fontSize=11, textColor=colors.HexColor("#444"),
+        alignment=TA_CENTER, spaceAfter=1*mm)
+    hi_info_style = ParagraphStyle('KHiInfo', parent=styles['Normal'],
+        fontName=deva_font, fontSize=9, textColor=colors.HexColor("#555"),
+        alignment=TA_CENTER, spaceAfter=3*mm)
+    hi_section_style = ParagraphStyle('KHiSection', parent=styles['Heading2'],
+        fontName=deva_font, fontSize=12, textColor=MAROON,
+        alignment=TA_CENTER, spaceBefore=5*mm, spaceAfter=2*mm)
+    hi_brand_style = ParagraphStyle('KHiBrand', parent=styles['Normal'],
+        fontName='Helvetica-Oblique', fontSize=10, textColor=colors.HexColor("#B8860B"),
+        alignment=TA_CENTER, spaceAfter=4*mm)
+
+    # ── Hindi Page 1: Header + Planetary Positions ───────────────
+    story.append(PageBreak())
+    story.append(Paragraph("\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940", hi_title_style))
+    story.append(Paragraph("by AstroShuklz", hi_brand_style))
+    story.append(Paragraph(f"{bd['name']}", hi_subtitle_style))
+    story.append(Paragraph(
+        f"{bd['day']:02d}/{bd['month']:02d}/{bd['year']}  &nbsp; "
+        f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;\u00b7&nbsp; {bd['place']}",
+        hi_info_style))
+
+    hi_summary = (f"\u0932\u0917\u094d\u0928: {chart['asc_sign_hi']} "
+                  f"{dms_str(chart['asc_deg'])}  &nbsp;\u00b7&nbsp; "
+                  f"\u0930\u093e\u0936\u093f: {chart['moon_rashi_hi']}  &nbsp;\u00b7&nbsp; "
+                  f"\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart['nakshatra']}, "
+                  f"\u092a\u0926 {chart['nak_pada']} "
+                  f"({PLANET_HI_FULL.get(chart['nak_lord'], chart['nak_lord'])})")
+    story.append(Paragraph(hi_summary, hi_info_style))
+    story.append(Spacer(1, 5*mm))
+
+    story.append(Paragraph("\u0917\u094d\u0930\u0939 \u0938\u094d\u0925\u093f\u0924\u093f", hi_section_style))
+
+    hi_p_header = ['\u0917\u094d\u0930\u0939', '\u0930\u093e\u0936\u093f',
+                   '\u0905\u0902\u0936', '\u0930\u093e\u0936\u093f#',
+                   '\u0932\u0917\u094d\u0928', '\u091a\u0928\u094d\u0926\u094d\u0930', '\u0935']
+    hi_p_data = [hi_p_header]
+    for pname in order:
+        p = planets[pname]
+        sidx = p['sign_idx']
+        rashi = sidx + 1
+        h_lag = (sidx - asc_sign) % 12 + 1
+        h_moon = (sidx - moon_sign) % 12 + 1
+        retro = "\u211e" if p['retro'] else ""
+        hi_p_data.append([PLANET_HI_FULL.get(pname, pname), p['sign_hi'],
+                          dms_str(p['deg']), str(rashi),
+                          f"\u092d{h_lag}", f"\u092d{h_moon}", retro])
+
+    hi_ptable = Table(hi_p_data, colWidths=[50, 70, 65, 40, 45, 45, 20])
+    hi_ptable.setStyle(TableStyle([
+        ('FONTNAME',   (0,0), (-1,0), deva_font),
+        ('FONTNAME',   (0,1), (-1,-1), deva_font),
+        ('FONTSIZE',   (0,0), (-1,-1), 8),
+        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        ('TOPPADDING',  (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+    ]))
+    story.append(hi_ptable)
+
+    # ── Hindi Page 2: Dasha Tables ───────────────────────────────
+    story.append(PageBreak())
+
+    # Mahadasha
+    story.append(Paragraph("\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 \u092e\u0939\u093e\u0926\u0936\u093e", hi_section_style))
+    hi_m_header = ['\u0938\u094d\u0935\u093e\u092e\u0940', '\u0906\u0930\u0902\u092d', '\u0905\u0902\u0924', '\u0935\u0930\u094d\u0937', '']
+    hi_m_data = [hi_m_header]
+    for lord, start, end, yrs in chart['dashas']:
+        is_now = start <= today < end
+        marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+        hi_m_data.append([PLANET_HI_FULL.get(lord, lord), start.strftime('%b %Y'),
+                          end.strftime('%b %Y'), f"{yrs:.1f}", marker])
+
+    hi_mtable = Table(hi_m_data, colWidths=[60, 80, 80, 50, 55])
+    hi_m_style = [
+        ('FONTNAME',   (0,0), (-1,-1), deva_font),
+        ('FONTSIZE',   (0,0), (-1,-1), 8),
+        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        ('TOPPADDING',  (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+    ]
+    for i, (lord, start, end, yrs) in enumerate(chart['dashas'], 1):
+        if start <= today < end:
+            hi_m_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
+            hi_m_style.append(('FONTNAME', (0, i), (-1, i), deva_font))
+    hi_mtable.setStyle(TableStyle(hi_m_style))
+    story.append(hi_mtable)
+
+    # Antardasha
+    if current_maha and current_maha in chart.get('antardasha', {}):
+        maha_hi_name = PLANET_HI_FULL.get(current_maha, current_maha)
+        story.append(Paragraph(
+            f"\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
+            f"\u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e ({maha_hi_name} \u092e\u0939\u093e\u0926\u0936\u093e \u092e\u0947\u0902)",
+            hi_section_style))
+
+        hi_a_header = ['\u0938\u094d\u0935\u093e\u092e\u0940', '\u0906\u0930\u0902\u092d', '\u0905\u0902\u0924', '\u0905\u0935\u0927\u093f', '']
+        hi_a_data = [hi_a_header]
+        hi_current_antar = None
+        for ad_lord, ad_start, ad_end, ad_yrs in chart['antardasha'][current_maha]:
+            is_now = ad_start <= today < ad_end
+            if is_now:
+                hi_current_antar = ad_lord
+            marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+            months = ad_yrs * 12
+            dur_str = f"{ad_yrs:.1f}\u0935" if months >= 12 else f"{months:.1f}\u092e"
+            hi_a_data.append([PLANET_HI_FULL.get(ad_lord, ad_lord),
+                              ad_start.strftime('%d %b %Y'),
+                              ad_end.strftime('%d %b %Y'), dur_str, marker])
+
+        hi_atable = Table(hi_a_data, colWidths=[60, 90, 90, 55, 55])
+        hi_a_style = [
+            ('FONTNAME',   (0,0), (-1,-1), deva_font),
+            ('FONTSIZE',   (0,0), (-1,-1), 8),
+            ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+            ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+            ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+            ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+            ('TOPPADDING',  (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+        ]
+        for i, (ad_lord, ad_start, ad_end, ad_yrs) in enumerate(
+                chart['antardasha'][current_maha], 1):
+            if ad_start <= today < ad_end:
+                hi_a_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
+        hi_atable.setStyle(TableStyle(hi_a_style))
+        story.append(hi_atable)
+
+        # Pratyantar
+        if hi_current_antar:
+            key = (current_maha, hi_current_antar)
+            if key in chart.get('pratyantar', {}):
+                antar_hi_name = PLANET_HI_FULL.get(hi_current_antar, hi_current_antar)
+                story.append(Paragraph(
+                    f"\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
+                    f"\u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930 ({maha_hi_name}\u2013{antar_hi_name})",
+                    hi_section_style))
+                hi_pd_header = ['\u0938\u094d\u0935\u093e\u092e\u0940', '\u0906\u0930\u0902\u092d', '\u0905\u0902\u0924', '\u0905\u0935\u0927\u093f', '']
+                hi_pd_data = [hi_pd_header]
+                for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
+                    is_now = pd_start <= today < pd_end
+                    marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+                    days = pd_yrs * 365.25
+                    dur_str = f"{pd_yrs*12:.1f}\u092e" if days >= 30 else f"{days:.0f}\u0926"
+                    hi_pd_data.append([PLANET_HI_FULL.get(pd_lord, pd_lord),
+                                       pd_start.strftime('%d %b %Y'),
+                                       pd_end.strftime('%d %b %Y'), dur_str, marker])
+                hi_pdtable = Table(hi_pd_data, colWidths=[60, 90, 90, 55, 55])
+                hi_pd_style = [
+                    ('FONTNAME',   (0,0), (-1,-1), deva_font),
+                    ('FONTSIZE',   (0,0), (-1,-1), 8),
+                    ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+                    ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+                    ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+                    ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+                    ('TOPPADDING',  (0,0), (-1,-1), 3),
+                    ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+                ]
+                for i, (pd_lord, pd_start, pd_end, pd_yrs) in enumerate(
+                        chart['pratyantar'][key], 1):
+                    if pd_start <= today < pd_end:
+                        hi_pd_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
+                hi_pdtable.setStyle(TableStyle(hi_pd_style))
+                story.append(hi_pdtable)
+
+    # ── Hindi Page 3: Predictions ────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("\u0926\u0936\u093e \u092b\u0932 \u090f\u0935\u0902 \u092d\u0935\u093f\u0937\u094d\u092f\u0935\u093e\u0923\u0940", hi_title_style))
+    story.append(Paragraph("by AstroShuklz", hi_brand_style))
+    story.append(Spacer(1, 3*mm))
+
+    hi_reading_style = ParagraphStyle('KHiReading', parent=styles['Normal'],
+        fontName=deva_font, fontSize=9.5, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, leading=14, spaceBefore=2*mm, spaceAfter=2*mm)
+    hi_reading_bold = ParagraphStyle('KHiReadBold', parent=hi_reading_style,
+        fontName=deva_font, fontSize=10, textColor=MAROON,
+        spaceBefore=4*mm, spaceAfter=1*mm)
+
+    hi_reading = _dasha_reading_hi(chart, today)
+    for block in hi_reading:
+        if block.startswith("##"):
+            story.append(Paragraph(block[2:].strip(), hi_reading_bold))
+        else:
+            story.append(Paragraph(block, hi_reading_style))
+
+    # ── Disclaimer & Footer (shared) ─────────────────────────────
     story.append(Spacer(1, 5*mm))
     story.append(Paragraph(
-        "Disclaimer: This reading is generated based on classical Vimshottari "
-        "Dasha interpretations and is for educational/entertainment purposes only. "
-        "For personalised guidance, consult a qualified Jyotish practitioner.",
+        "\u0905\u0938\u094d\u0935\u0940\u0915\u0930\u0923: \u092f\u0939 \u092a\u0920\u0928 \u0936\u093e\u0938\u094d\u0924\u094d\u0930\u0940\u092f "
+        "\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u0935\u094d\u092f\u093e\u0916\u094d\u092f\u093e\u0913\u0902 "
+        "\u092a\u0930 \u0906\u0927\u093e\u0930\u093f\u0924 \u0939\u0948 \u0914\u0930 \u0915\u0947\u0935\u0932 "
+        "\u0936\u0948\u0915\u094d\u0937\u093f\u0915/\u092e\u0928\u094b\u0930\u0902\u091c\u0928 \u0909\u0926\u094d\u0926\u0947\u0936\u094d\u092f\u094b\u0902 "
+        "\u0915\u0947 \u0932\u093f\u090f \u0939\u0948\u0964 \u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 "
+        "\u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928 \u0915\u0947 \u0932\u093f\u090f \u0915\u093f\u0938\u0940 "
+        "\u092f\u094b\u0917\u094d\u092f \u091c\u094d\u092f\u094b\u0924\u093f\u0937 \u0938\u0947 \u092a\u0930\u093e\u092e\u0930\u094d\u0936 \u0915\u0930\u0947\u0902\u0964",
         disclaimer_style))
 
     story.append(Spacer(1, 8*mm))
