@@ -10,7 +10,7 @@ from datetime import datetime
 import io
 import os
 
-from vedic_kundali import generate_chart, generate_svg, generate_pdf_to_buffer
+from vedic_kundali import generate_chart, generate_pdf_to_buffer
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -73,12 +73,8 @@ def generate():
         # ── Generate chart ────────────────────────────────────────
         chart = generate_chart(birth_data)
 
-        # ── Generate SVG in memory (for embedding in PDF) ─────────
-        from vedic_kundali import generate_svg_string
-        svg_content = generate_svg_string(chart)
-
         # ── Generate PDF to memory buffer ─────────────────────────
-        pdf_buffer = generate_pdf_to_buffer(chart, svg_content=svg_content)
+        pdf_buffer = generate_pdf_to_buffer(chart)
 
         # ── Serve the PDF ─────────────────────────────────────────
         safe_name = name.replace(" ", "_").lower()
