@@ -1,3 +1,4 @@
+flask
 pyswisseph
 reportlab
 svglib
