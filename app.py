@@ -7,10 +7,25 @@ Designed for PythonAnywhere free-tier deployment.
 
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for
 from datetime import datetime
+import csv
 import io
 import os
 
 from vedic_kundali import generate_chart, generate_pdf_to_buffer
+
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+_USAGE_LOG = os.path.join(_APP_DIR, "usage_log.csv")
+
+
+def log_usage(name, dob, time_of_birth, place):
+    """Append a row to usage_log.csv."""
+    file_exists = os.path.exists(_USAGE_LOG)
+    with open(_USAGE_LOG, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "name", "dob", "time", "place"])
+        writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                         name, dob, time_of_birth, place])
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -70,6 +85,9 @@ def generate():
             "lat": lat, "lon": lon,
             "place": place,
         }
+
+        # ── Log usage ─────────────────────────────────────────────
+        log_usage(name, date_str, time_str, place)
 
         # ── Generate chart ────────────────────────────────────────
         chart = generate_chart(birth_data)
