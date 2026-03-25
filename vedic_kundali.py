@@ -571,6 +571,123 @@ def generate_svg(chart, output_path="kundali_chart.svg"):
     return svg_content
 
 
+def generate_svg_string(chart):
+    """Generate SVG chart as a string (no file I/O). Used by the web app."""
+    # Reuse generate_svg logic but capture the string before file write.
+    # We build the SVG inline here to avoid writing to disk.
+    asc_sign = chart['asc_sign']
+    planets  = chart['planets']
+    bd       = chart['birth_data']
+
+    W, H_SVG = 620, 660
+    ox, oy = 60, 60
+    gw, gh = 500, 500
+    cx = ox + gw // 2
+    cy = oy + gh // 2
+
+    svg = []
+    svg.append(f'<svg width="{W}" height="{H_SVG}" viewBox="0 0 {W} {H_SVG}" '
+               f'xmlns="http://www.w3.org/2000/svg" font-family="Arial,sans-serif">')
+    svg.append(f'<rect width="{W}" height="{H_SVG}" fill="#fffdf5"/>')
+
+    svg.append(f'<text x="{W//2}" y="30" text-anchor="middle" '
+               f'font-size="17" font-weight="bold" fill="#8B0000">'
+               f'\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940</text>')
+    svg.append(f'<text x="{W//2}" y="48" text-anchor="middle" '
+               f'font-size="12" fill="#444">{bd["name"]}</text>')
+    svg.append(f'<text x="{W//2}" y="63" text-anchor="middle" '
+               f'font-size="10" fill="#777">'
+               f'{bd["day"]:02d}/{bd["month"]:02d}/{bd["year"]}  '
+               f'{bd["hour"]:02d}:{bd["minute"]:02d}  \u00b7  {bd["place"]}</text>')
+
+    # Grid
+    svg.append(f'<rect x="{ox}" y="{oy+20}" width="{gw}" height="{gh}" '
+               f'fill="#FFFEF5" stroke="#8B6914" stroke-width="1.5"/>')
+    svg.append(f'<line x1="{ox}" y1="{oy+20}" x2="{ox+gw}" y2="{oy+20+gh}" '
+               f'stroke="#8B6914" stroke-width="0.8"/>')
+    svg.append(f'<line x1="{ox+gw}" y1="{oy+20}" x2="{ox}" y2="{oy+20+gh}" '
+               f'stroke="#8B6914" stroke-width="0.8"/>')
+    svg.append(f'<line x1="{ox}" y1="{oy+20+gh//2}" x2="{ox+gw}" y2="{oy+20+gh//2}" '
+               f'stroke="#8B6914" stroke-width="0.8"/>')
+    svg.append(f'<line x1="{ox+gw//2}" y1="{oy+20}" x2="{ox+gw//2}" y2="{oy+20+gh}" '
+               f'stroke="#8B6914" stroke-width="0.8"/>')
+
+    acy = oy + 20 + gh // 2
+
+    cell_centers = {
+        1:  (ox + 62,          acy),
+        2:  (ox + 95,          oy+20+gh - 82),
+        3:  (ox+gw//2,         oy+20+gh - 58),
+        4:  (ox+gw - 95,       oy+20+gh - 82),
+        5:  (ox+gw - 62,       acy),
+        6:  (ox+gw - 95,       oy+20 + 82),
+        7:  (ox+gw//2,         oy+20 + 58),
+        8:  (ox + 95,          oy+20 + 82),
+        9:  (ox+gw//2 - 92,    acy + 72),
+        10: (ox+gw//2 + 92,    acy + 72),
+        11: (ox+gw//2 + 92,    acy - 72),
+        12: (ox+gw//2 - 92,    acy - 72),
+    }
+
+    cell_sign = {h: (asc_sign + h - 1) % 12 for h in range(1, 13)}
+
+    sign_planets = {i: [] for i in range(12)}
+    for pname, pdata in planets.items():
+        sign_planets[pdata['sign_idx']].append(pname)
+
+    PLANET_COLORS = {
+        "Sun":"#B8860B", "Moon":"#1E5FAD", "Mars":"#CC0000", "Mercury":"#1C7C3A",
+        "Jupiter":"#E07000", "Venus":"#7B00CC", "Saturn":"#1C1C8C",
+        "Rahu":"#006400", "Ketu":"#8B3A00",
+    }
+
+    # Lagna marker
+    lx, ly = cell_centers[1]
+    svg.append(f'<polygon points="{lx-10},{ly-28} {lx+50},{ly} {lx-10},{ly+28}" '
+               f'fill="#FFF3C4" stroke="#C8922A" stroke-width="1"/>')
+
+    for h in range(1, 13):
+        s_idx = cell_sign[h]
+        px, py_c = cell_centers[h]
+        svg.append(f'<text x="{px}" y="{py_c - 24}" text-anchor="middle" '
+                   f'font-size="9" fill="#AAAAAA">{h}</text>')
+        svg.append(f'<text x="{px}" y="{py_c - 10}" text-anchor="middle" '
+                   f'font-size="9" fill="#666666">{SIGNS_HI[s_idx]}</text>')
+        if h == 1:
+            svg.append(f'<text x="{px - 18}" y="{py_c + 4}" text-anchor="middle" '
+                       f'font-size="8" fill="#8B0000" font-weight="bold">'
+                       f'\u0932</text>')
+        plist = sign_planets[s_idx]
+        for i, pname in enumerate(plist):
+            pdata = planets[pname]
+            abbr  = PLANET_HI.get(pname, pname[:2])
+            deg   = int(pdata['deg'])
+            retro = "\u1d5b" if pdata['retro'] else ""
+            col   = PLANET_COLORS.get(pname, "#333")
+            yp    = py_c + 8 + i * 17
+            svg.append(
+                f'<text x="{px}" y="{yp}" text-anchor="middle" '
+                f'font-size="14" font-weight="bold" fill="{col}">'
+                f'{abbr}{retro}'
+                f'<tspan font-size="8" baseline-shift="super">{deg}</tspan>'
+                f'</text>')
+
+    fy = oy + 20 + gh + 30
+    svg.append(f'<text x="{W//2}" y="{fy}" text-anchor="middle" '
+               f'font-size="10" fill="#555">'
+               f'\u0932\u0917\u094d\u0928: {chart["asc_sign_hi"]} {dms_str(chart["asc_deg"])}  \u00b7  '
+               f'\u0930\u093e\u0936\u093f: {chart["moon_rashi_hi"]}  \u00b7  '
+               f'\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart["nakshatra"]} '
+               f'\u092a\u0926 {chart["nak_pada"]} '
+               f'({chart["nak_lord"]})</text>')
+    svg.append(f'<text x="{W//2}" y="{fy+16}" text-anchor="middle" '
+               f'font-size="8" fill="#AAAAAA">'
+               f'Lahiri Ayanamsha  \u00b7  Swiss Ephemeris</text>')
+    svg.append('</svg>')
+
+    return "\n".join(svg)
+
+
 # ─── Dasha Interpretations ────────────────────────────────────────────────────
 
 DASHA_READING = {
@@ -1110,6 +1227,302 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
 
     doc.build(story)
     print(f"  PDF report saved: {output_path}")
+
+
+def generate_pdf_to_buffer(chart, svg_content=None):
+    """
+    Generate PDF report to an in-memory BytesIO buffer (no file I/O).
+    Used by the Flask web app. Returns a seeked-to-0 BytesIO object.
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+    from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle,
+                                     Paragraph, Spacer, PageBreak)
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    import io
+
+    # ── Register Devanagari font (cross-platform) ────────────────
+    deva_font = "Helvetica"
+    deva_font_bold = "Helvetica-Bold"
+    font_paths = [
+        # macOS
+        "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
+        # Linux / PythonAnywhere — Noto Sans Devanagari
+        "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+        "/usr/share/fonts/opentype/noto/NotoSansDevanagari-Regular.otf",
+        # Lohit fallback (common on Ubuntu/Debian)
+        "/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf",
+    ]
+    for fp in font_paths:
+        try:
+            if fp.endswith(".ttc"):
+                pdfmetrics.registerFont(TTFont("DevSangam", fp, subfontIndex=0))
+            else:
+                pdfmetrics.registerFont(TTFont("DevSangam", fp))
+            deva_font = "DevSangam"
+            deva_font_bold = "DevSangam"
+            break
+        except Exception:
+            continue
+
+    # ── Colours ──────────────────────────────────────────────────
+    MAROON      = colors.HexColor("#8B0000")
+    HEADER_BG   = colors.HexColor("#8B0000")
+    HEADER_FG   = colors.white
+    ROW_ALT     = colors.HexColor("#FFF8E7")
+    ROW_NOW     = colors.HexColor("#FFFACD")
+
+    # ── Document setup ───────────────────────────────────────────
+    pdf_buffer = io.BytesIO()
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
+                            topMargin=15*mm, bottomMargin=15*mm,
+                            leftMargin=15*mm, rightMargin=15*mm)
+    styles = getSampleStyleSheet()
+    story = []
+
+    title_style = ParagraphStyle('KTitle', parent=styles['Title'],
+        fontName=deva_font, fontSize=22, textColor=MAROON,
+        alignment=TA_CENTER, spaceAfter=2*mm)
+    subtitle_style = ParagraphStyle('KSubtitle', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=11, textColor=colors.HexColor("#444"),
+        alignment=TA_CENTER, spaceAfter=1*mm)
+    info_style = ParagraphStyle('KInfo', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#555"),
+        alignment=TA_CENTER, spaceAfter=3*mm)
+    section_style = ParagraphStyle('KSection', parent=styles['Heading2'],
+        fontName='Helvetica-Bold', fontSize=12, textColor=MAROON,
+        alignment=TA_CENTER, spaceBefore=5*mm, spaceAfter=2*mm)
+
+    bd = chart['birth_data']
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+    moon_sign = planets['Moon']['sign_idx']
+    today = datetime.now()
+
+    # ── Page 1: Header ───────────────────────────────────────────
+    story.append(Paragraph("\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940", title_style))
+    story.append(Paragraph(f"{bd['name']}", subtitle_style))
+    story.append(Paragraph(
+        f"{bd['day']:02d}/{bd['month']:02d}/{bd['year']}  &nbsp; "
+        f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;\u00b7&nbsp; {bd['place']}",
+        info_style))
+
+    summary = (f"Lagna: {chart['asc_sign_en']} ({chart['asc_sign_hi']}) "
+               f"{dms_str(chart['asc_deg'])}  &nbsp;\u00b7&nbsp; "
+               f"Rashi: {chart['moon_rashi']} ({chart['moon_rashi_hi']})  &nbsp;\u00b7&nbsp; "
+               f"Nakshatra: {chart['nakshatra']}, Pada {chart['nak_pada']} "
+               f"({chart['nak_lord']})")
+    story.append(Paragraph(summary, info_style))
+
+    # ── Embed SVG chart if svglib is available ────────────────────
+    if svg_content:
+        try:
+            from svglib.svglib import svg2rlg
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".svg", mode="w",
+                                             encoding="utf-8", delete=False) as tmp:
+                tmp.write(svg_content)
+                tmp_path = tmp.name
+            drawing = svg2rlg(tmp_path)
+            os.unlink(tmp_path)
+            if drawing:
+                scale = (A4[0] - 30*mm) / drawing.width
+                drawing.width *= scale
+                drawing.height *= scale
+                drawing.scale(scale, scale)
+                story.append(drawing)
+                story.append(Spacer(1, 3*mm))
+        except (ImportError, Exception):
+            pass
+
+    # ── Planetary Positions Table ────────────────────────────────
+    story.append(Paragraph("Planetary Positions", section_style))
+
+    p_header = ['Graha', 'Sign (Rashi)', 'Degree', 'Rashi#',
+                'H/Lagna', 'H/Moon', 'R']
+    p_data = [p_header]
+    order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
+    for pname in order:
+        p = planets[pname]
+        sidx = p['sign_idx']
+        rashi = sidx + 1
+        h_lag = (sidx - asc_sign) % 12 + 1
+        h_moon = (sidx - moon_sign) % 12 + 1
+        retro = "\u211e" if p['retro'] else ""
+        sign_str = f"{p['sign_en']} ({p['sign_hi']})"
+        p_data.append([pname, sign_str, dms_str(p['deg']),
+                       str(rashi), f"H{h_lag}", f"H{h_moon}", retro])
+
+    col_w = [55, 115, 65, 40, 45, 45, 20]
+    ptable = Table(p_data, colWidths=col_w)
+    ptable.setStyle(TableStyle([
+        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE',   (0,0), (-1,-1), 8),
+        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        ('TOPPADDING',  (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+    ]))
+    story.append(ptable)
+
+    # ── Mahadasha Table ──────────────────────────────────────────
+    story.append(Paragraph("Vimshottari Dasha \u2014 Mahadasha", section_style))
+
+    m_header = ['Lord', 'Start', 'End', 'Years', '']
+    m_data = [m_header]
+    current_maha = None
+    for lord, start, end, yrs in chart['dashas']:
+        is_now = start <= today < end
+        if is_now:
+            current_maha = lord
+        marker = "\u25c4 NOW" if is_now else ""
+        m_data.append([lord, start.strftime('%b %Y'), end.strftime('%b %Y'),
+                       f"{yrs:.1f}", marker])
+
+    mtable = Table(m_data, colWidths=[70, 80, 80, 50, 50])
+    m_style = [
+        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE',   (0,0), (-1,-1), 8),
+        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        ('TOPPADDING',  (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+    ]
+    for i, (lord, start, end, yrs) in enumerate(chart['dashas'], 1):
+        if start <= today < end:
+            m_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
+            m_style.append(('FONTNAME', (0, i), (-1, i), 'Helvetica-Bold'))
+    mtable.setStyle(TableStyle(m_style))
+    story.append(mtable)
+
+    # ── Page 2: Antardasha + Pratyantar ──────────────────────────
+    story.append(PageBreak())
+
+    if current_maha and current_maha in chart.get('antardasha', {}):
+        story.append(Paragraph(
+            f"Vimshottari Dasha \u2014 Antardasha (within {current_maha} Mahadasha)",
+            section_style))
+
+        a_header = ['Lord', 'Start', 'End', 'Duration', '']
+        a_data = [a_header]
+        current_antar = None
+        for ad_lord, ad_start, ad_end, ad_yrs in chart['antardasha'][current_maha]:
+            is_now = ad_start <= today < ad_end
+            if is_now:
+                current_antar = ad_lord
+            marker = "\u25c4 NOW" if is_now else ""
+            months = ad_yrs * 12
+            dur_str = f"{ad_yrs:.1f}y" if months >= 12 else f"{months:.1f}m"
+            a_data.append([ad_lord, ad_start.strftime('%d %b %Y'),
+                           ad_end.strftime('%d %b %Y'), dur_str, marker])
+
+        atable = Table(a_data, colWidths=[70, 90, 90, 55, 50])
+        a_style = [
+            ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE',   (0,0), (-1,-1), 8),
+            ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+            ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+            ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+            ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+            ('TOPPADDING',  (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+        ]
+        for i, (ad_lord, ad_start, ad_end, ad_yrs) in enumerate(
+                chart['antardasha'][current_maha], 1):
+            if ad_start <= today < ad_end:
+                a_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
+                a_style.append(('FONTNAME', (0, i), (-1, i), 'Helvetica-Bold'))
+        atable.setStyle(TableStyle(a_style))
+        story.append(atable)
+
+        # Pratyantar
+        if current_antar:
+            key = (current_maha, current_antar)
+            if key in chart.get('pratyantar', {}):
+                story.append(Paragraph(
+                    f"Vimshottari Dasha \u2014 Pratyantar "
+                    f"(within {current_maha}\u2013{current_antar})",
+                    section_style))
+                pd_header = ['Lord', 'Start', 'End', 'Duration', '']
+                pd_data = [pd_header]
+                for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
+                    is_now = pd_start <= today < pd_end
+                    marker = "\u25c4 NOW" if is_now else ""
+                    days = pd_yrs * 365.25
+                    dur_str = f"{pd_yrs*12:.1f}m" if days >= 30 else f"{days:.0f}d"
+                    pd_data.append([pd_lord, pd_start.strftime('%d %b %Y'),
+                                    pd_end.strftime('%d %b %Y'), dur_str, marker])
+                pdtable = Table(pd_data, colWidths=[70, 90, 90, 55, 50])
+                pd_style = [
+                    ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE',   (0,0), (-1,-1), 8),
+                    ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+                    ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+                    ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+                    ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+                    ('TOPPADDING',  (0,0), (-1,-1), 3),
+                    ('BOTTOMPADDING',(0,0), (-1,-1), 3),
+                ]
+                for i, (pd_lord, pd_start, pd_end, pd_yrs) in enumerate(
+                        chart['pratyantar'][key], 1):
+                    if pd_start <= today < pd_end:
+                        pd_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
+                        pd_style.append(('FONTNAME', (0, i), (-1, i), 'Helvetica-Bold'))
+                pdtable.setStyle(TableStyle(pd_style))
+                story.append(pdtable)
+
+    # ── Page 3: Dasha Reading ────────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Dasha Reading &amp; General Insights", title_style))
+    story.append(Spacer(1, 3*mm))
+
+    reading_style = ParagraphStyle('KReading2', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, leading=14, spaceBefore=2*mm, spaceAfter=2*mm)
+    reading_bold = ParagraphStyle('KReadBold2', parent=reading_style,
+        fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+        spaceBefore=4*mm, spaceAfter=1*mm)
+    disclaimer_style = ParagraphStyle('KDisclaimer2', parent=styles['Normal'],
+        fontName='Helvetica-Oblique', fontSize=7.5,
+        textColor=colors.HexColor("#999"), alignment=TA_CENTER,
+        spaceBefore=8*mm, spaceAfter=2*mm)
+
+    reading = _dasha_reading(chart, today)
+    for block in reading:
+        if block.startswith("##"):
+            story.append(Paragraph(block[2:].strip(), reading_bold))
+        else:
+            story.append(Paragraph(block, reading_style))
+
+    story.append(Spacer(1, 5*mm))
+    story.append(Paragraph(
+        "Disclaimer: This reading is generated based on classical Vimshottari "
+        "Dasha interpretations and is for educational/entertainment purposes only. "
+        "For personalised guidance, consult a qualified Jyotish practitioner.",
+        disclaimer_style))
+
+    story.append(Spacer(1, 8*mm))
+    footer_style = ParagraphStyle('KFooter2', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=7, textColor=colors.HexColor("#AAAAAA"),
+        alignment=TA_CENTER)
+    story.append(Paragraph("Lahiri Ayanamsha  \u00b7  Swiss Ephemeris  \u00b7  "
+                           "Generated by Vedic Kundali Generator", footer_style))
+
+    doc.build(story)
+    pdf_buffer.seek(0)
+    return pdf_buffer
 
 
 # ─── City Coordinates Lookup ──────────────────────────────────────────────────
