@@ -30,7 +30,12 @@ SIGNS_HI = [
     "Tula","Vrishchika","Dhanus","Makara","Kumbha","Meena"
 ]
 SIGNS_SHORT = ["Ar","Ta","Ge","Ca","Le","Vi","Li","Sc","Sa","Cp","Aq","Pi"]
-SIGNS_HI_SHORT = ["मेष","वृष","मिथ","कर्क","सिंह","कन्या","तुला","वृश्चि","धनु","मकर","कुंभ","मीन"]
+SIGNS_HI_SHORT = ["\u092e\u0947\u0937","\u0935\u0943\u0937","\u092e\u093f\u0925","\u0915\u0930\u094d\u0915","\u0938\u093f\u0902\u0939","\u0915\u0928\u094d\u092f\u093e","\u0924\u0941\u0932\u093e","\u0935\u0943\u0936\u094d\u091a\u093f","\u0927\u0928\u0941","\u092e\u0915\u0930","\u0915\u0941\u0902\u092d","\u092e\u0940\u0928"]
+SIGNS_HI_FULL = [
+    "\u092e\u0947\u0937","\u0935\u0943\u0937\u092d","\u092e\u093f\u0925\u0941\u0928","\u0915\u0930\u094d\u0915",
+    "\u0938\u093f\u0902\u0939","\u0915\u0928\u094d\u092f\u093e","\u0924\u0941\u0932\u093e","\u0935\u0943\u0936\u094d\u091a\u093f\u0915",
+    "\u0927\u0928\u0941","\u092e\u0915\u0930","\u0915\u0941\u0902\u092d","\u092e\u0940\u0928"
+]
 
 PLANETS_SWE = {
     "Sun":     swe.SUN,
@@ -1472,13 +1477,16 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     # ── Register Devanagari font (cross-platform) ────────────────
     deva_font = "Helvetica"
     deva_font_bold = "Helvetica-Bold"
+    # Bundled font first (works on PythonAnywhere), then system fonts
+    _bundled_font = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "fonts", "NotoSansDevanagari.ttf")
     font_paths = [
+        _bundled_font,
         # macOS
         "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
-        # Linux / PythonAnywhere — Noto Sans Devanagari
+        # Linux system fonts
         "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
         "/usr/share/fonts/opentype/noto/NotoSansDevanagari-Regular.otf",
-        # Lohit fallback (common on Ubuntu/Debian)
         "/usr/share/fonts/truetype/lohit-devanagari/Lohit-Devanagari.ttf",
     ]
     for fp in font_paths:
@@ -1748,9 +1756,9 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;\u00b7&nbsp; {bd['place']}",
         hi_info_style))
 
-    hi_summary = (f"\u0932\u0917\u094d\u0928: {chart['asc_sign_hi']} "
+    hi_summary = (f"\u0932\u0917\u094d\u0928: {SIGNS_HI_FULL[chart['asc_sign']]} "
                   f"{dms_str(chart['asc_deg'])}  &nbsp;\u00b7&nbsp; "
-                  f"\u0930\u093e\u0936\u093f: {chart['moon_rashi_hi']}  &nbsp;\u00b7&nbsp; "
+                  f"\u0930\u093e\u0936\u093f: {SIGNS_HI_FULL[planets['Moon']['sign_idx']]}  &nbsp;\u00b7&nbsp; "
                   f"\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart['nakshatra']}, "
                   f"\u092a\u0926 {chart['nak_pada']} "
                   f"({PLANET_HI_FULL.get(chart['nak_lord'], chart['nak_lord'])})")
@@ -1770,7 +1778,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         h_lag = (sidx - asc_sign) % 12 + 1
         h_moon = (sidx - moon_sign) % 12 + 1
         retro = "\u211e" if p['retro'] else ""
-        hi_p_data.append([PLANET_HI_FULL.get(pname, pname), p['sign_hi'],
+        hi_p_data.append([PLANET_HI_FULL.get(pname, pname), SIGNS_HI_FULL[sidx],
                           dms_str(p['deg']), str(rashi),
                           f"\u092d{h_lag}", f"\u092d{h_moon}", retro])
 
