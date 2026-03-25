@@ -1458,6 +1458,178 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
     print(f"  PDF report saved: {output_path}")
 
 
+def _generate_hindi_pdf(chart, today):
+    """Generate Hindi pages as PDF using WeasyPrint for proper Devanagari rendering.
+    Returns a BytesIO buffer, or None if WeasyPrint is unavailable."""
+    try:
+        from weasyprint import HTML
+    except (ImportError, OSError):
+        return None
+
+    import io as _io
+
+    bd = chart['birth_data']
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+    moon_sign = planets['Moon']['sign_idx']
+    order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
+
+    # Bundled font path
+    font_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              "fonts", "NotoSansDevanagari.ttf")
+    font_url = f"file://{font_path}"
+
+    # ── Build HTML ────────────────────────────────────────────────
+    css = f"""
+    @font-face {{
+        font-family: 'NotoHindi';
+        src: url('{font_url}');
+    }}
+    body {{ font-family: 'NotoHindi', 'Devanagari Sangam MN', 'Noto Sans Devanagari', sans-serif;
+           color: #333; margin: 40px; font-size: 10pt; }}
+    h1 {{ color: #8B0000; text-align: center; font-size: 20pt; margin-bottom: 2px; }}
+    .brand {{ text-align: center; color: #B8860B; font-style: italic; font-size: 10pt; margin-bottom: 10px; }}
+    .info {{ text-align: center; color: #555; font-size: 9pt; margin-bottom: 5px; }}
+    h2 {{ color: #8B0000; text-align: center; font-size: 12pt; margin-top: 15px; margin-bottom: 8px; }}
+    h3 {{ color: #8B0000; font-size: 10pt; margin-top: 12px; margin-bottom: 4px; }}
+    table {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8pt; }}
+    th {{ background: #8B0000; color: white; padding: 4px 6px; text-align: center; }}
+    td {{ padding: 4px 6px; text-align: center; border: 0.5px solid #CCC; }}
+    tr:nth-child(even) {{ background: #FFF8E7; }}
+    tr.now {{ background: #FFFACD; font-weight: bold; }}
+    .reading {{ font-size: 9.5pt; line-height: 1.5; margin: 5px 0; }}
+    .disclaimer {{ font-size: 7.5pt; color: #999; text-align: center; font-style: italic; margin-top: 20px; }}
+    .footer {{ font-size: 7pt; color: #AAA; text-align: center; margin-top: 10px; }}
+    .page-break {{ page-break-before: always; }}
+    """
+
+    html_parts = [f"<html><head><style>{css}</style></head><body>"]
+
+    # ── Hindi Page 1: Header + Planetary Positions ───────────────
+    html_parts.append("<h1>\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940</h1>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+    html_parts.append(f'<div class="info" style="font-size:11pt; color:#444; font-weight:bold;">{bd["name"]}</div>')
+    html_parts.append(f'<div class="info">{bd["day"]:02d}/{bd["month"]:02d}/{bd["year"]}  '
+                       f'{bd["hour"]:02d}:{bd["minute"]:02d}  \u00b7  {bd["place"]}</div>')
+    html_parts.append(f'<div class="info">\u0932\u0917\u094d\u0928: {SIGNS_HI_FULL[asc_sign]} '
+                       f'{dms_str(chart["asc_deg"])}  \u00b7  '
+                       f'\u0930\u093e\u0936\u093f: {SIGNS_HI_FULL[moon_sign]}  \u00b7  '
+                       f'\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart["nakshatra"]}, '
+                       f'\u092a\u0926 {chart["nak_pada"]} '
+                       f'({PLANET_HI_FULL.get(chart["nak_lord"], chart["nak_lord"])})</div>')
+
+    html_parts.append("<h2>\u0917\u094d\u0930\u0939 \u0938\u094d\u0925\u093f\u0924\u093f</h2>")
+    html_parts.append("<table><tr><th>\u0917\u094d\u0930\u0939</th><th>\u0930\u093e\u0936\u093f</th>"
+                       "<th>\u0905\u0902\u0936</th><th>\u0930\u093e\u0936\u093f#</th>"
+                       "<th>\u0932\u0917\u094d\u0928</th><th>\u091a\u0928\u094d\u0926\u094d\u0930</th><th>\u0935</th></tr>")
+    for pname in order:
+        p = planets[pname]
+        sidx = p['sign_idx']
+        rashi = sidx + 1
+        h_lag = (sidx - asc_sign) % 12 + 1
+        h_moon = (sidx - moon_sign) % 12 + 1
+        retro = "\u211e" if p['retro'] else ""
+        html_parts.append(f"<tr><td>{PLANET_HI_FULL.get(pname, pname)}</td>"
+                           f"<td>{SIGNS_HI_FULL[sidx]}</td>"
+                           f"<td>{dms_str(p['deg'])}</td><td>{rashi}</td>"
+                           f"<td>\u092d{h_lag}</td><td>\u092d{h_moon}</td>"
+                           f"<td>{retro}</td></tr>")
+    html_parts.append("</table>")
+
+    # ── Hindi Page 2: Dasha Tables ───────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+
+    # Mahadasha
+    html_parts.append("<h2>\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 \u092e\u0939\u093e\u0926\u0936\u093e</h2>")
+    html_parts.append("<table><tr><th>\u0938\u094d\u0935\u093e\u092e\u0940</th><th>\u0906\u0930\u0902\u092d</th>"
+                       "<th>\u0905\u0902\u0924</th><th>\u0935\u0930\u094d\u0937</th><th></th></tr>")
+    current_maha = None
+    for lord, start, end, yrs in chart['dashas']:
+        is_now = start <= today < end
+        if is_now:
+            current_maha = lord
+        cls = ' class="now"' if is_now else ""
+        marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+        html_parts.append(f"<tr{cls}><td>{PLANET_HI_FULL.get(lord, lord)}</td>"
+                           f"<td>{start.strftime('%b %Y')}</td>"
+                           f"<td>{end.strftime('%b %Y')}</td>"
+                           f"<td>{yrs:.1f}</td><td>{marker}</td></tr>")
+    html_parts.append("</table>")
+
+    # Antardasha
+    if current_maha and current_maha in chart.get('antardasha', {}):
+        maha_hi = PLANET_HI_FULL.get(current_maha, current_maha)
+        html_parts.append(f"<h2>\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
+                           f"\u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e ({maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u092e\u0947\u0902)</h2>")
+        html_parts.append("<table><tr><th>\u0938\u094d\u0935\u093e\u092e\u0940</th><th>\u0906\u0930\u0902\u092d</th>"
+                           "<th>\u0905\u0902\u0924</th><th>\u0905\u0935\u0927\u093f</th><th></th></tr>")
+        current_antar = None
+        for ad_lord, ad_start, ad_end, ad_yrs in chart['antardasha'][current_maha]:
+            is_now = ad_start <= today < ad_end
+            if is_now:
+                current_antar = ad_lord
+            cls = ' class="now"' if is_now else ""
+            marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+            months = ad_yrs * 12
+            dur = f"{ad_yrs:.1f}\u0935" if months >= 12 else f"{months:.1f}\u092e"
+            html_parts.append(f"<tr{cls}><td>{PLANET_HI_FULL.get(ad_lord, ad_lord)}</td>"
+                               f"<td>{ad_start.strftime('%d %b %Y')}</td>"
+                               f"<td>{ad_end.strftime('%d %b %Y')}</td>"
+                               f"<td>{dur}</td><td>{marker}</td></tr>")
+        html_parts.append("</table>")
+
+        # Pratyantar
+        if current_antar:
+            key = (current_maha, current_antar)
+            if key in chart.get('pratyantar', {}):
+                antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
+                html_parts.append(f"<h2>\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
+                                   f"\u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930 ({maha_hi}\u2013{antar_hi})</h2>")
+                html_parts.append("<table><tr><th>\u0938\u094d\u0935\u093e\u092e\u0940</th><th>\u0906\u0930\u0902\u092d</th>"
+                                   "<th>\u0905\u0902\u0924</th><th>\u0905\u0935\u0927\u093f</th><th></th></tr>")
+                for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
+                    is_now = pd_start <= today < pd_end
+                    cls = ' class="now"' if is_now else ""
+                    marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+                    days = pd_yrs * 365.25
+                    dur = f"{pd_yrs*12:.1f}\u092e" if days >= 30 else f"{days:.0f}\u0926"
+                    html_parts.append(f"<tr{cls}><td>{PLANET_HI_FULL.get(pd_lord, pd_lord)}</td>"
+                                       f"<td>{pd_start.strftime('%d %b %Y')}</td>"
+                                       f"<td>{pd_end.strftime('%d %b %Y')}</td>"
+                                       f"<td>{dur}</td><td>{marker}</td></tr>")
+                html_parts.append("</table>")
+
+    # ── Hindi Page 3: Predictions ────────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h1>\u0926\u0936\u093e \u092b\u0932 \u090f\u0935\u0902 \u092d\u0935\u093f\u0937\u094d\u092f\u0935\u093e\u0923\u0940</h1>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+
+    hi_reading = _dasha_reading_hi(chart, today)
+    for block in hi_reading:
+        if block.startswith("##"):
+            html_parts.append(f"<h3>{block[2:].strip()}</h3>")
+        else:
+            html_parts.append(f'<div class="reading">{block}</div>')
+
+    # Disclaimer
+    html_parts.append('<div class="disclaimer">'
+                       '\u0905\u0938\u094d\u0935\u0940\u0915\u0930\u0923: \u092f\u0939 \u092a\u0920\u0928 '
+                       '\u0936\u093e\u0938\u094d\u0924\u094d\u0930\u0940\u092f \u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 '
+                       '\u0926\u0936\u093e \u0935\u094d\u092f\u093e\u0916\u094d\u092f\u093e\u0913\u0902 \u092a\u0930 '
+                       '\u0906\u0927\u093e\u0930\u093f\u0924 \u0939\u0948\u0964 '
+                       '\u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 \u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928 '
+                       '\u0915\u0947 \u0932\u093f\u090f \u0915\u093f\u0938\u0940 \u092f\u094b\u0917\u094d\u092f '
+                       '\u091c\u094d\u092f\u094b\u0924\u093f\u0937 \u0938\u0947 \u092a\u0930\u093e\u092e\u0930\u094d\u0936 \u0915\u0930\u0947\u0902\u0964</div>')
+    html_parts.append('<div class="footer">Lahiri Ayanamsha \u00b7 Swiss Ephemeris \u00b7 Generated by AstroShuklz</div>')
+    html_parts.append("</body></html>")
+
+    html_str = "\n".join(html_parts)
+    buf = _io.BytesIO()
+    HTML(string=html_str).write_pdf(buf)
+    buf.seek(0)
+    return buf
+
+
 def generate_pdf_to_buffer(chart, svg_content=None):
     """
     Generate PDF report to an in-memory BytesIO buffer (no file I/O).
@@ -1726,218 +1898,15 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             story.append(Paragraph(block, reading_style))
 
     # ══════════════════════════════════════════════════════════════
-    # HINDI PAGES (हिन्दी)
+    # Build English PDF first, then merge with Hindi PDF (weasyprint)
     # ══════════════════════════════════════════════════════════════
 
-    # Hindi styles
-    hi_title_style = ParagraphStyle('KHiTitle', parent=styles['Title'],
-        fontName=deva_font, fontSize=22, textColor=MAROON,
-        alignment=TA_CENTER, spaceAfter=2*mm)
-    hi_subtitle_style = ParagraphStyle('KHiSubtitle', parent=styles['Normal'],
-        fontName=deva_font, fontSize=11, textColor=colors.HexColor("#444"),
-        alignment=TA_CENTER, spaceAfter=1*mm)
-    hi_info_style = ParagraphStyle('KHiInfo', parent=styles['Normal'],
-        fontName=deva_font, fontSize=9, textColor=colors.HexColor("#555"),
-        alignment=TA_CENTER, spaceAfter=3*mm)
-    hi_section_style = ParagraphStyle('KHiSection', parent=styles['Heading2'],
-        fontName=deva_font, fontSize=12, textColor=MAROON,
-        alignment=TA_CENTER, spaceBefore=5*mm, spaceAfter=2*mm)
-    hi_brand_style = ParagraphStyle('KHiBrand', parent=styles['Normal'],
-        fontName='Helvetica-Oblique', fontSize=10, textColor=colors.HexColor("#B8860B"),
-        alignment=TA_CENTER, spaceAfter=4*mm)
-
-    # ── Hindi Page 1: Header + Planetary Positions ───────────────
-    story.append(PageBreak())
-    story.append(Paragraph("\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940", hi_title_style))
-    story.append(Paragraph("by AstroShuklz", hi_brand_style))
-    story.append(Paragraph(f"{bd['name']}", hi_subtitle_style))
-    story.append(Paragraph(
-        f"{bd['day']:02d}/{bd['month']:02d}/{bd['year']}  &nbsp; "
-        f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;\u00b7&nbsp; {bd['place']}",
-        hi_info_style))
-
-    hi_summary = (f"\u0932\u0917\u094d\u0928: {SIGNS_HI_FULL[chart['asc_sign']]} "
-                  f"{dms_str(chart['asc_deg'])}  &nbsp;\u00b7&nbsp; "
-                  f"\u0930\u093e\u0936\u093f: {SIGNS_HI_FULL[planets['Moon']['sign_idx']]}  &nbsp;\u00b7&nbsp; "
-                  f"\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart['nakshatra']}, "
-                  f"\u092a\u0926 {chart['nak_pada']} "
-                  f"({PLANET_HI_FULL.get(chart['nak_lord'], chart['nak_lord'])})")
-    story.append(Paragraph(hi_summary, hi_info_style))
-    story.append(Spacer(1, 5*mm))
-
-    story.append(Paragraph("\u0917\u094d\u0930\u0939 \u0938\u094d\u0925\u093f\u0924\u093f", hi_section_style))
-
-    hi_p_header = ['\u0917\u094d\u0930\u0939', '\u0930\u093e\u0936\u093f',
-                   '\u0905\u0902\u0936', '\u0930\u093e\u0936\u093f#',
-                   '\u0932\u0917\u094d\u0928', '\u091a\u0928\u094d\u0926\u094d\u0930', '\u0935']
-    hi_p_data = [hi_p_header]
-    for pname in order:
-        p = planets[pname]
-        sidx = p['sign_idx']
-        rashi = sidx + 1
-        h_lag = (sidx - asc_sign) % 12 + 1
-        h_moon = (sidx - moon_sign) % 12 + 1
-        retro = "\u211e" if p['retro'] else ""
-        hi_p_data.append([PLANET_HI_FULL.get(pname, pname), SIGNS_HI_FULL[sidx],
-                          dms_str(p['deg']), str(rashi),
-                          f"\u092d{h_lag}", f"\u092d{h_moon}", retro])
-
-    hi_ptable = Table(hi_p_data, colWidths=[50, 70, 65, 40, 45, 45, 20])
-    hi_ptable.setStyle(TableStyle([
-        ('FONTNAME',   (0,0), (-1,0), deva_font),
-        ('FONTNAME',   (0,1), (-1,-1), deva_font),
-        ('FONTSIZE',   (0,0), (-1,-1), 8),
-        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
-        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
-        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
-        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
-        ('TOPPADDING',  (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING',(0,0), (-1,-1), 3),
-    ]))
-    story.append(hi_ptable)
-
-    # ── Hindi Page 2: Dasha Tables ───────────────────────────────
-    story.append(PageBreak())
-
-    # Mahadasha
-    story.append(Paragraph("\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 \u092e\u0939\u093e\u0926\u0936\u093e", hi_section_style))
-    hi_m_header = ['\u0938\u094d\u0935\u093e\u092e\u0940', '\u0906\u0930\u0902\u092d', '\u0905\u0902\u0924', '\u0935\u0930\u094d\u0937', '']
-    hi_m_data = [hi_m_header]
-    for lord, start, end, yrs in chart['dashas']:
-        is_now = start <= today < end
-        marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
-        hi_m_data.append([PLANET_HI_FULL.get(lord, lord), start.strftime('%b %Y'),
-                          end.strftime('%b %Y'), f"{yrs:.1f}", marker])
-
-    hi_mtable = Table(hi_m_data, colWidths=[60, 80, 80, 50, 55])
-    hi_m_style = [
-        ('FONTNAME',   (0,0), (-1,-1), deva_font),
-        ('FONTSIZE',   (0,0), (-1,-1), 8),
-        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
-        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
-        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
-        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
-        ('TOPPADDING',  (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING',(0,0), (-1,-1), 3),
-    ]
-    for i, (lord, start, end, yrs) in enumerate(chart['dashas'], 1):
-        if start <= today < end:
-            hi_m_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
-            hi_m_style.append(('FONTNAME', (0, i), (-1, i), deva_font))
-    hi_mtable.setStyle(TableStyle(hi_m_style))
-    story.append(hi_mtable)
-
-    # Antardasha
-    if current_maha and current_maha in chart.get('antardasha', {}):
-        maha_hi_name = PLANET_HI_FULL.get(current_maha, current_maha)
-        story.append(Paragraph(
-            f"\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
-            f"\u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e ({maha_hi_name} \u092e\u0939\u093e\u0926\u0936\u093e \u092e\u0947\u0902)",
-            hi_section_style))
-
-        hi_a_header = ['\u0938\u094d\u0935\u093e\u092e\u0940', '\u0906\u0930\u0902\u092d', '\u0905\u0902\u0924', '\u0905\u0935\u0927\u093f', '']
-        hi_a_data = [hi_a_header]
-        hi_current_antar = None
-        for ad_lord, ad_start, ad_end, ad_yrs in chart['antardasha'][current_maha]:
-            is_now = ad_start <= today < ad_end
-            if is_now:
-                hi_current_antar = ad_lord
-            marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
-            months = ad_yrs * 12
-            dur_str = f"{ad_yrs:.1f}\u0935" if months >= 12 else f"{months:.1f}\u092e"
-            hi_a_data.append([PLANET_HI_FULL.get(ad_lord, ad_lord),
-                              ad_start.strftime('%d %b %Y'),
-                              ad_end.strftime('%d %b %Y'), dur_str, marker])
-
-        hi_atable = Table(hi_a_data, colWidths=[60, 90, 90, 55, 55])
-        hi_a_style = [
-            ('FONTNAME',   (0,0), (-1,-1), deva_font),
-            ('FONTSIZE',   (0,0), (-1,-1), 8),
-            ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
-            ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
-            ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
-            ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
-            ('TOPPADDING',  (0,0), (-1,-1), 3),
-            ('BOTTOMPADDING',(0,0), (-1,-1), 3),
-        ]
-        for i, (ad_lord, ad_start, ad_end, ad_yrs) in enumerate(
-                chart['antardasha'][current_maha], 1):
-            if ad_start <= today < ad_end:
-                hi_a_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
-        hi_atable.setStyle(TableStyle(hi_a_style))
-        story.append(hi_atable)
-
-        # Pratyantar
-        if hi_current_antar:
-            key = (current_maha, hi_current_antar)
-            if key in chart.get('pratyantar', {}):
-                antar_hi_name = PLANET_HI_FULL.get(hi_current_antar, hi_current_antar)
-                story.append(Paragraph(
-                    f"\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
-                    f"\u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930 ({maha_hi_name}\u2013{antar_hi_name})",
-                    hi_section_style))
-                hi_pd_header = ['\u0938\u094d\u0935\u093e\u092e\u0940', '\u0906\u0930\u0902\u092d', '\u0905\u0902\u0924', '\u0905\u0935\u0927\u093f', '']
-                hi_pd_data = [hi_pd_header]
-                for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
-                    is_now = pd_start <= today < pd_end
-                    marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
-                    days = pd_yrs * 365.25
-                    dur_str = f"{pd_yrs*12:.1f}\u092e" if days >= 30 else f"{days:.0f}\u0926"
-                    hi_pd_data.append([PLANET_HI_FULL.get(pd_lord, pd_lord),
-                                       pd_start.strftime('%d %b %Y'),
-                                       pd_end.strftime('%d %b %Y'), dur_str, marker])
-                hi_pdtable = Table(hi_pd_data, colWidths=[60, 90, 90, 55, 55])
-                hi_pd_style = [
-                    ('FONTNAME',   (0,0), (-1,-1), deva_font),
-                    ('FONTSIZE',   (0,0), (-1,-1), 8),
-                    ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
-                    ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
-                    ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
-                    ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
-                    ('TOPPADDING',  (0,0), (-1,-1), 3),
-                    ('BOTTOMPADDING',(0,0), (-1,-1), 3),
-                ]
-                for i, (pd_lord, pd_start, pd_end, pd_yrs) in enumerate(
-                        chart['pratyantar'][key], 1):
-                    if pd_start <= today < pd_end:
-                        hi_pd_style.append(('BACKGROUND', (0, i), (-1, i), ROW_NOW))
-                hi_pdtable.setStyle(TableStyle(hi_pd_style))
-                story.append(hi_pdtable)
-
-    # ── Hindi Page 3: Predictions ────────────────────────────────
-    story.append(PageBreak())
-    story.append(Paragraph("\u0926\u0936\u093e \u092b\u0932 \u090f\u0935\u0902 \u092d\u0935\u093f\u0937\u094d\u092f\u0935\u093e\u0923\u0940", hi_title_style))
-    story.append(Paragraph("by AstroShuklz", hi_brand_style))
-    story.append(Spacer(1, 3*mm))
-
-    hi_reading_style = ParagraphStyle('KHiReading', parent=styles['Normal'],
-        fontName=deva_font, fontSize=9.5, textColor=colors.HexColor("#333"),
-        alignment=TA_LEFT, leading=14, spaceBefore=2*mm, spaceAfter=2*mm)
-    hi_reading_bold = ParagraphStyle('KHiReadBold', parent=hi_reading_style,
-        fontName=deva_font, fontSize=10, textColor=MAROON,
-        spaceBefore=4*mm, spaceAfter=1*mm)
-
-    hi_reading = _dasha_reading_hi(chart, today)
-    for block in hi_reading:
-        if block.startswith("##"):
-            story.append(Paragraph(block[2:].strip(), hi_reading_bold))
-        else:
-            story.append(Paragraph(block, hi_reading_style))
-
-    # ── Disclaimer & Footer (shared) ─────────────────────────────
+    # ── English disclaimer ──────────────────────────────────────
     story.append(Spacer(1, 5*mm))
     story.append(Paragraph(
-        "\u0905\u0938\u094d\u0935\u0940\u0915\u0930\u0923: \u092f\u0939 \u092a\u0920\u0928 \u0936\u093e\u0938\u094d\u0924\u094d\u0930\u0940\u092f "
-        "\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u0935\u094d\u092f\u093e\u0916\u094d\u092f\u093e\u0913\u0902 "
-        "\u092a\u0930 \u0906\u0927\u093e\u0930\u093f\u0924 \u0939\u0948 \u0914\u0930 \u0915\u0947\u0935\u0932 "
-        "\u0936\u0948\u0915\u094d\u0937\u093f\u0915/\u092e\u0928\u094b\u0930\u0902\u091c\u0928 \u0909\u0926\u094d\u0926\u0947\u0936\u094d\u092f\u094b\u0902 "
-        "\u0915\u0947 \u0932\u093f\u090f \u0939\u0948\u0964 \u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 "
-        "\u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928 \u0915\u0947 \u0932\u093f\u090f \u0915\u093f\u0938\u0940 "
-        "\u092f\u094b\u0917\u094d\u092f \u091c\u094d\u092f\u094b\u0924\u093f\u0937 \u0938\u0947 \u092a\u0930\u093e\u092e\u0930\u094d\u0936 \u0915\u0930\u0947\u0902\u0964",
+        "Disclaimer: This reading is generated based on classical Vimshottari "
+        "Dasha interpretations and is for educational/entertainment purposes only. "
+        "For personalised guidance, consult a qualified Jyotish practitioner.",
         disclaimer_style))
 
     story.append(Spacer(1, 8*mm))
@@ -1948,6 +1917,28 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                            "Generated by AstroShuklz", footer_style))
 
     doc.build(story)
+
+    # ══════════════════════════════════════════════════════════════
+    # HINDI PAGES via WeasyPrint (proper Devanagari conjunct rendering)
+    # ══════════════════════════════════════════════════════════════
+    hindi_pdf_buf = _generate_hindi_pdf(chart, today)
+
+    # Merge English + Hindi PDFs
+    if hindi_pdf_buf:
+        from PyPDF2 import PdfReader, PdfWriter
+        writer = PdfWriter()
+        pdf_buffer.seek(0)
+        eng_reader = PdfReader(pdf_buffer)
+        for page in eng_reader.pages:
+            writer.add_page(page)
+        hi_reader = PdfReader(hindi_pdf_buf)
+        for page in hi_reader.pages:
+            writer.add_page(page)
+        merged = io.BytesIO()
+        writer.write(merged)
+        merged.seek(0)
+        return merged
+
     pdf_buffer.seek(0)
     return pdf_buffer
 

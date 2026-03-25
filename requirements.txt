@@ -5,3 +5,5 @@ svglib
 geopy
 timezonefinder
 pytz
+weasyprint
+PyPDF2
