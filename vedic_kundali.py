@@ -1512,13 +1512,48 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     return pdf_buffer
 
 
-# ─── City Coordinates Lookup ──────────────────────────────────────────────────
+# ─── City Coordinates Lookup (CSV-backed) ────────────────────────────────────
 
-# Fallback database — used when geopy is unavailable or offline
-# Format: "city name": (lat, lon, utc_offset_standard)
-# Note: utc_offset here is STANDARD time. DST is handled by timezonefinder/pytz
-# when geopy is available. For offline fallback, standard offset is used.
-CITY_DB = {
+import csv
+
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_CITIES_CSV = os.path.join(_SCRIPT_DIR, "cities.csv")
+
+
+def load_city_db(csv_path=_CITIES_CSV):
+    """Load city database from CSV file. Returns dict keyed by lowercase city name."""
+    db = {}
+    if not os.path.exists(csv_path):
+        return db
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            city = row["city"].strip().lower()
+            db[city] = (float(row["lat"]), float(row["lon"]), float(row["utc_offset"]))
+    return db
+
+
+def save_city_to_csv(city, lat, lon, utc_offset, csv_path=_CITIES_CSV):
+    """Append a new city to the CSV file (auto-learn from geopy lookups)."""
+    key = city.strip().lower()
+    # Avoid duplicates
+    existing = load_city_db(csv_path)
+    if key in existing:
+        return
+    file_exists = os.path.exists(csv_path)
+    with open(csv_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["city", "lat", "lon", "utc_offset"])
+        writer.writerow([key, lat, lon, utc_offset])
+
+
+# Load city DB at module import time
+CITY_DB = load_city_db()
+
+
+# Legacy hardcoded DB kept as inline fallback if CSV is missing
+_LEGACY_CITY_DB = {
     # ── India ──────────────────────────────────────────────────────────────
     "agra":             (27.1767,  78.0081,  5.5),
     "ahmedabad":        (23.0225,  72.5714,  5.5),
@@ -1703,17 +1738,26 @@ CITY_DB = {
 
 def lookup_city(city_name, birth_year=None, birth_month=None, birth_day=None):
     """
-    Look up a city and return (lat, lon, utc_offset, timezone_name).
+    Look up a city and return (lat, lon, utc_offset).
 
     Strategy:
-    1. Try geopy (Nominatim) + timezonefinder — works for ANY city worldwide,
-       and correctly handles historical DST for the birth date.
-    2. Fall back to built-in CITY_DB if geopy is unavailable/offline.
-    3. Return None if city not found anywhere.
+    1. Check CSV-backed CITY_DB first (fast, offline).
+    2. Try geopy (Nominatim) + timezonefinder for unknown cities.
+       If found, auto-save to cities.csv for future lookups.
+    3. Fall back to hardcoded _LEGACY_CITY_DB.
+    4. Return None if city not found anywhere.
     """
+    global CITY_DB
     key = city_name.strip().lower()
 
-    # ── Try geopy first ────────────────────────────────────────────────────
+    # ── 1. Check CSV-loaded database ─────────────────────────────────────
+    result = CITY_DB.get(key)
+    if result:
+        lat, lon, utc = result
+        print(f"  \u2713 Found in CSV: lat={lat}, lon={lon}, UTC{utc:+.1f}")
+        return result
+
+    # ── 2. Try geopy (online lookup) ─────────────────────────────────────
     try:
         from geopy.geocoders import Nominatim
         from timezonefinder import TimezoneFinder
@@ -1729,7 +1773,6 @@ def lookup_city(city_name, birth_year=None, birth_month=None, birth_day=None):
 
             if tz_name:
                 tz = pytz.timezone(tz_name)
-                # Use actual birth date if provided (handles historical DST)
                 if birth_year and birth_month and birth_day:
                     from datetime import datetime as _dt
                     dt = _dt(birth_year, birth_month, birth_day, 12, 0)
@@ -1737,20 +1780,29 @@ def lookup_city(city_name, birth_year=None, birth_month=None, birth_day=None):
                     from datetime import datetime as _dt
                     dt = _dt.now()
                 offset_hours = tz.utcoffset(dt).total_seconds() / 3600
-                print(f"  ✓ {location.address[:60]}")
+                print(f"  \u2713 {location.address[:60]}")
                 print(f"    lat={lat:.4f}, lon={lon:.4f}, UTC{offset_hours:+.2f} ({tz_name})")
+
+                # Auto-save to CSV for future lookups
+                save_city_to_csv(key, lat, lon, offset_hours)
+                CITY_DB[key] = (lat, lon, offset_hours)
+                print(f"    \u2713 Saved to cities.csv")
+
                 return (lat, lon, offset_hours)
 
     except ImportError:
-        pass   # geopy/timezonefinder/pytz not installed — use fallback
+        pass
     except Exception:
-        pass   # offline or geocoding failed — use fallback
+        pass
 
-    # ── Fallback to built-in DB ────────────────────────────────────────────
-    result = CITY_DB.get(key)
+    # ── 3. Fallback to hardcoded legacy DB ───────────────────────────────
+    result = _LEGACY_CITY_DB.get(key)
     if result:
         lat, lon, utc = result
-        print(f"  ✓ Found in database: lat={lat}, lon={lon}, UTC{utc:+.1f}")
+        print(f"  \u2713 Found in legacy DB: lat={lat}, lon={lon}, UTC{utc:+.1f}")
+        # Auto-save to CSV so it's available next time from CSV
+        save_city_to_csv(key, lat, lon, utc)
+        CITY_DB[key] = result
         return result
 
     return None
