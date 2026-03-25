@@ -89,7 +89,7 @@
             margin-top: 2px;
         }
 
-        button {
+        .btn-primary {
             margin-top: 24px;
             width: 100%;
             padding: 12px;
@@ -102,8 +102,24 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        button:hover { background: #6D0000; }
-        button:active { background: #4D0000; }
+        .btn-primary:hover { background: #6D0000; }
+        .btn-primary:active { background: #4D0000; }
+
+        .btn-readings {
+            margin-top: 10px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #B8860B, #DAA520);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-readings:hover { background: linear-gradient(135deg, #9A7209, #C4961A); }
+        .btn-readings:active { transform: scale(0.98); }
 
         .footer {
             text-align: center;
@@ -113,14 +129,155 @@
         }
 
         /* Loading state */
-        button.loading {
-            background: #999;
+        .loading {
+            background: #999 !important;
             pointer-events: none;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .modal-content {
+            background: #fff;
+            max-width: 680px;
+            margin: 30px auto;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+            min-height: 400px;
+        }
+        .modal-header {
+            background: linear-gradient(135deg, #8B0000, #5C0000);
+            color: #fff;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            opacity: 0.8;
+            width: auto;
+            margin: 0;
+        }
+        .modal-close:hover { opacity: 1; background: none; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: #F5F0E8;
+            border-bottom: 2px solid #E8E0D0;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 14px 8px;
+            border: none;
+            background: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            margin: 0;
+            width: auto;
+            border-radius: 0;
+        }
+        .tab-btn:hover { color: #8B0000; background: none; }
+        .tab-btn.active {
+            color: #8B0000;
+            border-bottom-color: #8B0000;
+            background: #fff;
+        }
+
+        /* Tab content */
+        .tab-panel {
+            display: none;
+            padding: 24px;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: #333;
+        }
+        .tab-panel.active { display: block; }
+        .tab-panel h3 {
+            color: #8B0000;
+            margin: 20px 0 10px;
+            font-size: 1.05rem;
+            border-bottom: 1px solid #F0E8D8;
+            padding-bottom: 6px;
+        }
+        .tab-panel h3:first-child { margin-top: 0; }
+        .tab-panel p { margin-bottom: 10px; }
+
+        /* Transit grid */
+        .transit-grid { margin: 12px 0; }
+        .transit-item {
+            padding: 10px 14px;
+            margin: 8px 0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .transit-item.benefic {
+            background: #F0FFF4;
+            border-left: 4px solid #38A169;
+        }
+        .transit-item.malefic {
+            background: #FFF5F5;
+            border-left: 4px solid #E53E3E;
+        }
+        .effect-text { color: #666; }
+
+        /* Loading spinner */
+        .spinner {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+        .spinner::before {
+            content: "";
+            display: block;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 16px;
+            border: 4px solid #E8E0D0;
+            border-top-color: #8B0000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .or-divider {
+            text-align: center;
+            margin: 14px 0 0;
+            font-size: 0.78rem;
+            color: #BBB;
+            font-weight: 500;
         }
 
         @media (max-width: 480px) {
             .card { padding: 24px 18px 20px; }
             .header h1 { font-size: 1.3rem; }
+            .modal-content { margin: 10px; border-radius: 12px; }
+            .modal-header { padding: 16px; }
+            .tab-panel { padding: 16px; }
         }
     </style>
 </head>
@@ -154,8 +311,13 @@
             <input type="text" id="place" name="place" placeholder="e.g. Lucknow, Mumbai, New York" required>
             <div class="hint">City name — supports 200+ cities worldwide</div>
 
-            <button type="submit" id="submit-btn">Generate Kundali PDF</button>
+            <button type="submit" id="submit-btn" class="btn-primary">Generate Kundali PDF</button>
         </form>
+
+        <div class="or-divider">— or —</div>
+        <button type="button" id="readings-btn" class="btn-readings" onclick="openReadings()">
+            Personalised Readings (Weekly · Monthly · Yearly)
+        </button>
 
         <div class="footer">
             Lahiri Ayanamsha &middot; Swiss Ephemeris &middot; Vedic Astrology
@@ -163,11 +325,129 @@
         </div>
     </div>
 
+    <!-- Readings Modal -->
+    <div class="modal-overlay" id="readings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Personalised Readings</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="week" onclick="switchTab('week')">This Week</button>
+                <button class="tab-btn" data-tab="month" onclick="switchTab('month')">This Month</button>
+                <button class="tab-btn" data-tab="year" onclick="switchTab('year')">This Year</button>
+            </div>
+            <div id="tab-week" class="tab-panel active">
+                <div class="spinner">Loading readings...</div>
+            </div>
+            <div id="tab-month" class="tab-panel">
+                <div class="spinner">Loading readings...</div>
+            </div>
+            <div id="tab-year" class="tab-panel">
+                <div class="spinner">Loading readings...</div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // PDF form submit handler
         document.getElementById("kundali-form").addEventListener("submit", function() {
             var btn = document.getElementById("submit-btn");
-            btn.textContent = "Generating… please wait";
+            btn.textContent = "Generating\u2026 please wait";
             btn.classList.add("loading");
+        });
+
+        function openReadings() {
+            // Validate form fields
+            var name = document.getElementById("name").value.trim();
+            var date = document.getElementById("date").value.trim();
+            var time = document.getElementById("time").value.trim();
+            var place = document.getElementById("place").value.trim();
+
+            if (!name || !date || !time || !place) {
+                alert("Please fill in all fields (Name, Date, Time, Place) before requesting readings.");
+                return;
+            }
+
+            // Show modal with spinner
+            var modal = document.getElementById("readings-modal");
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden";
+
+            // Reset tabs
+            switchTab("week");
+            document.querySelectorAll(".tab-panel").forEach(function(p) {
+                p.innerHTML = '<div class="spinner">Loading readings\u2026</div>';
+            });
+
+            // Show loading on button
+            var btn = document.getElementById("readings-btn");
+            btn.textContent = "Loading\u2026";
+            btn.classList.add("loading");
+
+            // AJAX request
+            var formData = new FormData();
+            formData.append("name", name);
+            formData.append("date", date);
+            formData.append("time", time);
+            formData.append("place", place);
+
+            fetch("/api/readings", { method: "POST", body: formData })
+                .then(function(resp) { return resp.json(); })
+                .then(function(data) {
+                    if (data.error) {
+                        closeModal();
+                        alert("Error: " + data.error);
+                        return;
+                    }
+                    renderReading("week", data.week);
+                    renderReading("month", data.month);
+                    renderReading("year", data.year);
+                })
+                .catch(function(err) {
+                    closeModal();
+                    alert("Error loading readings. Please try again.");
+                })
+                .finally(function() {
+                    btn.textContent = "Personalised Readings (Weekly \u00b7 Monthly \u00b7 Yearly)";
+                    btn.classList.remove("loading");
+                });
+        }
+
+        function renderReading(period, reading) {
+            var panel = document.getElementById("tab-" + period);
+            var html = "";
+            reading.sections.forEach(function(section) {
+                if (section.heading) {
+                    html += "<h3>" + section.heading + "</h3>";
+                }
+                html += section.content;
+            });
+            panel.innerHTML = html;
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll(".tab-btn").forEach(function(btn) {
+                btn.classList.toggle("active", btn.getAttribute("data-tab") === tab);
+            });
+            document.querySelectorAll(".tab-panel").forEach(function(panel) {
+                panel.classList.toggle("active", panel.id === "tab-" + tab);
+            });
+        }
+
+        function closeModal() {
+            document.getElementById("readings-modal").style.display = "none";
+            document.body.style.overflow = "";
+        }
+
+        // Close modal on outside click
+        document.getElementById("readings-modal").addEventListener("click", function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Close modal on Escape key
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") closeModal();
         });
     </script>
 </body>

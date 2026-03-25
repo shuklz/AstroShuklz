@@ -1169,6 +1169,481 @@ def _dasha_reading_hi(chart, today):
     return blocks
 
 
+# ─── Transit / Gochar Engine ─────────────────────────────────────────────────
+
+def current_transits(target_date=None):
+    """
+    Calculate current sidereal positions of all 9 planets for a given date.
+    Returns dict: {planet_name: {lon, sign_idx, sign_en, sign_hi, deg, retro}}
+    """
+    if target_date is None:
+        target_date = datetime.now()
+
+    # Use noon UT for daily transits
+    y, m, d = target_date.year, target_date.month, target_date.day
+    jd = julian_day(y, m, d, 12.0)  # noon UT
+
+    transits = {}
+    for name, pid in PLANETS_SWE.items():
+        lon, speed = sidereal_position(jd, pid)
+        s_idx, s_en, s_hi, deg = sign_and_degree(lon)
+        transits[name] = {
+            'lon': lon, 'sign_idx': s_idx, 'sign_en': s_en,
+            'sign_hi': s_hi, 'deg': deg, 'retro': speed < 0
+        }
+
+    # Rahu / Ketu
+    rahu_lon, rahu_speed = sidereal_position(jd, swe.TRUE_NODE)
+    ketu_lon = (rahu_lon + 180) % 360
+    r_idx, r_en, r_hi, r_deg = sign_and_degree(rahu_lon)
+    k_idx, k_en, k_hi, k_deg = sign_and_degree(ketu_lon)
+    transits['Rahu'] = {'lon': rahu_lon, 'sign_idx': r_idx, 'sign_en': r_en,
+                        'sign_hi': r_hi, 'deg': r_deg, 'retro': True}
+    transits['Ketu'] = {'lon': ketu_lon, 'sign_idx': k_idx, 'sign_en': k_en,
+                        'sign_hi': k_hi, 'deg': k_deg, 'retro': True}
+    return transits
+
+
+def transit_house_from_moon(natal_moon_sign_idx, transit_sign_idx):
+    """Calculate which house a transit planet occupies from natal Moon sign."""
+    return (transit_sign_idx - natal_moon_sign_idx) % 12 + 1
+
+
+def detect_sade_sati(natal_moon_sign_idx, transit_saturn_sign_idx):
+    """
+    Detect Sade Sati phase based on Saturn's transit.
+    Returns None or one of: 'rising', 'peak', 'setting'
+    """
+    house = (transit_saturn_sign_idx - natal_moon_sign_idx) % 12 + 1
+    if house == 12:
+        return "rising"
+    elif house == 1:
+        return "peak"
+    elif house == 2:
+        return "setting"
+    return None
+
+
+# ─── Gochar (Transit) Interpretation Data ─────────────────────────────────────
+
+# Standard Vedic benefic houses for each planet (from Moon sign)
+GOCHAR_BENEFIC_HOUSES = {
+    "Sun":     [3, 6, 10, 11],
+    "Moon":    [1, 3, 6, 7, 10, 11],
+    "Mars":    [3, 6, 11],
+    "Mercury": [2, 4, 6, 8, 10, 11],
+    "Jupiter": [2, 5, 7, 9, 11],
+    "Venus":   [1, 2, 3, 4, 5, 8, 9, 11, 12],
+    "Saturn":  [3, 6, 11],
+    "Rahu":    [3, 6, 10, 11],
+    "Ketu":    [3, 6, 10, 11],
+}
+
+# Transit effects per planet per house from Moon
+GOCHAR_EFFECTS = {
+    "Sun": {
+        1: "Focus on self, health awareness needed. Avoid ego conflicts with superiors.",
+        2: "Financial caution advised. Possible eye-related issues. Watch expenses.",
+        3: "Courage and confidence rise. Victory over rivals. Good for short travels.",
+        4: "Domestic unrest possible. Vehicle-related caution. Mental stress.",
+        5: "Challenges with children or investments. Creative blocks. Stomach issues.",
+        6: "Victory over enemies and competitors. Health improves. Government favour.",
+        7: "Travel likely. Relationship friction. Partnership disagreements.",
+        8: "Health caution — fever, fatigue. Avoid risky ventures. Low vitality.",
+        9: "Obstacles in long travels. Tension with father or mentor. Spiritual tests.",
+        10: "Career success and recognition. Authority figures supportive. Public honour.",
+        11: "Financial gains and social success. Goals achieved. Happy period.",
+        12: "Expenditure rises. Eye or head issues. Government-related stress.",
+    },
+    "Moon": {
+        1: "Emotional well-being and comfort. Good health. Pleasant period.",
+        2: "Financial gains possible. Family harmony. Good food and comforts.",
+        3: "Success in endeavours. Courage increases. Favourable for siblings.",
+        4: "Emotional unease. Fear and anxiety. Domestic tension.",
+        5: "Mental worry about children. Emotional instability. Poor digestion.",
+        6: "Victory over enemies. Health recovery. Good for competitive matters.",
+        7: "Social happiness. Good relationships. Travel with comfort.",
+        8: "Emotional disturbance. Health issues. Unexpected expenses.",
+        9: "Spiritual inclination. Pilgrimage possible. Positive mindset.",
+        10: "Professional success. Public recognition. Emotional satisfaction.",
+        11: "Gains and fulfilment. Happy social circle. Wishes come true.",
+        12: "Expenditure and emotional drain. Sleep disturbance. Restlessness.",
+    },
+    "Mars": {
+        1: "Health issues — fever, blood pressure. Accidents possible. Anger rises.",
+        2: "Financial losses. Family conflicts. Speech-related problems.",
+        3: "Courage and victory. Success in competition. Property gains possible.",
+        4: "Domestic problems. Vehicle accidents possible. Blood-related issues.",
+        5: "Conflicts with children. Investment losses. Stomach or surgical issues.",
+        6: "Victory over enemies. Legal success. Health improves significantly.",
+        7: "Marital discord. Partnership conflicts. Travel with difficulties.",
+        8: "Accidents and health risks. Surgical situations. Financial setbacks.",
+        9: "Conflicts with elders. Legal issues. Unnecessary aggression.",
+        10: "Professional challenges. Conflicts with authority. Hard work required.",
+        11: "Financial gains. Goals achieved through effort. Social success.",
+        12: "Expenditure rises. Hidden enemies active. Hospitalisation possible.",
+    },
+    "Mercury": {
+        1: "Communication issues. Skin problems. Nervous tension.",
+        2: "Financial gains through trade. Good speech. Business success.",
+        3: "Conflicts with siblings. Communication breakdown. Short travel issues.",
+        4: "Educational success. Property gains. Mental peace and clarity.",
+        5: "Intellectual achievements. Good for students. Creative success.",
+        6: "Victory through intelligence. Legal wins. Health improvement.",
+        7: "Business partnerships thrive. Good negotiations. Travel for trade.",
+        8: "Research success. Inheritance possible. Hidden knowledge revealed.",
+        9: "Spiritual learning. Higher education success. Teaching opportunities.",
+        10: "Career advancement through communication. Writing success. Recognition.",
+        11: "Financial gains through intellect. Social networking success. Wishes fulfilled.",
+        12: "Expenditure on education. Foreign connections. Sleep disturbance.",
+    },
+    "Jupiter": {
+        1: "Health issues possible. Weight gain. Lack of focus. Displacement.",
+        2: "Wealth increase. Family happiness. Good speech and knowledge. Excellent period.",
+        3: "Displacement or role change. Sibling issues. Loss of position.",
+        4: "Loss of happiness. Domestic issues. Vehicle problems. Mental unease.",
+        5: "Birth of children. Educational success. Spiritual growth. Excellent period.",
+        6: "Defeat by enemies. Health issues. Legal problems. Debts increase.",
+        7: "Marriage or strong partnership. Spouse happiness. Travel. Very auspicious.",
+        8: "Obstacles and delays. Health issues. Loss of reputation. Difficult transit.",
+        9: "Excellent fortune. Pilgrimage. Higher learning. Guru blessing. Best transit.",
+        10: "Career setbacks. Loss of position. Humiliation possible. Challenging.",
+        11: "Maximum gains. Wishes fulfilled. Birth of children. Best financial period.",
+        12: "Expenditure and losses. Change of residence. Spiritual journey. Isolation.",
+    },
+    "Venus": {
+        1: "Comfort and luxury. Romantic happiness. Good health and appearance.",
+        2: "Family wealth increases. Good food and comforts. Harmonious speech.",
+        3: "Success in artistic endeavours. Good relationships. Social popularity.",
+        4: "Domestic happiness. Vehicle or property acquisition. Comfortable home.",
+        5: "Romantic relationships. Creative success. Children's happiness.",
+        6: "Challenges in relationships. Health awareness needed. Enemy troubles.",
+        7: "Relationship difficulties. Partnership tension. Avoid new commitments.",
+        8: "Wealth through unexpected sources. Occult interests. Transformation.",
+        9: "Spiritual and cultural pursuits. Pilgrimage. Fortune through arts.",
+        10: "Career difficulties. Reputation concerns. Professional jealousy.",
+        11: "Social success and gains. Luxuries increase. Wishes fulfilled.",
+        12: "Expenditure on pleasures. Bed comforts. Foreign travel possible.",
+    },
+    "Saturn": {
+        1: "Health issues. Mental heaviness. Physical fatigue. Sade Sati effects.",
+        2: "Financial difficulties. Family tensions. Speech problems.",
+        3: "Relief from difficulties. Success after struggle. Good for servants.",
+        4: "Domestic unhappiness. Mother's health concern. Property disputes.",
+        5: "Children-related worries. Investment losses. Mental anxiety.",
+        6: "Victory over enemies. Health improvement. Debt clearance. Good period.",
+        7: "Marital challenges. Partner's health. Travel with hardship.",
+        8: "Health risks. Chronic issues flare up. Legal problems. Difficult period.",
+        9: "Obstacles in fortune. Father's health. Spiritual crisis.",
+        10: "Career pressure. Hard work without proportional reward. Responsibilities.",
+        11: "Steady gains. Long-term goals materialise. Social recognition. Good period.",
+        12: "Expenditure and losses. Isolation. Foreign stay. Hospitalisation possible.",
+    },
+    "Rahu": {
+        1: "Confusion about identity. Health anxiety. Foreign influence strong.",
+        2: "Financial irregularities. Family misunderstandings. Speech problems.",
+        3: "Courage through unconventional means. Success in technology. Good period.",
+        4: "Domestic confusion. Property disputes. Mother's concern.",
+        5: "Unconventional thinking. Risky investments. Children's concerns.",
+        6: "Victory over enemies through cunning. Legal success. Health recovery.",
+        7: "Unusual relationships. Foreign partner possible. Partnership confusion.",
+        8: "Hidden matters surface. Research breakthroughs. Health scares.",
+        9: "Unconventional spiritual path. Foreign travel. Guru confusion.",
+        10: "Sudden career changes. Unconventional success. Technology-driven growth.",
+        11: "Gains through foreign connections. Unexpected profits. Wishes fulfilled.",
+        12: "Foreign travel or residence. Expenditure. Spiritual seeking. Isolation.",
+    },
+    "Ketu": {
+        1: "Spiritual awakening. Health confusion. Identity transformation.",
+        2: "Family detachment. Financial unpredictability. Speech confusion.",
+        3: "Spiritual courage. Victory through intuition. Good for meditation.",
+        4: "Domestic detachment. Property letting go. Inner peace sought.",
+        5: "Past-life connections with children. Intuitive insights. Spiritual study.",
+        6: "Spiritual victory over enemies. Karmic debt clearance. Good period.",
+        7: "Karmic relationship lessons. Detachment from partnerships.",
+        8: "Sudden spiritual experiences. Research into occult. Transformation.",
+        9: "Deep spiritual growth. Past-life karma resolution. Pilgrimage.",
+        10: "Career detachment. Seeking purpose beyond material success.",
+        11: "Unexpected spiritual gains. Letting go of desires brings fulfilment.",
+        12: "Moksha-oriented. Liberation. Foreign ashram. Spiritual culmination.",
+    },
+}
+
+SADE_SATI_TEXT = {
+    "rising": (
+        "Sade Sati (Rising Phase): Saturn is transiting the 12th house from your Moon sign, "
+        "marking the beginning of the 7.5-year Sade Sati period. You may experience increased "
+        "expenditure, sleep disturbances, and a sense of unease. Financial caution is advised. "
+        "This phase prepares you for the deeper lessons ahead. Practice patience and build savings."
+    ),
+    "peak": (
+        "Sade Sati (Peak Phase): Saturn is transiting over your natal Moon sign. This is the "
+        "most intense phase of Sade Sati. Emotional pressure, career challenges, health concerns, "
+        "and mental heaviness are common. However, this is also a powerful period for inner growth "
+        "and building lasting resilience. Stay disciplined, avoid shortcuts, and lean on spiritual practice."
+    ),
+    "setting": (
+        "Sade Sati (Setting Phase): Saturn is transiting the 2nd house from your Moon sign. "
+        "The intense pressure is gradually easing. Financial matters need continued attention. "
+        "Family relationships may still feel strained. The lessons of Sade Sati are integrating — "
+        "you are emerging stronger and wiser. Continue steady efforts."
+    ),
+}
+
+
+# ─── Personalized Reading Generator ──────────────────────────────────────────
+
+def _find_current_dasha_periods(chart, today):
+    """Find current Maha, Antar, and Pratyantar dasha periods."""
+    current_maha = current_antar = current_prat = None
+    current_maha_data = current_antar_data = current_prat_data = None
+    next_maha_data = next_antar_data = None
+
+    for i, (lord, start, end, yrs) in enumerate(chart['dashas']):
+        if start <= today < end:
+            current_maha = lord
+            current_maha_data = (lord, start, end, yrs)
+            if i + 1 < len(chart['dashas']):
+                next_maha_data = chart['dashas'][i + 1]
+            break
+
+    if current_maha:
+        ad_list = chart.get('antardasha', {}).get(current_maha, [])
+        for i, (ad_lord, ad_start, ad_end, ad_yrs) in enumerate(ad_list):
+            if ad_start <= today < ad_end:
+                current_antar = ad_lord
+                current_antar_data = (ad_lord, ad_start, ad_end, ad_yrs)
+                if i + 1 < len(ad_list):
+                    next_antar_data = ad_list[i + 1]
+                break
+
+    if current_maha and current_antar:
+        key = (current_maha, current_antar)
+        pd_list = chart.get('pratyantar', {}).get(key, [])
+        for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+            if pd_start <= today < pd_end:
+                current_prat = pd_lord
+                current_prat_data = (pd_lord, pd_start, pd_end, pd_yrs)
+                break
+
+    return {
+        'maha': current_maha, 'maha_data': current_maha_data,
+        'antar': current_antar, 'antar_data': current_antar_data,
+        'prat': current_prat, 'prat_data': current_prat_data,
+        'next_maha': next_maha_data, 'next_antar': next_antar_data,
+    }
+
+
+def generate_personalized_reading(birth_data, period="week"):
+    """
+    Generate personalized reading combining natal chart, dashas, and transits.
+    period: "week", "month", or "year"
+    Returns dict with 'title' and 'sections' (list of {heading, content}).
+    """
+    chart = generate_chart(birth_data)
+    today = datetime.now()
+    moon_sign_idx = chart['planets']['Moon']['sign_idx']
+    moon_sign = chart['planets']['Moon']['sign_en']
+
+    # Get current transits
+    transits = current_transits(today)
+
+    # Get current dasha periods
+    dasha_info = _find_current_dasha_periods(chart, today)
+
+    # Analyze transit houses from Moon
+    transit_analysis = {}
+    for planet, tdata in transits.items():
+        house = transit_house_from_moon(moon_sign_idx, tdata['sign_idx'])
+        is_benefic = house in GOCHAR_BENEFIC_HOUSES.get(planet, [])
+        effect = GOCHAR_EFFECTS.get(planet, {}).get(house, "")
+        transit_analysis[planet] = {
+            'house': house, 'sign': tdata['sign_en'],
+            'is_benefic': is_benefic, 'effect': effect,
+            'retro': tdata.get('retro', False),
+        }
+
+    # Detect Sade Sati
+    saturn_sign_idx = transits['Saturn']['sign_idx']
+    sade_sati = detect_sade_sati(moon_sign_idx, saturn_sign_idx)
+
+    # Build sections based on period
+    sections = []
+
+    # ── Section 1: Overview ──
+    if period == "week":
+        title = "This Week's Personalized Reading"
+        date_end = today + timedelta(days=7)
+        period_label = f"{today.strftime('%d %b')} – {date_end.strftime('%d %b %Y')}"
+    elif period == "month":
+        title = "This Month's Personalized Reading"
+        period_label = today.strftime('%B %Y')
+    else:
+        title = "This Year's Personalized Reading"
+        period_label = today.strftime('%Y')
+
+    # Overview section
+    overview = f"<p>Reading for <strong>{birth_data['name']}</strong> · Moon Sign: <strong>{moon_sign}</strong> · Period: <strong>{period_label}</strong></p>"
+
+    if dasha_info['maha']:
+        maha = dasha_info['maha']
+        overview += f"<p>Current Dasha: <strong>{maha} Mahadasha</strong>"
+        if dasha_info['antar']:
+            overview += f" → <strong>{dasha_info['antar']} Antardasha</strong>"
+        if dasha_info['prat']:
+            overview += f" → <strong>{dasha_info['prat']} Pratyantar</strong>"
+        overview += "</p>"
+
+    sections.append({"heading": "Overview", "content": overview})
+
+    # ── Section 2: Dasha Influence ──
+    if dasha_info['maha']:
+        maha = dasha_info['maha']
+        maha_info = DASHA_READING.get(maha, {})
+
+        if period == "week" and dasha_info['prat']:
+            # Weekly: focus on Pratyantar
+            prat = dasha_info['prat']
+            prat_info = DASHA_READING.get(prat, {})
+            prat_end = dasha_info['prat_data'][2]
+            dasha_content = (
+                f"<p>Your immediate influence is the <strong>{prat} Pratyantar Dasha</strong> "
+                f"(until {prat_end.strftime('%d %b %Y')}), which is "
+                f"<strong>{prat_info.get('nature', 'significant')}</strong> in nature.</p>"
+                f"<p><strong>This week's energy:</strong> {prat_info.get('themes', 'Various life changes')}.</p>"
+                f"<p><strong>Opportunities:</strong> {prat_info.get('positive', 'Growth opportunities')}.</p>"
+                f"<p><strong>Watch out for:</strong> {prat_info.get('challenges', 'Challenges may arise')}.</p>"
+            )
+            sections.append({"heading": f"Dasha Influence: {maha}–{dasha_info['antar']}–{prat}", "content": dasha_content})
+
+        elif period == "month" and dasha_info['antar']:
+            # Monthly: focus on Antardasha
+            antar = dasha_info['antar']
+            antar_info = DASHA_READING.get(antar, {})
+            antar_end = dasha_info['antar_data'][2]
+            dasha_content = (
+                f"<p>This month is shaped by your <strong>{antar} Antardasha</strong> "
+                f"(until {antar_end.strftime('%b %Y')}) within the broader {maha} Mahadasha.</p>"
+                f"<p>The {antar} sub-period is <strong>{antar_info.get('nature', 'significant')}</strong>. "
+                f"Key themes: {antar_info.get('themes', 'various changes')}.</p>"
+                f"<p><strong>Strengths this month:</strong> {antar_info.get('positive', 'Opportunities')}.</p>"
+                f"<p><strong>Areas of caution:</strong> {antar_info.get('challenges', 'Be mindful')}.</p>"
+                f"<p><strong>Advice:</strong> {antar_info.get('advice', 'Stay balanced.')}.</p>"
+            )
+            sections.append({"heading": f"Dasha Influence: {maha}–{antar}", "content": dasha_content})
+
+        else:
+            # Yearly: focus on Mahadasha
+            maha_end = dasha_info['maha_data'][2]
+            remaining = (maha_end - today).days / 365.25
+            dasha_content = (
+                f"<p>The overarching theme of {period_label} is your <strong>{maha} Mahadasha</strong> "
+                f"({remaining:.1f} years remaining, ending {maha_end.strftime('%b %Y')}).</p>"
+                f"<p>This period is <strong>{maha_info.get('nature', 'significant')}</strong>. "
+                f"Life themes: {maha_info.get('themes', 'various changes')}.</p>"
+                f"<p><strong>Year's strengths:</strong> {maha_info.get('positive', 'Opportunities')}.</p>"
+                f"<p><strong>Year's challenges:</strong> {maha_info.get('challenges', 'Be mindful')}.</p>"
+                f"<p><strong>Annual guidance:</strong> {maha_info.get('advice', 'Stay balanced.')}</p>"
+            )
+            sections.append({"heading": f"Dasha Theme: {maha} Mahadasha", "content": dasha_content})
+
+    # ── Section 3: Transit (Gochar) Effects ──
+    if period == "week":
+        # Weekly: fast-moving planets only
+        transit_planets = ["Sun", "Moon", "Mars", "Mercury", "Venus"]
+        transit_heading = "Key Planetary Transits This Week"
+    elif period == "month":
+        transit_planets = ["Sun", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
+        transit_heading = "Planetary Transits This Month"
+    else:
+        transit_planets = ["Jupiter", "Saturn", "Rahu", "Ketu", "Mars", "Venus"]
+        transit_heading = "Major Transits This Year"
+
+    transit_content = f"<p>Transit effects analysed from your Moon sign (<strong>{moon_sign}</strong>):</p>"
+    transit_content += '<div class="transit-grid">'
+
+    for planet in transit_planets:
+        ta = transit_analysis.get(planet, {})
+        if not ta:
+            continue
+        icon = "✅" if ta['is_benefic'] else "⚠️"
+        status = "Favourable" if ta['is_benefic'] else "Challenging"
+        retro_mark = " (Retrograde)" if ta.get('retro') else ""
+        transit_content += (
+            f'<div class="transit-item {"benefic" if ta["is_benefic"] else "malefic"}">'
+            f'<strong>{icon} {planet}</strong> in {ta["sign"]}{retro_mark} '
+            f'(House {ta["house"]} from Moon — <em>{status}</em>)<br>'
+            f'<span class="effect-text">{ta["effect"]}</span>'
+            f'</div>'
+        )
+
+    transit_content += '</div>'
+    sections.append({"heading": transit_heading, "content": transit_content})
+
+    # ── Section 4: Sade Sati (if active) ──
+    if sade_sati:
+        sade_sati_content = f"<p>{SADE_SATI_TEXT[sade_sati]}</p>"
+        sections.append({"heading": "⚡ Sade Sati Alert", "content": sade_sati_content})
+
+    # ── Section 5: Summary & Guidance ──
+    # Count benefic vs malefic transits for the selected planets
+    benefic_count = sum(1 for p in transit_planets if transit_analysis.get(p, {}).get('is_benefic'))
+    total = len(transit_planets)
+
+    if benefic_count > total * 0.6:
+        overall = "Overall, the planetary transits are <strong>predominantly favourable</strong> for this period."
+        tone = "positive"
+    elif benefic_count > total * 0.4:
+        overall = "The planetary transits present a <strong>mixed picture</strong> — some areas flourish while others need care."
+        tone = "mixed"
+    else:
+        overall = "The transits indicate a <strong>challenging period</strong> requiring patience and careful planning."
+        tone = "challenging"
+
+    if dasha_info['maha']:
+        maha_advice = DASHA_READING.get(dasha_info['maha'], {}).get('advice', '')
+        guidance = f"<p>{overall}</p><p><strong>Dasha Guidance:</strong> {maha_advice}</p>"
+    else:
+        guidance = f"<p>{overall}</p>"
+
+    # Add period-specific tips
+    if period == "week":
+        if tone == "positive":
+            guidance += "<p><strong>Weekly Tip:</strong> This is a good week to initiate new activities, meet people, and pursue goals actively.</p>"
+        elif tone == "mixed":
+            guidance += "<p><strong>Weekly Tip:</strong> Focus on your strengths this week. Postpone risky decisions to more favourable days.</p>"
+        else:
+            guidance += "<p><strong>Weekly Tip:</strong> Take it slow this week. Focus on routine tasks and self-care. Avoid confrontations.</p>"
+    elif period == "month":
+        if tone == "positive":
+            guidance += "<p><strong>Monthly Tip:</strong> A productive month ahead. Set ambitious goals and work towards them with confidence.</p>"
+        elif tone == "mixed":
+            guidance += "<p><strong>Monthly Tip:</strong> Balance ambition with caution this month. The first half may differ from the second.</p>"
+        else:
+            guidance += "<p><strong>Monthly Tip:</strong> This month calls for patience and consolidation. Focus on health, savings, and inner work.</p>"
+    else:
+        if tone == "positive":
+            guidance += "<p><strong>Annual Outlook:</strong> A year of growth and expansion. Major life milestones possible. Stay grateful and grounded.</p>"
+        elif tone == "mixed":
+            guidance += "<p><strong>Annual Outlook:</strong> A year of learning and adaptation. Success comes through flexibility and perseverance.</p>"
+        else:
+            guidance += "<p><strong>Annual Outlook:</strong> A year of deep inner work and karmic clearing. Build strong foundations for the future.</p>"
+
+    sections.append({"heading": "Guidance & Summary", "content": guidance})
+
+    # Add disclaimer
+    disclaimer = (
+        "<p style='font-size:0.8rem; color:#999; margin-top:16px; border-top:1px solid #eee; padding-top:12px;'>"
+        "<em>These readings are based on Vedic astrological principles using your birth chart, "
+        "current Vimshottari Dasha periods, and planetary transit (Gochar) positions. "
+        "They are for guidance and entertainment purposes. Use your own judgement for important decisions.</em></p>"
+        "<p style='font-size:0.75rem; color:#B8860B;'>by AstroShuklz · Lahiri Ayanamsha · Swiss Ephemeris</p>"
+    )
+    sections.append({"heading": "", "content": disclaimer})
+
+    return {"title": title, "sections": sections}
+
+
 # ─── PDF Report ──────────────────────────────────────────────────────────────
 
 def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):

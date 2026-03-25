@@ -5,13 +5,13 @@ Accepts birth details via a form, generates a PDF report, and serves it.
 Designed for PythonAnywhere free-tier deployment.
 """
 
-from flask import Flask, render_template, request, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, flash, redirect, url_for, jsonify
 from datetime import datetime
 import csv
 import io
 import os
 
-from vedic_kundali import generate_chart, generate_pdf_to_buffer
+from vedic_kundali import generate_chart, generate_pdf_to_buffer, generate_personalized_reading
 
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 _USAGE_LOG = os.path.join(_APP_DIR, "usage_log.csv")
@@ -109,6 +109,61 @@ def generate():
     except Exception as e:
         flash(f"Error generating chart: {str(e)}", "error")
         return redirect(url_for("index"))
+
+
+@app.route("/api/readings", methods=["POST"])
+def readings():
+    """Return personalized readings (week/month/year) as JSON with HTML content."""
+    try:
+        name = request.form.get("name", "").strip()
+        date_str = request.form.get("date", "").strip()
+        time_str = request.form.get("time", "").strip()
+        place = request.form.get("place", "").strip()
+
+        if not name or not date_str or not time_str or not place:
+            return jsonify({"error": "All fields are required."}), 400
+
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            year, month, day = dt.year, dt.month, dt.day
+        except ValueError:
+            return jsonify({"error": "Invalid date format."}), 400
+
+        try:
+            tm = datetime.strptime(time_str, "%H:%M")
+            hour, minute, second = tm.hour, tm.minute, 0
+        except ValueError:
+            return jsonify({"error": "Invalid time format."}), 400
+
+        from vedic_kundali import lookup_city
+        coords = lookup_city(place, birth_year=year, birth_month=month, birth_day=day)
+        if coords is None:
+            return jsonify({"error": f"Could not find '{place}'. Please use a major city name."}), 400
+
+        lat, lon, utc_offset = coords
+
+        birth_data = {
+            "name": name,
+            "year": year, "month": month, "day": day,
+            "hour": hour, "minute": minute, "second": second,
+            "utc_offset": utc_offset,
+            "lat": lat, "lon": lon,
+            "place": place,
+        }
+
+        # Generate all three readings
+        week_reading = generate_personalized_reading(birth_data, "week")
+        month_reading = generate_personalized_reading(birth_data, "month")
+        year_reading = generate_personalized_reading(birth_data, "year")
+
+        return jsonify({
+            "week": week_reading,
+            "month": month_reading,
+            "year": year_reading,
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
