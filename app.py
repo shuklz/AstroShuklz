@@ -151,15 +151,18 @@ def readings():
             "place": place,
         }
 
-        # Generate all three readings
-        week_reading = generate_personalized_reading(birth_data, "week")
-        month_reading = generate_personalized_reading(birth_data, "month")
-        year_reading = generate_personalized_reading(birth_data, "year")
+        # Generate all three readings in both English and Hindi
+        week_en = generate_personalized_reading(birth_data, "week", lang="en")
+        month_en = generate_personalized_reading(birth_data, "month", lang="en")
+        year_en = generate_personalized_reading(birth_data, "year", lang="en")
+
+        week_hi = generate_personalized_reading(birth_data, "week", lang="hi")
+        month_hi = generate_personalized_reading(birth_data, "month", lang="hi")
+        year_hi = generate_personalized_reading(birth_data, "year", lang="hi")
 
         return jsonify({
-            "week": week_reading,
-            "month": month_reading,
-            "year": year_reading,
+            "en": {"week": week_en, "month": month_en, "year": year_en},
+            "hi": {"week": week_hi, "month": month_hi, "year": year_hi},
         })
 
     except Exception as e:
