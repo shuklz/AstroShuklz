@@ -716,9 +716,9 @@ def generate_golden_chart_image(chart):
     draw = ImageDraw.Draw(img)
 
     # ── Load fonts ──
-    font_size_planet = 28
-    font_size_house  = 18
-    font_size_deg    = 14
+    font_size_planet = 30
+    font_size_house  = 24
+    font_size_deg    = 16
     font_size_label  = 32
 
     _base = os.path.dirname(os.path.abspath(__file__))
@@ -759,20 +759,33 @@ def generate_golden_chart_image(chart):
     # Cell centers for the 12 houses in North Indian layout.
     # The grid has a rectangle divided by diagonals and midpoint lines.
     # Outer triangles (houses 1-8) and inner diamond (houses 9-12).
-    cell_centers = {
-        1:  (fl + qx * 0.60,       my),                 # Left triangle (Lagna)
-        2:  (mx - qx * 0.75,       my + qy * 0.85),     # Bottom-left triangle
-        3:  (mx,                    my + qy * 1.25),     # Bottom triangle
-        4:  (mx + qx * 0.65,       my + qy * 0.85),     # Bottom-right triangle
-        5:  (fr - qx * 0.60,       my),                  # Right triangle
-        6:  (mx + qx * 0.65,       my - qy * 0.85),     # Top-right triangle
-        7:  (mx,                    my - qy * 1.25),     # Top triangle
-        8:  (mx - qx * 0.75,       my - qy * 0.85),     # Top-left triangle
-        9:  (mx - qx * 0.45,       my + qy * 0.45),     # Inner bottom-left
-        10: (mx + qx * 0.45,       my + qy * 0.45),     # Inner bottom-right
-        11: (mx + qx * 0.45,       my - qy * 0.45),     # Inner top-right
-        12: (mx - qx * 0.45,       my - qy * 0.45),     # Inner top-left
+    # North Indian chart: house positions are FIXED on the grid.
+    # House 7 = top-center, 8 = top-left, 1 = left-center (Lagna),
+    # 2 = bottom-left, 3 = bottom-center, 4 = bottom-right,
+    # 5 = right-center, 6 = top-right
+    # Inner diamond: 12 = top-left, 11 = top-right,
+    #                10 = bottom-right, 9 = bottom-left
+    #
+    # Each house has a CENTER for the house number and a PLANET AREA
+    # where planets are drawn (offset from center to avoid overlap).
+    # house_num_pos: where to draw the house number
+    # house_planet_pos: center of the planet placement area
+    # For bottom/right houses, planets go ABOVE the number to stay inside frame
+    house_centers = {
+        7:  (mx,              ft + qy * 0.50),     # Top center
+        8:  (mx - qx * 0.70, ft + qy * 0.55),     # Top-left
+        6:  (mx + qx * 0.70, ft + qy * 0.55),     # Top-right
+        1:  (fl + qx * 0.60, my),                  # Left center (Lagna)
+        5:  (fr - qx * 0.70, my),                  # Right center (pulled in)
+        2:  (mx - qx * 0.65, fb - qy * 0.55),     # Bottom-left
+        3:  (mx,              fb - qy * 0.40),     # Bottom center
+        4:  (mx + qx * 0.50, fb - qy * 0.65),     # Bottom-right (well inside)
+        12: (mx - qx * 0.35, my - qy * 0.35),     # Inner top-left
+        11: (mx + qx * 0.35, my - qy * 0.35),     # Inner top-right
+        10: (mx + qx * 0.35, my + qy * 0.35),     # Inner bottom-right
+        9:  (mx - qx * 0.35, my + qy * 0.35),     # Inner bottom-left
     }
+    cell_centers = house_centers
 
     # Map house number -> sign index
     cell_sign = {h: (asc_sign + h - 1) % 12 for h in range(1, 13)}
@@ -797,53 +810,77 @@ def generate_golden_chart_image(chart):
         s_idx = cell_sign[h]
         px, py = int(cell_centers[h][0]), int(cell_centers[h][1])
 
-        # House number (small, muted gold)
-        draw.text((px, py - 35), str(h), fill="#8B7355",
-                  font=font_house, anchor="mm")
+        # For bottom-half houses, put number below and planets above
+        # For top-half/side houses, put number above and planets below
+        # Houses where planets should grow toward center (away from edges)
+        edge_houses = {2, 3, 4, 5, 9, 10}
+        is_bottom = h in edge_houses
 
-        # Planets in this house
         plist = sign_planets[s_idx]
         n = len(plist)
+
+        if is_bottom:
+            # Number at bottom of cell, planets above
+            num_y = py + 15 if n > 0 else py
+            draw.text((px, num_y), str(h), fill="#9B8968",
+                      font=font_house, anchor="mm")
+            py_base = py - 10  # planets above
+        else:
+            # Number at top of cell, planets below
+            num_y = py - 15 if n > 0 else py
+            draw.text((px, num_y), str(h), fill="#9B8968",
+                      font=font_house, anchor="mm")
+            py_base = py + 10  # planets below
+
         if n == 0:
             continue
+
+        # Direction: bottom houses grow upward, top houses grow downward
+        direction = -1 if is_bottom else 1
 
         # For crowded houses (3+), use 2 columns; otherwise single column
         if n >= 3:
             row_spacing = 28
-            col_offset = 40
-            rows = (n + 1) // 2  # ceil division
-            start_y = py - 5 - (rows - 1) * row_spacing // 2
+            col_offset = 45
+            rows = (n + 1) // 2
+            if is_bottom:
+                start_y = py_base + (rows - 1) * row_spacing // 2
+            else:
+                start_y = py_base - (rows - 1) * row_spacing // 2
             for i, pname in enumerate(plist):
                 pdata = planets[pname]
                 abbr = PLANET_HI.get(pname, pname[:2])
                 deg = int(pdata['deg'])
                 retro_mark = "ᵛ" if pdata['retro'] else ""
-                col = PLANET_COLORS.get(pname, "#333333")
+                color = PLANET_COLORS.get(pname, "#333333")
                 row = i // 2
                 column = i % 2
                 xp = px - col_offset // 2 + column * col_offset
-                yp = start_y + row * row_spacing
+                yp = start_y + row * row_spacing * direction
                 label = f"{abbr}{retro_mark}"
                 deg_label = f"{deg:02d}"
-                draw.text((xp - 5, yp), label, fill=col,
+                draw.text((xp - 5, yp), label, fill=color,
                           font=font_planet, anchor="mm")
-                draw.text((xp + 18, yp - 7), deg_label, fill=col,
+                draw.text((xp + 20, yp - 8), deg_label, fill=color,
                           font=font_deg, anchor="mm")
         else:
             spacing = 32
-            start_y = py - 5 - (n - 1) * spacing // 2
+            if is_bottom:
+                start_y = py_base + (n - 1) * spacing // 2
+            else:
+                start_y = py_base - (n - 1) * spacing // 2
             for i, pname in enumerate(plist):
                 pdata = planets[pname]
                 abbr = PLANET_HI.get(pname, pname[:2])
                 deg = int(pdata['deg'])
                 retro_mark = "ᵛ" if pdata['retro'] else ""
-                col = PLANET_COLORS.get(pname, "#333333")
-                yp = start_y + i * spacing
+                color = PLANET_COLORS.get(pname, "#333333")
+                yp = start_y + i * spacing * direction
                 label = f"{abbr}{retro_mark}"
                 deg_label = f"{deg:02d}"
-                draw.text((px - 5, yp), label, fill=col,
+                draw.text((px - 5, yp), label, fill=color,
                           font=font_planet, anchor="mm")
-                draw.text((px + 18, yp - 7), deg_label, fill=col,
+                draw.text((px + 20, yp - 8), deg_label, fill=color,
                           font=font_deg, anchor="mm")
 
     # ── Crop to frame area (remove black border) and convert ──
