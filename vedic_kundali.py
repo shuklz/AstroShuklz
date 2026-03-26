@@ -3215,6 +3215,88 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                     f'<b>दान:</b> {charity}<br/>'
                     f'<b>सुझाव:</b> {tip}</div>')
 
+    # ── Hindi Karma Remedy Page ──────────────────────────────
+    if strength_data:
+        KARMA_HI = {
+            "Sun": {"icon":"☀️", "principle":"उत्तरदायित्व लें और सत्यनिष्ठा से कार्य करें — मान्यता की खोज बंद करें।",
+                "weak":"आत्मविश्वास और नेतृत्व को सुदृढ़ करें। छोटी स्थितियों में आगे बढ़ें, स्वयं के लिए बोलें, और कर्म से आत्मविश्वास बनाएँ।",
+                "strong":"आपका सूर्य प्रबल है। अहंकार से बचें, दूसरों की स्वतंत्रता का सम्मान करें, और उदाहरण से नेतृत्व करें।",
+                "moderate":"सत्यनिष्ठा बनाए रखें, पिता/पितृ तुल्य व्यक्तियों का सम्मान करें, और अपने निर्णयों की ज़िम्मेदारी लें।"},
+            "Moon": {"icon":"🌙", "principle":"मन को स्थिर करें — भीतर से भावनात्मक सुरक्षा बनाएँ।",
+                "weak":"भावनात्मक अस्थिरता हो सकती है। दैनिक ध्यान करें, जल के निकट समय बिताएँ, माता से सम्बन्ध सुदृढ़ करें।",
+                "strong":"भावनात्मक गहराई आपका उपहार है। मनोवेग से निर्णय न लें, आवश्यकतानुसार वैराग्य का अभ्यास करें।",
+                "moderate":"दिनचर्या, विश्राम और सार्थक सम्बन्धों से भावनात्मक संतुलन बनाएँ।"},
+            "Mars": {"icon":"♂️", "principle":"क्रोध पर नियंत्रण रखें — ऊर्जा को अनुशासित कार्य में लगाएँ।",
+                "weak":"दृढ़ता और शारीरिक ऊर्जा बढ़ाएँ। नियमित व्यायाम करें, ना कहना सीखें, साहस का अभ्यास करें।",
+                "strong":"आपका मंगल प्रबल है। आक्रामकता और आवेगी निर्णयों से बचें। ऊर्जा को खेल या रचनात्मक कार्य में लगाएँ।",
+                "moderate":"दृढ़ता और धैर्य में संतुलन रखें। सही के लिए खड़े हों पर विवेकपूर्ण रहें।"},
+            "Mercury": {"icon":"☿", "principle":"स्पष्ट संवाद करें — अति-चिंतन और चतुर छल से बचें।",
+                "weak":"संवाद और विश्लेषण कौशल सुधारें। अधिक पढ़ें, लिखें, नया कौशल सीखें।",
+                "strong":"आपकी तीव्र बुद्धि सम्पत्ति है। छल या अति-चिंतन से बचें। व्यापार में ईमानदार रहें।",
+                "moderate":"सीखते और संवाद करते रहें। गपशप से बचें, सक्रिय श्रवण का अभ्यास करें।"},
+            "Jupiter": {"icon":"♃", "principle":"नैतिक जीवन जिएँ — ज्ञान को लागू करें, केवल उपदेश न दें।",
+                "weak":"ज्ञान और बुद्धि सक्रिय रूप से खोजें। शास्त्र पढ़ें, गुरु खोजें, दूसरों को सिखाएँ, बिना अपेक्षा दान करें।",
+                "strong":"गुरु आपको ज्ञान प्रदान करता है। आत्म-धार्मिकता से बचें, विनम्र रहें, निर्धनों की शिक्षा में सहयोग करें।",
+                "moderate":"आध्यात्मिक और बौद्धिक विकास जारी रखें। गुरुजनों का सम्मान करें, दानशील रहें।"},
+            "Venus": {"icon":"♀️", "principle":"सम्बन्धों को महत्व दें — सुख और उत्तरदायित्व में संतुलन रखें।",
+                "weak":"सम्बन्धों और सुख-सुविधाओं पर ध्यान दें। कृतज्ञता का अभ्यास करें, साथी की देखभाल करें, कला में रुचि विकसित करें।",
+                "strong":"शुक्र आपको आकर्षण और समृद्धि देता है। विलासिता में अति से बचें, सम्बन्धों को हल्के में न लें।",
+                "moderate":"सम्बन्धों को ध्यान और देखभाल से पोषित करें। भौतिक सुख और आध्यात्मिक मूल्यों में संतुलन रखें।"},
+            "Saturn": {"icon":"♄", "principle":"निरंतर रहें — बिना शिकायत धैर्यपूर्वक कर्तव्य निभाएँ।",
+                "weak":"विलम्ब और बाधाएँ आ सकती हैं। कठोर परिश्रम अपनाएँ, परिणामों में धैर्य रखें, बुजुर्गों की सेवा करें।",
+                "strong":"शनि आपको अनुशासन और सहनशक्ति देता है। अत्यधिक कठोरता से बचें, करुणा का अभ्यास करें।",
+                "moderate":"उत्तरदायित्वों के प्रति प्रतिबद्ध रहें। श्रमिकों और सेवकों का सम्मान करें, समयनिष्ठ रहें।"},
+            "Rahu": {"icon":"☊", "principle":"इच्छाओं पर नियंत्रण रखें — शॉर्टकट से बचें और वास्तविकता में टिके रहें।",
+                "weak":"भ्रम और भटकाव हो सकता है। नशे से दूर रहें, जल्दी अमीर बनने की योजनाओं से बचें, ईमानदारी अपनाएँ।",
+                "strong":"राहु भौतिक महत्वाकांक्षा देता है। लक्ष्यों की अंधी खोज से बचें, संतोष का अभ्यास करें, पारदर्शी रहें।",
+                "moderate":"महत्वाकांक्षाओं को नैतिकता पर आधारित रखें। छल से बचें, अपनी जड़ों से जुड़े रहें।"},
+            "Ketu": {"icon":"☋", "principle":"केंद्रित रहें — आध्यात्मिकता और व्यावहारिक जीवन में संतुलन रखें।",
+                "weak":"दिशाहीनता या वैराग्य हो सकता है। दिनचर्या से स्वयं को स्थिर करें, पारिवारिक सम्बन्ध बनाए रखें।",
+                "strong":"केतु गहन आध्यात्मिक दृष्टि देता है। संसार से अत्यधिक विरक्ति से बचें, प्रियजनों से जुड़े रहें।",
+                "moderate":"आंतरिक चिंतन और बाहरी सहभागिता में संतुलन रखें। ध्यान करें पर उत्तरदायित्व न छोड़ें।"},
+        }
+
+        html_parts.append('<div class="page-break"></div>')
+        html_parts.append("<h2>कर्म उपाय विधान</h2>")
+        html_parts.append('<div class="brand">by AstroShuklz</div>')
+        html_parts.append(
+            '<div style="font-style:italic; font-size:9pt; color:#2E4057; '
+            'border:1px solid #8B0000; padding:8px; background:#FFF8F0; margin:8px 0;">'
+            'कर्म सुधार वैदिक ज्योतिष में सबसे उच्च और शक्तिशाली उपाय है। '
+            'मंत्र और अनुष्ठान लक्षणों को संबोधित करते हैं, जबकि अपने व्यवहार और कर्मों को '
+            'बदलना मूल कारण को संबोधित करता है। नीचे आपका व्यक्तिगत कर्म विधान प्रत्येक '
+            'ग्रह की शक्ति और आपकी कुण्डली में भूमिका पर आधारित है।</div>')
+
+        for pname in order:
+            sinfo = strength_data[pname]
+            hi_name = PLANET_HI_FULL.get(pname, pname)
+            kr = KARMA_HI[pname]
+            overall = sinfo['overall']
+            ovr_hi = STRENGTH_LABELS_HI.get(overall, overall)
+            score = sinfo['score']
+
+            if overall == "Weak":
+                advice = kr['weak']
+            elif overall == "Strong":
+                advice = kr['strong']
+            else:
+                advice = kr['moderate']
+
+            html_parts.append(
+                f'<h3 style="color:#8B0000;">{kr["icon"]} {hi_name} — '
+                f'{ovr_hi} ({score}/100)</h3>')
+            html_parts.append(
+                f'<div class="reading" style="font-style:italic; color:#555; font-size:8.5pt;">'
+                f'{kr["principle"]}</div>')
+            html_parts.append(f'<div class="reading">{advice}</div>')
+
+        html_parts.append(
+            '<div style="text-align:center; font-style:italic; font-size:9pt; '
+            'color:#2E4057; border:1px solid #8B0000; padding:8px; '
+            'background:#FFF8F0; margin:15px 0;">'
+            '"आपका कर्म ही आपका सबसे बड़ा उपाय है। अपने कर्म बदलें, ग्रह स्वयं अनुकूल होंगे।"'
+            '<br/>— शास्त्रीय वैदिक ज्ञान</div>')
+
     # ── Hindi Dasha Tables ───────────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
 
@@ -3852,6 +3934,120 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                 f"<b>Charity:</b> {charity}<br/>"
                 f"<b>Tip:</b> {tip}",
                 tier_style))
+
+    # ── Karma Remedy Page ────────────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Karma Remedy Prescription", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 3*mm))
+
+    KARMA_REMEDIES = {
+        "Sun": {
+            "icon": "☀️", "principle": "Take responsibility and act with integrity — stop seeking validation.",
+            "weak": "Your sense of self and authority needs strengthening. Practice leadership in small ways — take charge of situations, speak up for yourself, and build confidence through action, not approval from others.",
+            "strong": "Your strong Sun gives natural authority. Channel it wisely — avoid ego clashes, respect others' autonomy, and lead by example rather than force.",
+            "moderate": "Your Sun is balanced. Maintain integrity in all dealings, honour your father/father figures, and take ownership of your life decisions.",
+        },
+        "Moon": {
+            "icon": "🌙", "principle": "Stabilize your mind — build emotional security from within.",
+            "weak": "Emotional turbulence may affect your decisions. Practice daily meditation, spend time near water, nurture your relationship with your mother, and create a stable home environment.",
+            "strong": "Your emotional depth is a gift. Avoid mood-driven decisions, practice detachment when needed, and use your empathy to help others without absorbing their pain.",
+            "moderate": "Maintain emotional balance through routine, rest, and meaningful connections. Trust your intuition but verify with logic.",
+        },
+        "Mars": {
+            "icon": "♂️", "principle": "Control anger — channel energy into disciplined action.",
+            "weak": "You may lack assertiveness or physical vitality. Take up regular exercise, learn to say no, practice courage in daily situations, and avoid suppressing justified anger.",
+            "strong": "Your Mars gives tremendous drive. Avoid aggression, impulsive decisions, and domination. Channel energy into sports, fitness, or constructive competition.",
+            "moderate": "Balance assertion with patience. Stand up for what's right but pick your battles wisely. Regular physical activity is essential.",
+        },
+        "Mercury": {
+            "icon": "☿", "principle": "Communicate clearly — avoid overthinking and clever manipulation.",
+            "weak": "Communication and analytical skills need attention. Read more, write regularly, learn a new skill, and practice expressing your thoughts clearly and honestly.",
+            "strong": "Your sharp intellect is an asset. Avoid using it for manipulation or overthinking. Be honest in business dealings and honour your commitments.",
+            "moderate": "Keep learning and communicating. Avoid gossip, practice active listening, and use your intelligence for the benefit of others.",
+        },
+        "Jupiter": {
+            "icon": "♃", "principle": "Live ethically — apply wisdom, don't just preach it.",
+            "weak": "Seek knowledge and wisdom actively. Study sacred texts, find a mentor/guru, teach what you know to others, and practice generosity without expectation.",
+            "strong": "Your Jupiter blesses you with wisdom. Avoid self-righteousness, stay humble, share your knowledge freely, and support education for the underprivileged.",
+            "moderate": "Continue your spiritual and intellectual growth. Respect teachers and elders, be charitable, and maintain ethical standards in all areas of life.",
+        },
+        "Venus": {
+            "icon": "♀️", "principle": "Value relationships — balance pleasure with responsibility.",
+            "weak": "Relationships and comfort may feel lacking. Practice gratitude for what you have, treat your spouse/partner with extra care, appreciate beauty in nature, and develop artistic interests.",
+            "strong": "Your Venus gives charm and abundance. Avoid excess in luxury, maintain fidelity, don't take relationships for granted, and share your abundance with others.",
+            "moderate": "Nurture your relationships with attention and care. Balance material enjoyment with spiritual values. Support women's causes.",
+        },
+        "Saturn": {
+            "icon": "♄", "principle": "Be consistent — do your duty patiently without complaint.",
+            "weak": "You may face delays and obstacles. Embrace hard work, be patient with results, serve the elderly and underprivileged, and never take shortcuts in your duties.",
+            "strong": "Your Saturn gives discipline and endurance. Avoid being overly rigid or harsh on yourself/others. Practice compassion alongside duty.",
+            "moderate": "Stay committed to your responsibilities. Treat workers and servants with respect, maintain punctuality, and accept life's delays as lessons in patience.",
+        },
+        "Rahu": {
+            "icon": "☊", "principle": "Control desires — avoid shortcuts and stay grounded in reality.",
+            "weak": "Confusion and misdirection may trouble you. Stay away from intoxicants, avoid get-rich-quick schemes, practice honesty, and build genuine rather than superficial connections.",
+            "strong": "Your Rahu gives worldly ambition. Avoid obsessive pursuit of material goals, practice contentment, be transparent in all dealings, and don't exploit others for gain.",
+            "moderate": "Keep your ambitions grounded in ethics. Avoid deception even when tempted, stay connected to your roots, and practice digital/media detox regularly.",
+        },
+        "Ketu": {
+            "icon": "☋", "principle": "Stay focused — balance spirituality with practical life.",
+            "weak": "You may feel directionless or detached. Ground yourself through routine, maintain family connections, complete what you start, and balance spiritual seeking with worldly duties.",
+            "strong": "Your Ketu gives deep spiritual insight. Avoid excessive withdrawal from the world, stay connected to loved ones, and use your intuition to guide rather than isolate.",
+            "moderate": "Balance inner reflection with outer engagement. Practice meditation but remain active in your responsibilities. Trust your instincts.",
+        },
+    }
+
+    karma_intro = ParagraphStyle('KarmaIntro', parent=note_style,
+        fontName='Helvetica-Oblique', fontSize=9.5,
+        textColor=colors.HexColor("#2E4057"),
+        borderColor=colors.HexColor("#8B0000"), borderWidth=1,
+        borderPadding=6, backColor=colors.HexColor("#FFF8F0"),
+        spaceBefore=2*mm, spaceAfter=4*mm)
+
+    story.append(Paragraph(
+        '<i>Karma correction is the highest and most powerful form of remedy in Vedic '
+        'astrology. While mantras and rituals address the symptoms, changing your '
+        'behaviour and actions addresses the root cause. Your personalised Karma '
+        'Prescription below is based on each planet\'s strength and role in your chart.</i>',
+        karma_intro))
+
+    karma_head_style = ParagraphStyle('KarmaHead', parent=note_style,
+        fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+        spaceBefore=3*mm, spaceAfter=0.5*mm)
+    karma_principle = ParagraphStyle('KarmaPrinciple', parent=note_style,
+        fontName='Helvetica-Oblique', fontSize=8.5,
+        textColor=colors.HexColor("#555"), spaceAfter=0.5*mm)
+    karma_body = ParagraphStyle('KarmaBody', parent=note_style,
+        fontSize=9, leading=13, spaceAfter=1*mm)
+
+    for pname in planet_order:
+        sinfo = strength_data[pname]
+        kr = KARMA_REMEDIES[pname]
+        overall = sinfo['overall']
+        score = sinfo['score']
+        icon = kr['icon']
+
+        # Pick advice based on strength
+        if overall == "Weak":
+            advice = kr['weak']
+        elif overall == "Strong":
+            advice = kr['strong']
+        else:
+            advice = kr['moderate']
+
+        story.append(Paragraph(
+            f"{icon} <b>{pname}</b> — {overall} ({score}/100)",
+            karma_head_style))
+        story.append(Paragraph(f"<i>{kr['principle']}</i>", karma_principle))
+        story.append(Paragraph(advice, karma_body))
+
+    story.append(Spacer(1, 5*mm))
+    story.append(Paragraph(
+        '<i>"Your karma is your greatest remedy. Change your actions, and the planets '
+        'will follow." — Classical Vedic Wisdom</i>',
+        ParagraphStyle('KarmaQuote', parent=karma_intro,
+            alignment=TA_CENTER, fontSize=9)))
 
     # ── Dasha tables ───────────────────────────────────────────
     story.append(PageBreak())
