@@ -2900,10 +2900,10 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     # Moon's house for HFM calculation
     moon_house = (moon_sign - asc_sign) % 12 + 1
 
-    # Table header
+    # Table header — short single-row labels
     hp_header = [
-        Paragraph('<b>Rank</b>', cell_center_bold),
-        Paragraph('<b>House</b>', cell_center_bold),
+        Paragraph('<b>#</b>', cell_center_bold),
+        Paragraph('<b>Hse</b>', cell_center_bold),
         Paragraph('<b>Bhav</b>', cell_center_bold),
         Paragraph('<b>House Characteristics</b>', cell_style_bold),
         Paragraph('<b>Zodiac</b>', cell_center_bold),
@@ -2999,30 +2999,135 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     hp_table.setStyle(TableStyle(hp_style_rules))
     story.append(hp_table)
 
-    # ── Footnotes ────────────────────────────────────────────────
-    story.append(Spacer(1, 2*mm))
+    # ── Explanatory Notes Page ──────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Planetary Position Table — Explanatory Notes",
+                            section_style))
+    story.append(Spacer(1, 3*mm))
+
+    # ── Sign rulers for Ascendant note ──
+    SIGN_RULERS = {
+        "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury",
+        "Cancer": "Moon", "Leo": "Sun", "Virgo": "Mercury",
+        "Libra": "Venus", "Scorpio": "Mars", "Sagittarius": "Jupiter",
+        "Capricorn": "Saturn", "Aquarius": "Saturn", "Pisces": "Jupiter",
+    }
+    SIGN_TRAITS = {
+        "Aries": "bold, pioneering, and action-oriented",
+        "Taurus": "steady, patient, and materialistic",
+        "Gemini": "adaptable, communicative, and intellectually curious",
+        "Cancer": "nurturing, emotional, and protective",
+        "Leo": "confident, creative, and authoritative",
+        "Virgo": "analytical, detail-oriented, and service-minded",
+        "Libra": "balanced, diplomatic, and aesthetic",
+        "Scorpio": "intense, transformative, and deeply perceptive",
+        "Sagittarius": "adventurous, philosophical, and optimistic",
+        "Capricorn": "ambitious, disciplined, and practical",
+        "Aquarius": "innovative, humanitarian, and independent",
+        "Pisces": "intuitive, compassionate, and spiritual",
+    }
+
+    asc_sign_name = chart['asc_sign_en']
+    asc_deg_val = chart['asc_deg']
+    asc_abs_deg = asc_sign * 30 + asc_deg_val
+    asc_ruler = SIGN_RULERS.get(asc_sign_name, "Unknown")
+    asc_traits = SIGN_TRAITS.get(asc_sign_name, "")
+    asc_deg_in_sign = asc_deg_val  # degree within the sign (0-30)
+
+    note_style = ParagraphStyle('NoteStyle', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, leading=13, spaceBefore=2*mm, spaceAfter=2*mm)
+    note_heading = ParagraphStyle('NoteHeading', parent=note_style,
+        fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+        spaceBefore=4*mm, spaceAfter=1*mm)
+    note_summary = ParagraphStyle('NoteSummary', parent=note_style,
+        fontName='Helvetica-Oblique', fontSize=9.5,
+        textColor=colors.HexColor("#2E4057"),
+        borderColor=colors.HexColor("#DAA520"), borderWidth=1,
+        borderPadding=6, backColor=colors.HexColor("#FFFDE7"),
+        spaceBefore=3*mm, spaceAfter=3*mm)
+
+    # 1. ASCENDANT / LAGNA
+    story.append(Paragraph("1. Ascendant (Lagna / Rising Sign)", note_heading))
     story.append(Paragraph(
-        '<b>1st House (Ascendant/Lagna):</b> The Ascendant marks the '
-        '1st House in your natal chart. It governs your self-image, '
-        'physical appearance, temperament, and how you initiate actions. '
-        'The sign and planets here strongly shape your personality and '
-        'life approach. <font color="#DAA520"><b>Highlighted in gold above.</b></font>',
-        footnote_style))
+        'In Vedic astrology, the <b>Ascendant</b> (or Rising Sign) is the zodiac sign '
+        'that was rising on the eastern horizon at the exact moment of your birth. '
+        'It represents your outward personality, how others perceive you, and your '
+        'approach to life. The Ascendant is calculated in degrees (0° to 360°) along '
+        'the ecliptic, with each zodiac sign occupying 30° of this circle. '
+        'The 1st House row is <font color="#DAA520"><b>highlighted in gold</b></font> '
+        'in the table above.',
+        note_style))
+
+    # Degree interpretation
+    story.append(Paragraph("<b>Degree Interpretation:</b>", note_style))
     story.append(Paragraph(
-        '<b>HFM (House From Moon):</b> In Vedic astrology, houses are read '
-        'not only from the Lagna but also from the Moon (Chandra Kundali). '
-        'HFM shows each house counted from the Moon\'s position. The Moon chart '
-        'reveals your emotional landscape, mental tendencies, and inner perception. '
-        'Where HFM=1 is highlighted, that is your <b>Moon\'s house</b> — '
-        'the anchor of your Chandra Kundali. '
-        '<font color="#1E88E5"><b>Highlighted in blue above.</b></font>',
-        footnote_style))
+        f'Your Ascendant is at <b>{asc_abs_deg:.2f}°</b> on the ecliptic. '
+        f'Since {asc_sign_name} spans from {asc_sign * 30}° to {asc_sign * 30 + 30}°, '
+        f'your Lagna falls at <b>{dms_str(asc_deg_in_sign)}</b> within {asc_sign_name}. '
+        f'{"An early degree (0-10°) suggests the sign energy is fresh and raw. " if asc_deg_in_sign < 10 else ""}'
+        f'{"A mid-degree (10-20°) indicates the sign qualities are fully expressed. " if 10 <= asc_deg_in_sign < 20 else ""}'
+        f'{"A late degree (20-30°) suggests maturity and transition energy from this sign. " if asc_deg_in_sign >= 20 else ""}',
+        note_style))
+
+    # Planetary ruler
+    story.append(Paragraph("<b>Planetary Ruler:</b>", note_style))
     story.append(Paragraph(
-        '<b>R (Retrograde):</b> Planets marked with R appear to move backward '
-        'from Earth\'s perspective. Retrograde planets often indicate inward-turning '
-        'energy, karmic lessons, or delayed but intensified results in the areas '
-        'they govern.',
-        footnote_style))
+        f'The ruling planet of {asc_sign_name} is <b>{asc_ruler}</b>. '
+        f'As the lord of your Ascendant, {asc_ruler}\'s placement in your chart '
+        f'(its house, sign, and aspects) has a particularly strong influence on your '
+        f'overall life direction, health, and personality expression.',
+        note_style))
+
+    # Personalized summary
+    story.append(Paragraph(
+        f'<b>Summary:</b> Your Ascendant at <b>{asc_abs_deg:.2f}°</b> '
+        f'({dms_str(asc_deg_in_sign)} in {asc_sign_name}) means your Rising Sign is '
+        f'<b>{asc_sign_name}</b>, and you likely project an energy that is '
+        f'{asc_traits}. The influence of {asc_ruler} as your chart ruler further '
+        f'shapes your core identity and life path.',
+        note_summary))
+
+    # 2. HFM
+    story.append(Paragraph("2. HFM (House From Moon)", note_heading))
+    moon_sign_name = chart['moon_rashi']
+    story.append(Paragraph(
+        f'In Vedic astrology, houses are read not only from the <b>Lagna</b> '
+        f'(Ascendant) but also from the <b>Moon</b> (Chandra Kundali). '
+        f'Your Moon is in <b>{moon_sign_name}</b>, which becomes the 1st house '
+        f'of your Moon chart. HFM shows each house counted from the Moon\'s position.',
+        note_style))
+    story.append(Paragraph(
+        'The Moon chart reveals your <b>emotional landscape</b>, mental tendencies, '
+        'and inner perception — while the Lagna chart shows your external life '
+        'and physical reality. Professional astrologers always read both charts '
+        'together for a complete picture. '
+        'The Moon\'s house (HFM=1) is '
+        '<font color="#1E88E5"><b>highlighted in blue</b></font> in the table.',
+        note_style))
+
+    # 3. RETROGRADE
+    story.append(Paragraph("3. R (Retrograde Planets)", note_heading))
+    story.append(Paragraph(
+        'Planets marked with <b>R</b> appear to move backward from Earth\'s '
+        'perspective. In Vedic astrology, retrograde planets are considered '
+        'strong but their energy turns <b>inward</b>. They often indicate '
+        'karmic lessons, delayed but intensified results, unfinished business '
+        'from past lives, or areas where deeper introspection is needed. '
+        'Retrograde benefics (Jupiter, Venus) can give unexpected gains, while '
+        'retrograde malefics (Saturn, Mars) may intensify challenges before '
+        'eventual resolution.',
+        note_style))
+
+    # 4. BHAV (House System)
+    story.append(Paragraph("4. Bhav (House System)", note_heading))
+    story.append(Paragraph(
+        'Each of the 12 houses (Bhav) governs specific life areas. The house '
+        'number in the table corresponds to the natural zodiac position of '
+        'the sign occupying that house. The Bhav name (Tanu, Dhana, Sahaja, etc.) '
+        'describes the life domain ruled by that house. Planets placed in a house '
+        'influence those life areas according to their natural significations.',
+        note_style))
 
     # ── Page 2: All three Dasha tables ───────────────────────────
     story.append(PageBreak())
