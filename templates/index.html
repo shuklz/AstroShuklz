@@ -355,7 +355,7 @@
             <input type="text" id="place" name="place" placeholder="e.g. Lucknow, Mumbai, New York" required>
             <div class="hint">City name — supports 200+ cities worldwide</div>
 
-            <button type="submit" id="submit-btn" class="btn-primary">Generate Kundali PDF</button>
+            <button type="button" id="submit-btn" class="btn-primary" onclick="promptPasscode()">Generate Kundali PDF</button>
         </form>
 
         <div class="or-divider">— or —</div>
@@ -408,6 +408,34 @@
             btn.textContent = "Generating\u2026 please wait";
             btn.classList.add("loading");
         });
+
+        function promptPasscode() {
+            var form = document.getElementById("kundali-form");
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            var dateVal = document.getElementById("date").value;
+            if (!dateVal) { alert("Please enter Date of Birth first."); return; }
+
+            // Passcode formula: MMYY(dob) + YY(current year)
+            var parts = dateVal.split("-"); // yyyy-mm-dd
+            var mm = parts[1];             // "02"
+            var yy = parts[0].slice(-2);   // "64"
+            var curYY = new Date().getFullYear().toString().slice(-2); // "26"
+            var correctCode = mm + yy + curYY;
+
+            var entered = prompt("🔐 Enter 6-digit access code to generate PDF:");
+            if (entered === null) return; // cancelled
+            if (entered.trim() === correctCode) {
+                // Submit the form
+                var btn = document.getElementById("submit-btn");
+                btn.classList.add("loading");
+                form.submit();
+            } else {
+                alert("❌ Incorrect access code. Please contact astroshuklz@shuklz.com for assistance.");
+            }
+        }
 
         function openReadings() {
             var name = document.getElementById("name").value.trim();
