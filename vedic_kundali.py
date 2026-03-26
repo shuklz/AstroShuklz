@@ -2747,52 +2747,203 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     story.append(Paragraph(summary, info_style))
     story.append(Spacer(1, 3*mm))
 
-    # ── Golden Lagna Kundali Chart ─────────────────────────────
-    try:
-        from reportlab.platypus import Image as RLImage
-        golden_buf = generate_golden_chart_image(chart)
-        # Scale to fill ~half of A4 page (cropped image is 1245x930)
-        chart_width = 180*mm
-        chart_height = chart_width * (930 / 1245)  # maintain cropped aspect ratio
-        chart_img = RLImage(golden_buf, width=chart_width, height=chart_height)
-        story.append(chart_img)
-    except Exception as e:
-        # If chart generation fails, skip silently
-        story.append(Paragraph(f"[Chart unavailable: {e}]", info_style))
+    # ── Reference data for House Position table ─────────────────
+    BHAV_NAMES = {
+        1: "Tanu",    2: "Dhana",   3: "Sahaja",  4: "Sukha",
+        5: "Putra",   6: "Ari",     7: "Kalatra",  8: "Randhra",
+        9: "Dharma", 10: "Karma",  11: "Labha",   12: "Vyaya",
+    }
+    BHAV_NAMES_HI = {
+        1: "तनु",    2: "धन",     3: "सहज",    4: "सुख",
+        5: "पुत्र",   6: "अरि",    7: "कलत्र",   8: "रन्ध्र",
+        9: "धर्म",  10: "कर्म",   11: "लाभ",   12: "व्यय",
+    }
+    HOUSE_DESC = {
+        1: "Self, body, personality, appearance, health, vitality",
+        2: "Wealth, family, speech, food, values, early education",
+        3: "Siblings, courage, communication, short travel, efforts",
+        4: "Mother, happiness, home, property, vehicles, inner peace",
+        5: "Children, intelligence, creativity, romance, past merit",
+        6: "Enemies, disease, debts, obstacles, service, competition",
+        7: "Spouse, partnerships, business, foreign travel, public",
+        8: "Transformation, longevity, secrets, occult, inheritance",
+        9: "Luck, father, dharma, higher learning, long travel, guru",
+        10: "Career, status, authority, fame, actions, government",
+        11: "Gains, income, friends, networks, fulfilment of desires",
+        12: "Loss, expenses, foreign lands, moksha, isolation, sleep",
+    }
+    SIGNS_EN = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+                "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
+    SIGNS_HI_FULL = ["Mesha","Vrishabha","Mithuna","Karka","Simha","Kanya",
+                     "Tula","Vrischika","Dhanu","Makara","Kumbha","Meena"]
+    RASHI_ELEMENT = ["Fire","Earth","Air","Water","Fire","Earth",
+                     "Air","Water","Fire","Earth","Air","Water"]
+    RASHI_NATURE = ["Movable","Fixed","Dual","Movable","Fixed","Dual",
+                    "Movable","Fixed","Dual","Movable","Fixed","Dual"]
+    RASHI_QUALITY = [
+        "Bold, pioneering, leadership",
+        "Steady, patient, materialistic",
+        "Adaptable, communicative, curious",
+        "Nurturing, emotional, protective",
+        "Confident, creative, authoritative",
+        "Analytical, detail-oriented, service",
+        "Balanced, diplomatic, aesthetic",
+        "Intense, transformative, secretive",
+        "Adventurous, philosophical, optimistic",
+        "Ambitious, disciplined, practical",
+        "Innovative, humanitarian, independent",
+        "Intuitive, compassionate, spiritual",
+    ]
 
-    # ── Page 2: Planetary Positions Table ──────────────────────
-    story.append(PageBreak())
-    story.append(Paragraph("Planetary Positions", section_style))
+    # ── Paragraph styles for table cells ──
+    cell_style = ParagraphStyle('CellStyle', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=6.5, leading=8,
+        textColor=colors.HexColor("#333"))
+    cell_style_bold = ParagraphStyle('CellBold', parent=cell_style,
+        fontName='Helvetica-Bold', fontSize=7)
+    cell_center = ParagraphStyle('CellCenter', parent=cell_style,
+        alignment=TA_CENTER)
+    cell_center_bold = ParagraphStyle('CellCenterBold', parent=cell_style_bold,
+        alignment=TA_CENTER)
+    footnote_style = ParagraphStyle('Footnote', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=6.5, textColor=colors.HexColor("#666"),
+        leading=9, spaceBefore=3*mm)
+    footnote_bold = ParagraphStyle('FootnoteBold', parent=footnote_style,
+        fontName='Helvetica-Bold', textColor=MAROON)
 
-    p_header = ['Graha', 'Sign (Rashi)', 'Degree', 'Rashi#',
-                'H/Lagna', 'H/Moon', 'R']
-    p_data = [p_header]
+    # ── Page 1: Comprehensive House Position Table ────────────
+    story.append(Paragraph("Planetary Position", section_style))
+
+    # Build planet lookup: house_num -> list of (name, degree, retro)
+    planet_in_house = {h: [] for h in range(1, 13)}
     order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
     for pname in order:
         p = planets[pname]
         sidx = p['sign_idx']
-        rashi = sidx + 1
         h_lag = (sidx - asc_sign) % 12 + 1
-        h_moon = (sidx - moon_sign) % 12 + 1
-        retro = "℞" if p['retro'] else ""
-        sign_str = f"{p['sign_en']} ({p['sign_hi']})"
-        p_data.append([pname, sign_str, dms_str(p['deg']),
-                       str(rashi), f"H{h_lag}", f"H{h_moon}", retro])
+        planet_in_house[h_lag].append((pname, dms_str(p['deg']),
+                                       "R" if p['retro'] else ""))
 
-    col_w = [55, 115, 65, 40, 45, 45, 20]
-    ptable = Table(p_data, colWidths=col_w)
-    ptable.setStyle(TableStyle([
+    # Moon's house for HFM calculation
+    moon_house = (moon_sign - asc_sign) % 12 + 1
+
+    # Table header
+    hp_header = [
+        Paragraph('<b>Rank</b>', cell_center_bold),
+        Paragraph('<b>House</b>', cell_center_bold),
+        Paragraph('<b>Bhav</b>', cell_center_bold),
+        Paragraph('<b>House Characteristics</b>', cell_style_bold),
+        Paragraph('<b>Zodiac</b>', cell_center_bold),
+        Paragraph('<b>Rashi</b>', cell_center_bold),
+        Paragraph('<b>Rashi Characteristics</b>', cell_style_bold),
+        Paragraph('<b>Planet</b>', cell_center_bold),
+        Paragraph('<b>Degree</b>', cell_center_bold),
+        Paragraph('<b>R</b>', cell_center_bold),
+        Paragraph('<b>HFM</b>', cell_center_bold),
+    ]
+    hp_data = [hp_header]
+
+    # Build rows — start from Ascendant house, cycle through 12
+    for rank in range(1, 13):
+        house_num = ((asc_sign + rank - 1) % 12) + 1  # house number
+        sign_idx = (asc_sign + rank - 1) % 12          # 0-based sign index
+        bhav = BHAV_NAMES[house_num]
+        bhav_hi = BHAV_NAMES_HI[house_num]
+        desc = HOUSE_DESC[house_num]
+        zodiac = SIGNS_EN[sign_idx]
+        rashi = SIGNS_HI_FULL[sign_idx]
+        rashi_char = f"{RASHI_ELEMENT[sign_idx]} | {RASHI_NATURE[sign_idx]}: {RASHI_QUALITY[sign_idx]}"
+
+        # HFM: house from Moon (count from Moon's sign)
+        hfm = (sign_idx - moon_sign) % 12 + 1
+
+        # Planets in this house
+        plist = planet_in_house[house_num]
+        if plist:
+            planet_str = ", ".join(p[0] for p in plist)
+            deg_str = "\n".join(f"{p[0]}: {p[1]}" for p in plist)
+            retro_str = "\n".join(p[2] for p in plist)
+        else:
+            planet_str = "-"
+            deg_str = "-"
+            retro_str = ""
+
+        row = [
+            Paragraph(str(rank), cell_center),
+            Paragraph(str(house_num), cell_center_bold),
+            Paragraph(bhav, cell_center),
+            Paragraph(desc, cell_style),
+            Paragraph(zodiac, cell_center),
+            Paragraph(rashi, cell_center),
+            Paragraph(rashi_char, cell_style),
+            Paragraph(planet_str, cell_center),
+            Paragraph(deg_str, cell_center),
+            Paragraph(retro_str, cell_center),
+            Paragraph(str(hfm), cell_center),
+        ]
+        hp_data.append(row)
+
+    # Column widths (total ~530 for A4 with margins)
+    hp_col_w = [24, 28, 36, 110, 48, 42, 105, 50, 48, 14, 25]
+    hp_table = Table(hp_data, colWidths=hp_col_w, repeatRows=1)
+
+    hp_style_rules = [
         ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE',   (0,0), (-1,-1), 8),
+        ('FONTSIZE',   (0,0), (-1,0), 7),
+        ('FONTSIZE',   (0,1), (-1,-1), 6.5),
         ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
         ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
         ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
         ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
         ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
         ('TOPPADDING',  (0,0), (-1,-1), 3),
         ('BOTTOMPADDING',(0,0), (-1,-1), 3),
-    ]))
-    story.append(ptable)
+        ('LEFTPADDING', (0,0), (-1,-1), 3),
+        ('RIGHTPADDING',(0,0), (-1,-1), 3),
+    ]
+
+    # Highlight Row 1 (1st House / Ascendant) with golden background
+    GOLD_BG = colors.HexColor("#FFF3CD")
+    hp_style_rules.append(('BACKGROUND', (0, 1), (-1, 1), GOLD_BG))
+    hp_style_rules.append(('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'))
+
+    # Highlight the Moon row (HFM=1) with light blue
+    MOON_BG = colors.HexColor("#E3F2FD")
+    for rank in range(1, 13):
+        sign_idx = (asc_sign + rank - 1) % 12
+        hfm = (sign_idx - moon_sign) % 12 + 1
+        if hfm == 1:
+            hp_style_rules.append(('BACKGROUND', (0, rank), (-1, rank), MOON_BG))
+            break
+
+    hp_table.setStyle(TableStyle(hp_style_rules))
+    story.append(hp_table)
+
+    # ── Footnotes ────────────────────────────────────────────────
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph(
+        '<b>1st House (Ascendant/Lagna):</b> The Ascendant marks the '
+        '1st House in your natal chart. It governs your self-image, '
+        'physical appearance, temperament, and how you initiate actions. '
+        'The sign and planets here strongly shape your personality and '
+        'life approach. <font color="#DAA520"><b>Highlighted in gold above.</b></font>',
+        footnote_style))
+    story.append(Paragraph(
+        '<b>HFM (House From Moon):</b> In Vedic astrology, houses are read '
+        'not only from the Lagna but also from the Moon (Chandra Kundali). '
+        'HFM shows each house counted from the Moon\'s position. The Moon chart '
+        'reveals your emotional landscape, mental tendencies, and inner perception. '
+        'Where HFM=1 is highlighted, that is your <b>Moon\'s house</b> — '
+        'the anchor of your Chandra Kundali. '
+        '<font color="#1E88E5"><b>Highlighted in blue above.</b></font>',
+        footnote_style))
+    story.append(Paragraph(
+        '<b>R (Retrograde):</b> Planets marked with R appear to move backward '
+        'from Earth\'s perspective. Retrograde planets often indicate inward-turning '
+        'energy, karmic lessons, or delayed but intensified results in the areas '
+        'they govern.',
+        footnote_style))
 
     # ── Page 2: All three Dasha tables ───────────────────────────
     story.append(PageBreak())
