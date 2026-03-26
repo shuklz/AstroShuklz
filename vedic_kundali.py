@@ -30,11 +30,11 @@ SIGNS_HI = [
     "Tula","Vrishchika","Dhanus","Makara","Kumbha","Meena"
 ]
 SIGNS_SHORT = ["Ar","Ta","Ge","Ca","Le","Vi","Li","Sc","Sa","Cp","Aq","Pi"]
-SIGNS_HI_SHORT = ["\u092e\u0947\u0937","\u0935\u0943\u0937","\u092e\u093f\u0925","\u0915\u0930\u094d\u0915","\u0938\u093f\u0902\u0939","\u0915\u0928\u094d\u092f\u093e","\u0924\u0941\u0932\u093e","\u0935\u0943\u0936\u094d\u091a\u093f","\u0927\u0928\u0941","\u092e\u0915\u0930","\u0915\u0941\u0902\u092d","\u092e\u0940\u0928"]
+SIGNS_HI_SHORT = ["मेष","वृष","मिथ","कर्क","सिंह","कन्या","तुला","वृश्चि","धनु","मकर","कुंभ","मीन"]
 SIGNS_HI_FULL = [
-    "\u092e\u0947\u0937","\u0935\u0943\u0937\u092d","\u092e\u093f\u0925\u0941\u0928","\u0915\u0930\u094d\u0915",
-    "\u0938\u093f\u0902\u0939","\u0915\u0928\u094d\u092f\u093e","\u0924\u0941\u0932\u093e","\u0935\u0943\u0936\u094d\u091a\u093f\u0915",
-    "\u0927\u0928\u0941","\u092e\u0915\u0930","\u0915\u0941\u0902\u092d","\u092e\u0940\u0928"
+    "मेष","वृषभ","मिथुन","कर्क",
+    "सिंह","कन्या","तुला","वृश्चिक",
+    "धनु","मकर","कुंभ","मीन"
 ]
 
 PLANETS_SWE = {
@@ -597,13 +597,13 @@ def generate_svg_string(chart):
 
     svg.append(f'<text x="{W//2}" y="30" text-anchor="middle" '
                f'font-size="17" font-weight="bold" fill="#8B0000">'
-               f'\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940</text>')
+               f'जन्म कुण्डली</text>')
     svg.append(f'<text x="{W//2}" y="48" text-anchor="middle" '
                f'font-size="12" fill="#444">{bd["name"]}</text>')
     svg.append(f'<text x="{W//2}" y="63" text-anchor="middle" '
                f'font-size="10" fill="#777">'
                f'{bd["day"]:02d}/{bd["month"]:02d}/{bd["year"]}  '
-               f'{bd["hour"]:02d}:{bd["minute"]:02d}  \u00b7  {bd["place"]}</text>')
+               f'{bd["hour"]:02d}:{bd["minute"]:02d}  ·  {bd["place"]}</text>')
 
     # Grid
     svg.append(f'<rect x="{ox}" y="{oy+20}" width="{gw}" height="{gh}" '
@@ -661,13 +661,13 @@ def generate_svg_string(chart):
         if h == 1:
             svg.append(f'<text x="{px - 18}" y="{py_c + 4}" text-anchor="middle" '
                        f'font-size="8" fill="#8B0000" font-weight="bold">'
-                       f'\u0932</text>')
+                       f'ल</text>')
         plist = sign_planets[s_idx]
         for i, pname in enumerate(plist):
             pdata = planets[pname]
             abbr  = PLANET_HI.get(pname, pname[:2])
             deg   = int(pdata['deg'])
-            retro = "\u1d5b" if pdata['retro'] else ""
+            retro = "ᵛ" if pdata['retro'] else ""
             col   = PLANET_COLORS.get(pname, "#333")
             yp    = py_c + 8 + i * 17
             svg.append(
@@ -680,17 +680,183 @@ def generate_svg_string(chart):
     fy = oy + 20 + gh + 30
     svg.append(f'<text x="{W//2}" y="{fy}" text-anchor="middle" '
                f'font-size="10" fill="#555">'
-               f'\u0932\u0917\u094d\u0928: {chart["asc_sign_hi"]} {dms_str(chart["asc_deg"])}  \u00b7  '
-               f'\u0930\u093e\u0936\u093f: {chart["moon_rashi_hi"]}  \u00b7  '
-               f'\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart["nakshatra"]} '
-               f'\u092a\u0926 {chart["nak_pada"]} '
+               f'लग्न: {chart["asc_sign_hi"]} {dms_str(chart["asc_deg"])}  ·  '
+               f'राशि: {chart["moon_rashi_hi"]}  ·  '
+               f'नक्षत्र: {chart["nakshatra"]} '
+               f'पद {chart["nak_pada"]} '
                f'({chart["nak_lord"]})</text>')
     svg.append(f'<text x="{W//2}" y="{fy+16}" text-anchor="middle" '
                f'font-size="8" fill="#AAAAAA">'
-               f'Lahiri Ayanamsha  \u00b7  Swiss Ephemeris</text>')
+               f'Lahiri Ayanamsha  ·  Swiss Ephemeris</text>')
     svg.append('</svg>')
 
     return "\n".join(svg)
+
+
+def generate_golden_chart_image(chart):
+    """
+    Render planetary data onto the golden frame template image.
+    Returns a BytesIO PNG image ready for embedding in the PDF.
+    Uses Pillow to composite text onto the ornate golden kundali frame.
+    Template: static/chart-template.png (1536x1024, golden frame with
+    North Indian kundali grid on black background).
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    import io as _io
+
+    asc_sign = chart['asc_sign']
+    planets  = chart['planets']
+
+    # Load golden frame template
+    template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "static", "chart-template.png")
+    img = Image.open(template_path).convert("RGBA")
+    tw, th = img.size  # 1536 x 1024
+
+    draw = ImageDraw.Draw(img)
+
+    # ── Load fonts ──
+    font_size_planet = 28
+    font_size_house  = 18
+    font_size_deg    = 14
+    font_size_label  = 32
+
+    _base = os.path.dirname(os.path.abspath(__file__))
+    font_candidates = [
+        os.path.join(_base, "fonts", "NotoSansDevanagari.ttf"),
+        "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    ]
+    font_planet = ImageFont.load_default()
+    font_house  = ImageFont.load_default()
+    font_deg    = ImageFont.load_default()
+    font_label  = ImageFont.load_default()
+    for fp in font_candidates:
+        try:
+            font_planet = ImageFont.truetype(fp, font_size_planet)
+            font_house  = ImageFont.truetype(fp, font_size_house)
+            font_deg    = ImageFont.truetype(fp, font_size_deg)
+            font_label  = ImageFont.truetype(fp, font_size_label)
+            break
+        except Exception:
+            continue
+
+    # ── Golden frame grid geometry (1536x1024) ──
+    # The golden frame sits centered on black background.
+    # Frame inner edges measured from the template image:
+    fl, fr = 210, 1325   # frame inner left/right
+    ft, fb = 115, 905    # frame inner top/bottom
+    cx = (fl + fr) // 2  # center x ~768
+    cy = (ft + fb) // 2  # center y ~510
+
+    # Quarter-points (where the midpoint lines intersect the edges)
+    mx = (fl + fr) // 2  # mid-x
+    my = (ft + fb) // 2  # mid-y
+    qx = (fr - fl) // 4  # quarter-width ~279
+    qy = (fb - ft) // 4  # quarter-height ~198
+
+    # Cell centers for the 12 houses in North Indian layout.
+    # The grid has a rectangle divided by diagonals and midpoint lines.
+    # Outer triangles (houses 1-8) and inner diamond (houses 9-12).
+    cell_centers = {
+        1:  (fl + qx * 0.60,       my),                 # Left triangle (Lagna)
+        2:  (mx - qx * 0.75,       my + qy * 0.85),     # Bottom-left triangle
+        3:  (mx,                    my + qy * 1.25),     # Bottom triangle
+        4:  (mx + qx * 0.65,       my + qy * 0.85),     # Bottom-right triangle
+        5:  (fr - qx * 0.60,       my),                  # Right triangle
+        6:  (mx + qx * 0.65,       my - qy * 0.85),     # Top-right triangle
+        7:  (mx,                    my - qy * 1.25),     # Top triangle
+        8:  (mx - qx * 0.75,       my - qy * 0.85),     # Top-left triangle
+        9:  (mx - qx * 0.45,       my + qy * 0.45),     # Inner bottom-left
+        10: (mx + qx * 0.45,       my + qy * 0.45),     # Inner bottom-right
+        11: (mx + qx * 0.45,       my - qy * 0.45),     # Inner top-right
+        12: (mx - qx * 0.45,       my - qy * 0.45),     # Inner top-left
+    }
+
+    # Map house number -> sign index
+    cell_sign = {h: (asc_sign + h - 1) % 12 for h in range(1, 13)}
+
+    # Group planets by sign
+    sign_planets = {i: [] for i in range(12)}
+    for pname, pdata in planets.items():
+        sign_planets[pdata['sign_idx']].append(pname)
+
+    PLANET_COLORS = {
+        "Sun": "#B8860B", "Moon": "#1E5FAD", "Mars": "#CC0000",
+        "Mercury": "#1C7C3A", "Jupiter": "#E07000", "Venus": "#7B00CC",
+        "Saturn": "#1C1C8C", "Rahu": "#006400", "Ketu": "#8B3A00",
+    }
+
+    # ── Draw "लग्न कुण्डली" label above the frame ──
+    draw.text((cx, ft - 30), "लग्न कुण्डली", fill="#DAA520",
+              font=font_label, anchor="mb")
+
+    # ── Draw house numbers and planets in each cell ──
+    for h in range(1, 13):
+        s_idx = cell_sign[h]
+        px, py = int(cell_centers[h][0]), int(cell_centers[h][1])
+
+        # House number (small, muted gold)
+        draw.text((px, py - 35), str(h), fill="#8B7355",
+                  font=font_house, anchor="mm")
+
+        # Planets in this house
+        plist = sign_planets[s_idx]
+        n = len(plist)
+        if n == 0:
+            continue
+
+        # For crowded houses (3+), use 2 columns; otherwise single column
+        if n >= 3:
+            row_spacing = 28
+            col_offset = 40
+            rows = (n + 1) // 2  # ceil division
+            start_y = py - 5 - (rows - 1) * row_spacing // 2
+            for i, pname in enumerate(plist):
+                pdata = planets[pname]
+                abbr = PLANET_HI.get(pname, pname[:2])
+                deg = int(pdata['deg'])
+                retro_mark = "ᵛ" if pdata['retro'] else ""
+                col = PLANET_COLORS.get(pname, "#333333")
+                row = i // 2
+                column = i % 2
+                xp = px - col_offset // 2 + column * col_offset
+                yp = start_y + row * row_spacing
+                label = f"{abbr}{retro_mark}"
+                deg_label = f"{deg:02d}"
+                draw.text((xp - 5, yp), label, fill=col,
+                          font=font_planet, anchor="mm")
+                draw.text((xp + 18, yp - 7), deg_label, fill=col,
+                          font=font_deg, anchor="mm")
+        else:
+            spacing = 32
+            start_y = py - 5 - (n - 1) * spacing // 2
+            for i, pname in enumerate(plist):
+                pdata = planets[pname]
+                abbr = PLANET_HI.get(pname, pname[:2])
+                deg = int(pdata['deg'])
+                retro_mark = "ᵛ" if pdata['retro'] else ""
+                col = PLANET_COLORS.get(pname, "#333333")
+                yp = start_y + i * spacing
+                label = f"{abbr}{retro_mark}"
+                deg_label = f"{deg:02d}"
+                draw.text((px - 5, yp), label, fill=col,
+                          font=font_planet, anchor="mm")
+                draw.text((px + 18, yp - 7), deg_label, fill=col,
+                          font=font_deg, anchor="mm")
+
+    # ── Crop to frame area (remove black border) and convert ──
+    # The golden frame with ornaments spans approx:
+    #   left=145, top=48, right=1390, bottom=978 (including corner ornaments)
+    crop_box = (145, 48, 1390, 978)
+    img_cropped = img.crop(crop_box)
+
+    img_rgb = img_cropped.convert("RGB")
+    buf = _io.BytesIO()
+    img_rgb.save(buf, format="PNG", optimize=True)
+    buf.seek(0)
+    return buf
 
 
 # ─── Dasha Interpretations ────────────────────────────────────────────────────
@@ -948,76 +1114,76 @@ def _dasha_reading(chart, today):
 # ─── Hindi Data ──────────────────────────────────────────────────────────────
 
 PLANET_HI_FULL = {
-    "Sun": "\u0938\u0942\u0930\u094d\u092f", "Moon": "\u091a\u0928\u094d\u0926\u094d\u0930",
-    "Mars": "\u092e\u0902\u0917\u0932", "Mercury": "\u092c\u0941\u0927",
-    "Jupiter": "\u0917\u0941\u0930\u0941", "Venus": "\u0936\u0941\u0915\u094d\u0930",
-    "Saturn": "\u0936\u0928\u093f", "Rahu": "\u0930\u093e\u0939\u0941",
-    "Ketu": "\u0915\u0947\u0924\u0941",
+    "Sun": "सूर्य", "Moon": "चन्द्र",
+    "Mars": "मंगल", "Mercury": "बुध",
+    "Jupiter": "गुरु", "Venus": "शुक्र",
+    "Saturn": "शनि", "Rahu": "राहु",
+    "Ketu": "केतु",
 }
 
 DASHA_READING_HI = {
     "Ketu": {
-        "nature": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915, \u0906\u0924\u094d\u092e\u0928\u093f\u0930\u0940\u0915\u094d\u0937\u0923 \u0914\u0930 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0915\u093e\u0930\u0940",
-        "themes": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u093f\u0915\u093e\u0938, \u092d\u094c\u0924\u093f\u0915 \u0907\u091a\u094d\u091b\u093e\u0913\u0902 \u0938\u0947 \u0935\u0948\u0930\u093e\u0917\u094d\u092f, \u092a\u0942\u0930\u094d\u0935 \u091c\u0928\u094d\u092e \u0915\u0930\u094d\u092e \u0938\u092e\u093e\u0927\u093e\u0928 \u0914\u0930 \u0905\u091a\u093e\u0928\u0915 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928",
-        "positive": "\u0924\u0940\u0935\u094d\u0930 \u0905\u0902\u0924\u0930\u094d\u091c\u094d\u091e\u093e\u0928, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901, \u092a\u0941\u0930\u093e\u0928\u0947 \u092a\u094d\u0930\u0924\u093f\u0930\u0942\u092a\u094b\u0902 \u0938\u0947 \u092e\u0941\u0915\u094d\u0924\u093f",
-        "challenges": "\u092d\u094d\u0930\u092e, \u0905\u092a\u094d\u0930\u0924\u094d\u092f\u093e\u0936\u093f\u0924 \u0939\u093e\u0928\u093f, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901 \u0914\u0930 \u0905\u0915\u0947\u0932\u0947\u092a\u0928 \u0915\u0940 \u092d\u093e\u0935\u0928\u093e",
-        "advice": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0938\u093e\u0927\u0928\u093e \u0905\u092a\u0928\u093e\u090f\u0901, \u092c\u0921\u093c\u0940 \u092d\u094c\u0924\u093f\u0915 \u092a\u094d\u0930\u0924\u093f\u092c\u0926\u094d\u0927\u0924\u093e\u0913\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902, \u0926\u093f\u0928\u091a\u0930\u094d\u092f\u093e \u0938\u0947 \u0938\u094d\u0925\u093f\u0930 \u0930\u0939\u0947\u0902\u0964",
+        "nature": "आध्यात्मिक, आत्मनिरीक्षण और परिवर्तनकारी",
+        "themes": "आध्यात्मिक विकास, भौतिक इच्छाओं से वैराग्य, पूर्व जन्म कर्म समाधान और अचानक परिवर्तन",
+        "positive": "तीव्र अंतर्ज्ञान, आध्यात्मिक उपलब्धियाँ, पुराने प्रतिरूपों से मुक्ति",
+        "challenges": "भ्रम, अप्रत्याशित हानि, स्वास्थ्य समस्याएँ और अकेलेपन की भावना",
+        "advice": "आध्यात्मिक साधना अपनाएँ, बड़ी भौतिक प्रतिबद्धताओं से बचें, दिनचर्या से स्थिर रहें।",
     },
     "Venus": {
-        "nature": "\u0935\u0948\u092d\u0935\u092a\u0942\u0930\u094d\u0923, \u0938\u0943\u091c\u0928\u093e\u0924\u094d\u092e\u0915 \u0914\u0930 \u0938\u0902\u092c\u0902\u0927-\u0915\u0947\u0902\u0926\u094d\u0930\u093f\u0924",
-        "themes": "\u092a\u094d\u0930\u0947\u092e, \u0935\u093f\u0935\u093e\u0939, \u0915\u0932\u093e\u0924\u094d\u092e\u0915 \u0915\u093e\u0930\u094d\u092f, \u0927\u0928 \u0938\u0902\u091a\u092f, \u0938\u0941\u0916-\u0938\u0941\u0935\u093f\u0927\u093e \u0914\u0930 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0938\u0902\u092c\u0902\u0927",
-        "positive": "\u0906\u0930\u094d\u0925\u093f\u0915 \u0938\u092e\u0943\u0926\u094d\u0927\u093f, \u0938\u0941\u0916\u0926 \u0938\u0902\u092c\u0902\u0927, \u0915\u0932\u093e\u0924\u094d\u092e\u0915 \u0938\u092b\u0932\u0924\u093e, \u0935\u093e\u0939\u0928/\u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0940 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f",
-        "challenges": "\u0905\u0924\u093f-\u092d\u094b\u0917, \u0905\u0924\u094d\u092f\u0927\u093f\u0915 \u0916\u0930\u094d\u091a, \u0938\u0902\u092c\u0902\u0927\u094b\u0902 \u092e\u0947\u0902 \u091c\u091f\u093f\u0932\u0924\u093e",
-        "advice": "\u0938\u093e\u0930\u094d\u0925\u0915 \u0938\u0902\u092c\u0902\u0927 \u092c\u0928\u093e\u090f\u0902, \u0938\u092e\u091d\u0926\u093e\u0930\u0940 \u0938\u0947 \u0928\u093f\u0935\u0947\u0936 \u0915\u0930\u0947\u0902, \u0938\u0943\u091c\u0928\u093e\u0924\u094d\u092e\u0915 \u0930\u0941\u091a\u093f\u092f\u094b\u0902 \u0915\u094b \u0905\u092a\u0928\u093e\u090f\u0902\u0964",
+        "nature": "वैभवपूर्ण, सृजनात्मक और संबंध-केंद्रित",
+        "themes": "प्रेम, विवाह, कलात्मक कार्य, धन संचय, सुख-सुविधा और सामाजिक संबंध",
+        "positive": "आर्थिक समृद्धि, सुखद संबंध, कलात्मक सफलता, वाहन/संपत्ति की प्राप्ति",
+        "challenges": "अति-भोग, अत्यधिक खर्च, संबंधों में जटिलता",
+        "advice": "सार्थक संबंध बनाएं, समझदारी से निवेश करें, सृजनात्मक रुचियों को अपनाएं।",
     },
     "Sun": {
-        "nature": "\u0905\u0927\u093f\u0915\u093e\u0930\u092a\u0942\u0930\u094d\u0923, \u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u0940 \u0914\u0930 \u0906\u0924\u094d\u092e\u0905\u092d\u093f\u0935\u094d\u092f\u0915\u094d\u0924\u093f",
-        "themes": "\u0915\u0930\u093f\u092f\u0930 \u092e\u0947\u0902 \u0909\u0928\u094d\u0928\u0924\u093f, \u0928\u0947\u0924\u0943\u0924\u094d\u0935 \u0915\u0940 \u092d\u0942\u092e\u093f\u0915\u093e, \u0938\u0930\u0915\u093e\u0930\u0940 \u0938\u0902\u092a\u0930\u094d\u0915, \u092a\u093f\u0924\u093e \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0914\u0930 \u092a\u094d\u0930\u0924\u093f\u0937\u094d\u0920\u093e",
-        "positive": "\u092a\u0926 \u0914\u0930 \u0905\u0927\u093f\u0915\u093e\u0930 \u092e\u0947\u0902 \u0935\u0943\u0926\u094d\u0927\u093f, \u0938\u0930\u0915\u093e\u0930\u0940 \u0915\u0943\u092a\u093e, \u0926\u0943\u0922\u093c \u0907\u091a\u094d\u091b\u093e\u0936\u0915\u094d\u0924\u093f, \u0928\u0947\u0924\u0943\u0924\u094d\u0935 \u0915\u0947 \u0905\u0935\u0938\u0930",
-        "challenges": "\u0905\u0939\u0902\u0915\u093e\u0930 \u0938\u0902\u0918\u0930\u094d\u0937, \u0905\u0927\u093f\u0915\u093e\u0930\u093f\u092f\u094b\u0902 \u0938\u0947 \u0924\u0928\u093e\u0935\u092a\u0942\u0930\u094d\u0923 \u0938\u0902\u092c\u0902\u0927, \u0939\u0943\u0926\u092f/\u0928\u0947\u0924\u094d\u0930/\u0939\u0921\u094d\u0921\u093f\u092f\u094b\u0902 \u0938\u0947 \u0938\u0902\u092c\u0902\u0927\u093f\u0924 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901",
-        "advice": "\u0928\u092e\u094d\u0930\u0924\u093e \u0915\u0947 \u0938\u093e\u0925 \u0928\u0947\u0924\u0943\u0924\u094d\u0935 \u0915\u0930\u0947\u0902, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0915\u093e \u0927\u094d\u092f\u093e\u0928 \u0930\u0916\u0947\u0902, \u092a\u093f\u0924\u093e \u0915\u093e \u0938\u092e\u094d\u092e\u093e\u0928 \u0915\u0930\u0947\u0902\u0964",
+        "nature": "अधिकारपूर्ण, महत्वाकांक्षी और आत्मअभिव्यक्ति",
+        "themes": "करियर में उन्नति, नेतृत्व की भूमिका, सरकारी संपर्क, पिता का प्रभाव, स्वास्थ्य और प्रतिष्ठा",
+        "positive": "पद और अधिकार में वृद्धि, सरकारी कृपा, दृढ़ इच्छाशक्ति, नेतृत्व के अवसर",
+        "challenges": "अहंकार संघर्ष, अधिकारियों से तनावपूर्ण संबंध, हृदय/नेत्र/हड्डियों से संबंधित स्वास्थ्य समस्याएँ",
+        "advice": "नम्रता के साथ नेतृत्व करें, स्वास्थ्य का ध्यान रखें, पिता का सम्मान करें।",
     },
     "Moon": {
-        "nature": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915, \u092a\u094b\u0937\u0915 \u0914\u0930 \u092e\u093e\u0928\u0938\u093f\u0915 \u0930\u0942\u092a \u0938\u0947 \u0938\u0915\u094d\u0930\u093f\u092f",
-        "themes": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f, \u092e\u093e\u0924\u093e \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935, \u0938\u093e\u0930\u094d\u0935\u091c\u0928\u093f\u0915 \u0935\u094d\u092f\u0935\u0939\u093e\u0930, \u092f\u093e\u0924\u094d\u0930\u093e, \u092e\u093e\u0928\u0938\u093f\u0915 \u0936\u093e\u0902\u0924\u093f \u0914\u0930 \u0918\u0930\u0947\u0932\u0942 \u0938\u0941\u0916",
-        "positive": "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u0902\u0924\u0941\u0937\u094d\u091f\u093f, \u092e\u093e\u0924\u093e \u0938\u0947 \u0905\u091a\u094d\u091b\u0947 \u0938\u0902\u092c\u0902\u0927, \u091c\u0928\u092a\u094d\u0930\u093f\u092f\u0924\u093e, \u092f\u093e\u0924\u094d\u0930\u093e \u0915\u0947 \u0905\u0935\u0938\u0930, \u092e\u093e\u0928\u0938\u093f\u0915 \u0938\u094d\u092a\u0937\u094d\u091f\u0924\u093e",
-        "challenges": "\u092e\u0928\u094b\u0926\u0936\u093e \u092e\u0947\u0902 \u0909\u0924\u093e\u0930-\u091a\u0922\u093c\u093e\u0935, \u091a\u093f\u0902\u0924\u093e, \u0918\u0930\u0947\u0932\u0942 \u0935\u093f\u0918\u094d\u0928 \u0914\u0930 \u0905\u0924\u093f-\u0938\u0902\u0935\u0947\u0926\u0928\u0936\u0940\u0932\u0924\u093e",
-        "advice": "\u092e\u093e\u0928\u0938\u093f\u0915 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0915\u094b \u092a\u094d\u0930\u093e\u0925\u092e\u093f\u0915\u0924\u093e \u0926\u0947\u0902, \u092a\u093e\u0928\u0940 \u0915\u0947 \u0928\u093f\u0915\u091f \u0938\u092e\u092f \u092c\u093f\u0924\u093e\u090f\u0902, \u092a\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u092c\u0902\u0927\u0928\u094b\u0902 \u0915\u094b \u092a\u094b\u0937\u093f\u0924 \u0915\u0930\u0947\u0902\u0964",
+        "nature": "भावनात्मक, पोषक और मानसिक रूप से सक्रिय",
+        "themes": "भावनात्मक स्वास्थ्य, माता का प्रभाव, सार्वजनिक व्यवहार, यात्रा, मानसिक शांति और घरेलू सुख",
+        "positive": "भावनात्मक संतुष्टि, माता से अच्छे संबंध, जनप्रियता, यात्रा के अवसर, मानसिक स्पष्टता",
+        "challenges": "मनोदशा में उतार-चढ़ाव, चिंता, घरेलू विघ्न और अति-संवेदनशीलता",
+        "advice": "मानसिक स्वास्थ्य को प्राथमिकता दें, पानी के निकट समय बिताएं, परिवारिक बंधनों को पोषित करें।",
     },
     "Mars": {
-        "nature": "\u090a\u0930\u094d\u091c\u093e\u0935\u093e\u0928, \u0938\u093e\u0939\u0938\u0940 \u0914\u0930 \u0915\u094d\u0930\u093f\u092f\u093e-\u0915\u0947\u0902\u0926\u094d\u0930\u093f\u0924",
-        "themes": "\u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u090a\u0930\u094d\u091c\u093e, \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0947 \u092e\u093e\u092e\u0932\u0947, \u092d\u093e\u0908-\u092c\u0939\u0928, \u0938\u093e\u0939\u0938, \u0924\u0915\u0928\u0940\u0915\u0940 \u0915\u094c\u0936\u0932 \u0914\u0930 \u092a\u094d\u0930\u0924\u093f\u0938\u094d\u092a\u0930\u094d\u0927\u093e",
-        "positive": "\u092a\u094d\u0930\u0924\u093f\u0938\u094d\u092a\u0930\u094d\u0927\u093e \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e, \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0915\u0940 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f, \u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u0936\u0915\u094d\u0924\u093f, \u091a\u0941\u0928\u094c\u0924\u093f\u092f\u094b\u0902 \u0915\u093e \u0938\u093e\u092e\u0928\u093e \u0915\u0930\u0928\u0947 \u0915\u093e \u0938\u093e\u0939\u0938",
-        "challenges": "\u0926\u0941\u0930\u094d\u0918\u091f\u0928\u093e\u090f\u0901, \u0938\u0902\u0918\u0930\u094d\u0937, \u0930\u0915\u094d\u0924 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0915\u093e\u0928\u0942\u0928\u0940 \u0935\u093f\u0935\u093e\u0926 \u0914\u0930 \u0915\u094d\u0930\u094b\u0927 \u092a\u094d\u0930\u092c\u0902\u0927\u0928",
-        "advice": "\u090a\u0930\u094d\u091c\u093e \u0915\u094b \u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u0917\u0924\u093f\u0935\u093f\u0927\u093f \u0914\u0930 \u0930\u091a\u0928\u093e\u0924\u094d\u092e\u0915 \u092a\u0930\u093f\u092f\u094b\u091c\u0928\u093e\u0913\u0902 \u092e\u0947\u0902 \u0932\u0917\u093e\u090f\u0902, \u0905\u0928\u093e\u0935\u0936\u094d\u092f\u0915 \u0938\u0902\u0918\u0930\u094d\u0937\u094b\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902, \u0927\u0948\u0930\u094d\u092f \u0930\u0916\u0947\u0902\u0964",
+        "nature": "ऊर्जावान, साहसी और क्रिया-केंद्रित",
+        "themes": "शारीरिक ऊर्जा, संपत्ति के मामले, भाई-बहन, साहस, तकनीकी कौशल और प्रतिस्पर्धा",
+        "positive": "प्रतिस्पर्धा में सफलता, संपत्ति की प्राप्ति, शारीरिक शक्ति, चुनौतियों का सामना करने का साहस",
+        "challenges": "दुर्घटनाएँ, संघर्ष, रक्त संबंधी स्वास्थ्य समस्याएँ, कानूनी विवाद और क्रोध प्रबंधन",
+        "advice": "ऊर्जा को शारीरिक गतिविधि और रचनात्मक परियोजनाओं में लगाएं, अनावश्यक संघर्षों से बचें, धैर्य रखें।",
     },
     "Rahu": {
-        "nature": "\u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u0940, \u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u0914\u0930 \u0938\u093e\u0902\u0938\u093e\u0930\u093f\u0915",
-        "themes": "\u092d\u094c\u0924\u093f\u0915 \u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u093e, \u0935\u093f\u0926\u0947\u0936\u0940 \u0938\u0902\u092a\u0930\u094d\u0915, \u092a\u094d\u0930\u094c\u0926\u094d\u092f\u094b\u0917\u093f\u0915\u0940, \u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u092e\u093e\u0930\u094d\u0917, \u0905\u091a\u093e\u0928\u0915 \u0909\u0924\u094d\u0925\u093e\u0928 \u0914\u0930 \u091c\u0941\u0928\u0942\u0928\u0940 \u092a\u094d\u0930\u092f\u093e\u0938",
-        "positive": "\u0905\u091a\u093e\u0928\u0915 \u0932\u093e\u092d, \u0935\u093f\u0926\u0947\u0936\u094b\u0902 \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e, \u092a\u094d\u0930\u094c\u0926\u094d\u092f\u094b\u0917\u093f\u0915\u0940 \u092e\u0947\u0902 \u0909\u0928\u094d\u0928\u0924\u093f, \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u092c\u093e\u0927\u093e\u0913\u0902 \u0915\u094b \u0924\u094b\u0921\u093c\u0928\u093e",
-        "challenges": "\u0927\u094b\u0916\u093e, \u092d\u094d\u0930\u092e, \u0928\u0936\u093e, \u092d\u092f \u0914\u0930 \u091a\u093f\u0902\u0924\u093e, \u0915\u0932\u0902\u0915 \u0914\u0930 \u092d\u094d\u0930\u093e\u092e\u0915 \u092a\u094d\u0930\u092f\u093e\u0938",
-        "advice": "\u0938\u092d\u0940 \u0935\u094d\u092f\u0935\u0939\u093e\u0930\u094b\u0902 \u092e\u0947\u0902 \u0928\u0948\u0924\u093f\u0915 \u0930\u0939\u0947\u0902, \u0936\u0949\u0930\u094d\u091f\u0915\u091f \u0914\u0930 \u091c\u0932\u094d\u0926\u0940 \u0927\u0928-\u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f \u092f\u094b\u091c\u0928\u093e\u0913\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0930\u0942\u092a \u0938\u0947 \u0938\u094d\u0925\u093f\u0930 \u0930\u0939\u0947\u0902\u0964",
+        "nature": "महत्वाकांक्षी, अपरंपरागत और सांसारिक",
+        "themes": "भौतिक महत्वाकांक्षा, विदेशी संपर्क, प्रौद्योगिकी, अपरंपरागत मार्ग, अचानक उत्थान और जुनूनी प्रयास",
+        "positive": "अचानक लाभ, विदेशों में सफलता, प्रौद्योगिकी में उन्नति, सामाजिक बाधाओं को तोड़ना",
+        "challenges": "धोखा, भ्रम, नशा, भय और चिंता, कलंक और भ्रामक प्रयास",
+        "advice": "सभी व्यवहारों में नैतिक रहें, शॉर्टकट और जल्दी धन-प्राप्ति योजनाओं से बचें, आध्यात्मिक रूप से स्थिर रहें।",
     },
     "Jupiter": {
-        "nature": "\u092c\u0941\u0926\u094d\u0927\u093f\u092e\u093e\u0928, \u0935\u093f\u0938\u094d\u0924\u093e\u0930\u0935\u093e\u0926\u0940 \u0914\u0930 \u092a\u0930\u094b\u092a\u0915\u093e\u0930\u0940",
-        "themes": "\u091c\u094d\u091e\u093e\u0928, \u0909\u091a\u094d\u091a \u0936\u093f\u0915\u094d\u0937\u093e, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915\u0924\u093e, \u0938\u0902\u0924\u093e\u0928, \u0927\u0928, \u0917\u0941\u0930\u0941 \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935 \u0914\u0930 \u0927\u093e\u0930\u094d\u092e\u093f\u0915 \u0915\u093e\u0930\u094d\u092f",
-        "positive": "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u093f\u0915\u093e\u0938, \u0936\u0948\u0915\u094d\u0937\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901, \u0938\u0902\u0924\u093e\u0928 \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f, \u0927\u0928 \u0935\u0943\u0926\u094d\u0927\u093f, \u0924\u0940\u0930\u094d\u0925\u092f\u093e\u0924\u094d\u0930\u093e \u0915\u0947 \u0905\u0935\u0938\u0930",
-        "challenges": "\u0905\u0924\u093f-\u0906\u0936\u093e\u0935\u093e\u0926, \u0935\u091c\u0928 \u0935\u0943\u0926\u094d\u0927\u093f, \u092f\u0915\u0943\u0924 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901 \u0914\u0930 \u0906\u0924\u094d\u092e\u0938\u0902\u0924\u0941\u0937\u094d\u091f\u093f",
-        "advice": "\u0909\u091a\u094d\u091a \u0936\u093f\u0915\u094d\u0937\u093e \u092a\u094d\u0930\u093e\u092a\u094d\u0924 \u0915\u0930\u0947\u0902, \u0917\u0941\u0930\u0941 \u0915\u0940 \u0916\u094b\u091c \u0915\u0930\u0947\u0902, \u0909\u0926\u093e\u0930\u0924\u093e \u0915\u093e \u0905\u092d\u094d\u092f\u093e\u0938 \u0915\u0930\u0947\u0902, \u0927\u0930\u094d\u092e \u0915\u0947 \u0905\u0928\u0941\u0938\u093e\u0930 \u0915\u093e\u0930\u094d\u092f \u0915\u0930\u0947\u0902\u0964",
+        "nature": "बुद्धिमान, विस्तारवादी और परोपकारी",
+        "themes": "ज्ञान, उच्च शिक्षा, आध्यात्मिकता, संतान, धन, गुरु का प्रभाव और धार्मिक कार्य",
+        "positive": "आध्यात्मिक विकास, शैक्षिक उपलब्धियाँ, संतान प्राप्ति, धन वृद्धि, तीर्थयात्रा के अवसर",
+        "challenges": "अति-आशावाद, वजन वृद्धि, यकृत संबंधी समस्याएँ और आत्मसंतुष्टि",
+        "advice": "उच्च शिक्षा प्राप्त करें, गुरु की खोज करें, उदारता का अभ्यास करें, धर्म के अनुसार कार्य करें।",
     },
     "Saturn": {
-        "nature": "\u0905\u0928\u0941\u0936\u093e\u0938\u093f\u0924, \u0915\u093e\u0930\u094d\u092e\u093f\u0915 \u0914\u0930 \u0926\u0943\u0922\u093c",
-        "themes": "\u0915\u0920\u093f\u0928 \u092a\u0930\u093f\u0936\u094d\u0930\u092e, \u0905\u0928\u0941\u0936\u093e\u0938\u0928, \u0926\u0940\u0930\u094d\u0918\u093e\u092f\u0941, \u0915\u0930\u094d\u092e, \u0938\u0947\u0935\u093e, \u0935\u093f\u0932\u0902\u092c \u0914\u0930 \u0935\u094d\u092f\u0935\u0938\u094d\u0925\u093f\u0924 \u0935\u093f\u0915\u093e\u0938",
-        "positive": "\u092a\u0942\u0930\u094d\u0935 \u092a\u0930\u093f\u0936\u094d\u0930\u092e \u0915\u093e \u092b\u0932, \u0926\u0943\u0922\u093c\u0924\u093e \u0938\u0947 \u0938\u093f\u0926\u094d\u0927\u093f, \u0905\u091a\u0932 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0932\u093e\u092d, \u0915\u0930\u093f\u092f\u0930 \u0938\u094d\u0925\u093f\u0930\u0924\u093e \u0914\u0930 \u0917\u0939\u0930\u0940 \u092a\u0930\u093f\u092a\u0915\u094d\u0935\u0924\u093e",
-        "challenges": "\u0935\u093f\u0932\u0902\u092c \u0914\u0930 \u092c\u093e\u0927\u093e\u090f\u0901, \u091c\u094b\u0921\u093c\u094b\u0902/\u0939\u0921\u094d\u0921\u093f\u092f\u094b\u0902 \u0915\u0940 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0905\u0915\u0947\u0932\u0947\u092a\u0928 \u0915\u0940 \u092d\u093e\u0935\u0928\u093e, \u092d\u093e\u0930\u0940 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u093e\u0901 \u0914\u0930 \u0905\u0935\u0938\u093e\u0926",
-        "advice": "\u0905\u0928\u0941\u0936\u093e\u0938\u0928 \u0914\u0930 \u0927\u0948\u0930\u094d\u092f \u0905\u092a\u0928\u093e\u090f\u0902, \u0928\u093f\u0903\u0938\u094d\u0935\u093e\u0930\u094d\u0925 \u0938\u0947\u0935\u093e \u0915\u0930\u0947\u0902, \u0939\u0921\u094d\u0921\u093f\u092f\u094b\u0902 \u0914\u0930 \u091c\u094b\u0921\u093c\u094b\u0902 \u0915\u0940 \u0926\u0947\u0916\u092d\u093e\u0932 \u0915\u0930\u0947\u0902, \u0936\u0949\u0930\u094d\u091f\u0915\u091f \u0938\u0947 \u092c\u091a\u0947\u0902\u0964",
+        "nature": "अनुशासित, कार्मिक और दृढ़",
+        "themes": "कठिन परिश्रम, अनुशासन, दीर्घायु, कर्म, सेवा, विलंब और व्यवस्थित विकास",
+        "positive": "पूर्व परिश्रम का फल, दृढ़ता से सिद्धि, अचल संपत्ति लाभ, करियर स्थिरता और गहरी परिपक्वता",
+        "challenges": "विलंब और बाधाएँ, जोड़ों/हड्डियों की स्वास्थ्य समस्याएँ, अकेलेपन की भावना, भारी जिम्मेदारियाँ और अवसाद",
+        "advice": "अनुशासन और धैर्य अपनाएं, निःस्वार्थ सेवा करें, हड्डियों और जोड़ों की देखभाल करें, शॉर्टकट से बचें।",
     },
     "Mercury": {
-        "nature": "\u092c\u094c\u0926\u094d\u0927\u093f\u0915, \u0938\u0902\u0935\u093e\u0926\u0936\u0940\u0932 \u0914\u0930 \u0905\u0928\u0941\u0915\u0942\u0932\u0928\u0936\u0940\u0932",
-        "themes": "\u0938\u0902\u0935\u093e\u0926, \u0935\u094d\u092f\u093e\u092a\u093e\u0930, \u0936\u093f\u0915\u094d\u0937\u093e, \u092c\u0941\u0926\u094d\u0927\u093f, \u0935\u094d\u092f\u093e\u092a\u093e\u0930, \u0932\u0947\u0916\u0928 \u0914\u0930 \u0935\u093f\u0936\u094d\u0932\u0947\u0937\u0923\u093e\u0924\u094d\u092e\u0915 \u0938\u094b\u091a",
-        "positive": "\u0935\u094d\u092f\u093e\u092a\u093e\u0930\u093f\u0915 \u0938\u092b\u0932\u0924\u093e, \u092c\u094c\u0926\u094d\u0927\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901, \u0905\u091a\u094d\u091b\u093e \u0938\u0902\u0935\u093e\u0926, \u0938\u092b\u0932 \u0935\u093e\u0930\u094d\u0924\u093e, \u0932\u0947\u0916\u0928/\u092a\u094d\u0930\u0915\u093e\u0936\u0928 \u0914\u0930 \u0928\u090f \u0915\u094c\u0936\u0932 \u0938\u0940\u0916\u0928\u093e",
-        "challenges": "\u0918\u092c\u0930\u093e\u0939\u091f, \u0924\u094d\u0935\u091a\u093e \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0905\u0928\u093f\u0930\u094d\u0923\u092f, \u0935\u093e\u0923\u0940 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901, \u0935\u094d\u092f\u093e\u092a\u093e\u0930\u093f\u0915 \u0905\u0938\u092b\u0932\u0924\u093e\u090f\u0901 \u0914\u0930 \u092c\u093f\u0916\u0930\u093e \u0927\u094d\u092f\u093e\u0928",
-        "advice": "\u0936\u093f\u0915\u094d\u0937\u093e \u0914\u0930 \u0915\u094c\u0936\u0932 \u0935\u093f\u0915\u093e\u0938 \u092e\u0947\u0902 \u0928\u093f\u0935\u0947\u0936 \u0915\u0930\u0947\u0902, \u0906\u092f \u0915\u0947 \u0938\u094d\u0930\u094b\u0924\u094b\u0902 \u092e\u0947\u0902 \u0935\u093f\u0935\u093f\u0927\u0924\u093e \u0932\u093e\u090f\u0902, \u0938\u094d\u092a\u0937\u094d\u091f \u0938\u0902\u0935\u093e\u0926 \u092c\u0928\u093e\u090f \u0930\u0916\u0947\u0902\u0964",
+        "nature": "बौद्धिक, संवादशील और अनुकूलनशील",
+        "themes": "संवाद, व्यापार, शिक्षा, बुद्धि, व्यापार, लेखन और विश्लेषणात्मक सोच",
+        "positive": "व्यापारिक सफलता, बौद्धिक उपलब्धियाँ, अच्छा संवाद, सफल वार्ता, लेखन/प्रकाशन और नए कौशल सीखना",
+        "challenges": "घबराहट, त्वचा समस्याएँ, अनिर्णय, वाणी संबंधी समस्याएँ, व्यापारिक असफलताएँ और बिखरा ध्यान",
+        "advice": "शिक्षा और कौशल विकास में निवेश करें, आय के स्रोतों में विविधता लाएं, स्पष्ट संवाद बनाए रखें।",
     },
 }
 
@@ -1039,7 +1205,7 @@ def _dasha_reading_hi(chart, today):
             break
 
     if not current_maha:
-        blocks.append("\u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0926\u0936\u093e \u0915\u093e\u0932 \u0928\u093f\u0930\u094d\u0927\u093e\u0930\u093f\u0924 \u0928\u0939\u0940\u0902 \u0915\u093f\u092f\u093e \u091c\u093e \u0938\u0915\u093e\u0964")
+        blocks.append("वर्तमान दशा काल निर्धारित नहीं किया जा सका।")
         return blocks
 
     current_antar = None
@@ -1071,55 +1237,63 @@ def _dasha_reading_hi(chart, today):
     remaining_yrs = remaining_days / 365.25
 
     # Current position
-    blocks.append("## \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0926\u0936\u093e \u0938\u094d\u0925\u093f\u0924\u093f")
-    position = f"\u0906\u092a \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u092e\u0947\u0902 <b>{maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e</b>"
+    blocks.append("## वर्तमान दशा स्थिति")
+    position = f"आप वर्तमान में <b>{maha_hi} महादशा</b>"
     if current_antar:
         antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
-        position += f" \u0915\u0947 \u0905\u0902\u0924\u0930\u094d\u0917\u0924 <b>{antar_hi} \u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e</b>"
+        position += f" के अंतर्गत <b>{antar_hi} अंतर्दशा</b>"
     if current_prat:
         prat_hi = PLANET_HI_FULL.get(current_prat, current_prat)
-        position += f" \u0914\u0930 <b>{prat_hi} \u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930</b>"
-    position += " \u091a\u0932 \u0930\u0939\u0947 \u0939\u0948\u0902\u0964"
+        position += f" और <b>{prat_hi} प्रत्यंतर</b>"
+    position += " चल रहे हैं।"
     if remaining_yrs > 1:
-        position += (f" {maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e <b>{current_maha_data[2].strftime('%B %Y')}</b> "
-                     f"\u0924\u0915 \u091c\u093e\u0930\u0940 \u0930\u0939\u0947\u0917\u0940 "
-                     f"(\u0932\u0917\u092d\u0917 {remaining_yrs:.1f} \u0935\u0930\u094d\u0937 \u0936\u0947\u0937)\u0964")
+        position += (f" {maha_hi} महादशा <b>{current_maha_data[2].strftime('%B %Y')}</b> "
+                     f"तक जारी रहेगी "
+                     f"(लगभग {remaining_yrs:.1f} वर्ष शेष)।")
     else:
-        position += (f" {maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e <b>{current_maha_data[2].strftime('%B %Y')}</b> "
-                     f"\u092e\u0947\u0902 \u0938\u092e\u093e\u092a\u094d\u0924 \u0939\u094b\u0917\u0940 "
-                     f"({remaining_days} \u0926\u093f\u0928 \u0936\u0947\u0937)\u0964")
+        position += (f" {maha_hi} महादशा <b>{current_maha_data[2].strftime('%B %Y')}</b> "
+                     f"में समाप्त होगी "
+                     f"({remaining_days} दिन शेष)।")
     blocks.append(position)
 
-    # Mahadasha reading
-    blocks.append(f"## {maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u2014 \u0906\u092a \u0915\u094d\u092f\u093e \u0905\u0928\u0941\u092d\u0935 \u0915\u0930 \u0930\u0939\u0947 \u0939\u0948\u0902")
+    # Mahadasha reading — extract defaults for Python 3.9 f-string compatibility
+    _m_nature = maha_info.get('nature', 'महत्वपूर्ण')
+    _m_themes = maha_info.get('themes', 'विभिन्न जीवन परिवर्तन')
+    _m_positive = maha_info.get('positive', 'विकास के अवसर')
+    _m_challenges = maha_info.get('challenges', 'चुनौतियाँ आ सकती हैं')
+    blocks.append(f"## {maha_hi} महादशा — आप क्या अनुभव कर रहे हैं")
     blocks.append(
-        f"{maha_hi} \u0915\u093e \u0915\u093e\u0932 <b>{maha_info.get('nature', '\u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923')}</b> "
-        f"\u092a\u094d\u0930\u0915\u0943\u0924\u093f \u0915\u093e \u0939\u0948\u0964 \u0907\u0938 \u0915\u093e\u0932 \u0915\u0947 \u092a\u094d\u0930\u092e\u0941\u0916 \u0935\u093f\u0937\u092f\u094b\u0902 \u092e\u0947\u0902 \u0936\u093e\u092e\u093f\u0932 \u0939\u0948\u0902: "
-        f"{maha_info.get('themes', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u091c\u0940\u0935\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928')}\u0964")
+        f"{maha_hi} का काल <b>{_m_nature}</b> "
+        f"प्रकृति का है। इस काल के प्रमुख विषयों में शामिल हैं: "
+        f"{_m_themes}।")
     blocks.append(
-        f"<b>\u0907\u0938 \u0915\u093e\u0932 \u0915\u0940 \u0936\u0915\u094d\u0924\u093f\u092f\u093e\u0901:</b> "
-        f"{maha_info.get('positive', '\u0935\u093f\u0915\u093e\u0938 \u0915\u0947 \u0905\u0935\u0938\u0930')}\u0964")
+        f"<b>इस काल की शक्तियाँ:</b> "
+        f"{_m_positive}।")
     blocks.append(
-        f"<b>\u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u0915\u0947 \u0915\u094d\u0937\u0947\u0924\u094d\u0930:</b> "
-        f"{maha_info.get('challenges', '\u091a\u0941\u0928\u094c\u0924\u093f\u092f\u093e\u0901 \u0906 \u0938\u0915\u0924\u0940 \u0939\u0948\u0902')}\u0964")
+        f"<b>सावधानी के क्षेत्र:</b> "
+        f"{_m_challenges}।")
 
     # Antardasha
     if current_antar:
         antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
         antar_info = DASHA_READING_HI.get(current_antar, {})
         antar_end = current_antar_data[2]
-        blocks.append(f"## {antar_hi} \u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e \u2014 \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0909\u092a-\u0915\u093e\u0932 \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935")
+        _a_nature = antar_info.get('nature', 'विशेष')
+        _a_themes = antar_info.get('themes', 'कुछ जीवन क्षेत्रों')
+        _a_positive = antar_info.get('positive', 'अवसर')
+        _a_challenges = antar_info.get('challenges', 'संभावित कठिनाइयों')
+        blocks.append(f"## {antar_hi} अंतर्दशा — वर्तमान उप-काल का प्रभाव")
         blocks.append(
-            f"{maha_hi} \u0915\u0947 \u0935\u094d\u092f\u093e\u092a\u0915 \u0915\u093e\u0932 \u092e\u0947\u0902, <b>{antar_hi} "
-            f"\u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e</b> (<b>{antar_end.strftime('%B %Y')}</b> \u0924\u0915) "
-            f"<b>{antar_info.get('nature', '\u0935\u093f\u0936\u0947\u0937')}</b> \u090a\u0930\u094d\u091c\u093e \u091c\u094b\u0921\u093c\u0924\u0940 \u0939\u0948\u0964 "
-            f"\u092f\u0939 \u0909\u092a-\u0915\u093e\u0932 {antar_info.get('themes', '\u0915\u0941\u091b \u091c\u0940\u0935\u0928 \u0915\u094d\u0937\u0947\u0924\u094d\u0930\u094b\u0902')} \u092a\u0930 \u091c\u094b\u0930 \u0926\u0947\u0924\u093e \u0939\u0948\u0964")
+            f"{maha_hi} के व्यापक काल में, <b>{antar_hi} "
+            f"अंतर्दशा</b> (<b>{antar_end.strftime('%B %Y')}</b> तक) "
+            f"<b>{_a_nature}</b> ऊर्जा जोड़ती है। "
+            f"यह उप-काल {_a_themes} पर जोर देता है।")
         blocks.append(
-            f"<b>{maha_hi}\u2013{antar_hi}</b> \u0915\u093e \u0938\u0902\u092f\u094b\u091c\u0928 \u0926\u0930\u094d\u0936\u093e\u0924\u093e \u0939\u0948 \u0915\u093f "
-            f"{maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u0915\u0947 \u0935\u094d\u092f\u093e\u092a\u0915 \u0935\u093f\u0937\u092f "
-            f"{antar_hi} \u0915\u0947 \u092a\u094d\u0930\u092d\u093e\u0935 \u0938\u0947 \u091b\u0928\u0924\u0947 \u0939\u0948\u0902 \u2014 "
-            f"{antar_info.get('positive', '\u0905\u0935\u0938\u0930')} \u0932\u093e\u0924\u0947 \u0939\u0941\u090f "
-            f"{antar_info.get('challenges', '\u0938\u0902\u092d\u093e\u0935\u093f\u0924 \u0915\u0920\u093f\u0928\u093e\u0907\u092f\u094b\u0902')} \u0915\u0947 \u092a\u094d\u0930\u0924\u093f \u0938\u091a\u0947\u0924 \u0930\u0939\u0928\u093e \u091a\u093e\u0939\u093f\u090f\u0964")
+            f"<b>{maha_hi}–{antar_hi}</b> का संयोजन दर्शाता है कि "
+            f"{maha_hi} महादशा के व्यापक विषय "
+            f"{antar_hi} के प्रभाव से छनते हैं — "
+            f"{_a_positive} लाते हुए "
+            f"{_a_challenges} के प्रति सचेत रहना चाहिए।")
 
     # Pratyantar
     if current_prat:
@@ -1127,44 +1301,51 @@ def _dasha_reading_hi(chart, today):
         prat_info = DASHA_READING_HI.get(current_prat, {})
         prat_end = current_prat_data[2]
         days_left = (prat_end - today).days
-        blocks.append(f"## {prat_hi} \u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930 \u2014 \u0924\u093e\u0924\u094d\u0915\u093e\u0932\u093f\u0915 \u092a\u094d\u0930\u092d\u093e\u0935")
+        _p_themes = prat_info.get('themes', 'विशेष मामलों')
+        _p_positive = prat_info.get('positive', 'सकारात्मक विकास')
+        blocks.append(f"## {prat_hi} प्रत्यंतर — तात्कालिक प्रभाव")
         blocks.append(
-            f"\u0938\u092c\u0938\u0947 \u0924\u093e\u0924\u094d\u0915\u093e\u0932\u093f\u0915 \u0938\u094d\u0924\u0930 \u092a\u0930, <b>{prat_hi} \u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930</b> "
-            f"(\u0905\u0917\u0932\u0947 <b>{days_left} \u0926\u093f\u0928\u094b\u0902</b> \u0924\u0915, "
-            f"{prat_end.strftime('%d %B %Y')} \u0924\u0915) "
-            f"{prat_info.get('themes', '\u0935\u093f\u0936\u0947\u0937 \u092e\u093e\u092e\u0932\u094b\u0902')} \u092a\u0930 \u0905\u0932\u094d\u092a\u0915\u093e\u0932\u093f\u0915 \u0927\u094d\u092f\u093e\u0928 \u0932\u093e\u0924\u093e \u0939\u0948\u0964 "
-            f"\u0907\u0938 \u0938\u0942\u0915\u094d\u0937\u094d\u092e \u0915\u093e\u0932 \u092e\u0947\u0902 "
-            f"{prat_info.get('positive', '\u0938\u0915\u093e\u0930\u093e\u0924\u094d\u092e\u0915 \u0935\u093f\u0915\u093e\u0938')} \u0926\u0947\u0916\u0947\u0902\u0964")
+            f"सबसे तात्कालिक स्तर पर, <b>{prat_hi} प्रत्यंतर</b> "
+            f"(अगले <b>{days_left} दिनों</b> तक, "
+            f"{prat_end.strftime('%d %B %Y')} तक) "
+            f"{_p_themes} पर अल्पकालिक ध्यान लाता है। "
+            f"इस सूक्ष्म काल में "
+            f"{_p_positive} देखें।")
 
     # Looking ahead
-    blocks.append("## \u0906\u0917\u0947 \u0926\u0947\u0916\u0947\u0902 \u2014 \u0906\u0928\u0947 \u0935\u093e\u0932\u0947 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928")
+    blocks.append("## आगे देखें — आने वाले परिवर्तन")
     if next_antar_data:
         na_lord, na_start, na_end, na_yrs = next_antar_data
         na_hi = PLANET_HI_FULL.get(na_lord, na_lord)
         na_info = DASHA_READING_HI.get(na_lord, {})
+        _na_nature = na_info.get('nature', 'भिन्न')
+        _na_themes = na_info.get('themes', 'नए विषय')
         blocks.append(
-            f"\u0905\u0917\u0932\u093e \u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928 <b>{maha_hi}\u2013{na_hi}</b> \u0939\u094b\u0917\u093e, "
-            f"\u091c\u094b <b>{na_start.strftime('%B %Y')}</b> \u0938\u0947 \u0936\u0941\u0930\u0942 \u0939\u094b\u0917\u093e\u0964 "
-            f"\u092f\u0939 <b>{na_info.get('nature', '\u092d\u093f\u0928\u094d\u0928')}</b> \u090a\u0930\u094d\u091c\u093e \u0915\u0940 \u0913\u0930 \u092c\u0926\u0932\u093e\u0935 \u0932\u093e\u090f\u0917\u093e, "
-            f"\u091c\u093f\u0938\u092e\u0947\u0902 {na_info.get('themes', '\u0928\u090f \u0935\u093f\u0937\u092f')} \u092a\u0930 \u091c\u094b\u0930 \u0939\u094b\u0917\u093e\u0964")
+            f"अगला अंतर्दशा परिवर्तन <b>{maha_hi}–{na_hi}</b> होगा, "
+            f"जो <b>{na_start.strftime('%B %Y')}</b> से शुरू होगा। "
+            f"यह <b>{_na_nature}</b> ऊर्जा की ओर बदलाव लाएगा, "
+            f"जिसमें {_na_themes} पर जोर होगा।")
     if next_maha_data:
         nm_lord, nm_start, nm_end, nm_yrs = next_maha_data
         nm_hi = PLANET_HI_FULL.get(nm_lord, nm_lord)
         nm_info = DASHA_READING_HI.get(nm_lord, {})
+        _nm_nature = nm_info.get('nature', 'भिन्न')
+        _nm_themes = nm_info.get('themes', 'नए जीवन विषय')
+        _nm_positive = nm_info.get('positive', 'विभिन्न अवसर')
         blocks.append(
-            f"\u090f\u0915 \u092c\u0921\u093c\u093e \u091c\u0940\u0935\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928 \u0924\u092c \u0906\u090f\u0917\u093e \u091c\u092c <b>{nm_hi} \u092e\u0939\u093e\u0926\u0936\u093e</b> "
-            f"<b>{nm_start.strftime('%B %Y')}</b> \u092e\u0947\u0902 \u0936\u0941\u0930\u0942 \u0939\u094b\u0917\u0940 "
-            f"({nm_yrs:.1f} \u0935\u0930\u094d\u0937, {nm_end.strftime('%B %Y')} \u0924\u0915)\u0964 "
-            f"\u092f\u0939 \u0935\u0930\u094d\u0924\u092e\u093e\u0928 {maha_hi} \u0915\u0947 \u0935\u093f\u0937\u092f\u094b\u0902 \u0938\u0947 "
-            f"<b>{nm_info.get('nature', '\u092d\u093f\u0928\u094d\u0928')}</b> \u092a\u094d\u0930\u0915\u0943\u0924\u093f \u0915\u0947 \u0915\u093e\u0932 \u0915\u0940 \u0913\u0930 \u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923 \u092c\u0926\u0932\u093e\u0935 \u0939\u094b\u0917\u093e\u0964")
+            f"एक बड़ा जीवन परिवर्तन तब आएगा जब <b>{nm_hi} महादशा</b> "
+            f"<b>{nm_start.strftime('%B %Y')}</b> में शुरू होगी "
+            f"({nm_yrs:.1f} वर्ष, {nm_end.strftime('%B %Y')} तक)। "
+            f"यह वर्तमान {maha_hi} के विषयों से "
+            f"<b>{_nm_nature}</b> प्रकृति के काल की ओर महत्वपूर्ण बदलाव होगा।")
         blocks.append(
-            f"<b>{nm_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u092e\u0947\u0902 \u0915\u094d\u092f\u093e \u0905\u092a\u0947\u0915\u094d\u0937\u093e \u0915\u0930\u0947\u0902:</b> "
-            f"{nm_info.get('themes', '\u0928\u090f \u091c\u0940\u0935\u0928 \u0935\u093f\u0937\u092f')}\u0964 "
-            f"\u092a\u094d\u0930\u092e\u0941\u0916 \u0936\u0915\u094d\u0924\u093f\u092f\u093e\u0901: {nm_info.get('positive', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u0905\u0935\u0938\u0930')}\u0964")
+            f"<b>{nm_hi} महादशा में क्या अपेक्षा करें:</b> "
+            f"{_nm_themes}। "
+            f"प्रमुख शक्तियाँ: {_nm_positive}।")
 
     # Guidance
-    blocks.append(f"## \u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0915\u093e\u0932 \u0915\u0947 \u0932\u093f\u090f \u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928")
-    blocks.append(maha_info.get('advice', '\u0938\u0902\u0924\u0941\u0932\u093f\u0924 \u0914\u0930 \u0938\u091a\u0947\u0924 \u0930\u0939\u0947\u0902\u0964'))
+    blocks.append(f"## वर्तमान काल के लिए मार्गदर्शन")
+    blocks.append(maha_info.get('advice', 'संतुलित और सचेत रहें।'))
 
     return blocks
 
@@ -1392,185 +1573,185 @@ SADE_SATI_TEXT = {
 
 SADE_SATI_TEXT_HI = {
     "rising": (
-        "\u0938\u093e\u0922\u093c\u0947\u0938\u093e\u0924\u0940 (\u0906\u0930\u0902\u092d\u093f\u0915 \u091a\u0930\u0923): \u0936\u0928\u093f \u0906\u092a\u0915\u0940 \u091a\u0928\u094d\u0926\u094d\u0930 \u0930\u093e\u0936\u093f \u0938\u0947 12\u0935\u0947\u0902 \u092d\u093e\u0935 \u092e\u0947\u0902 \u0917\u094b\u091a\u0930 \u0915\u0930 \u0930\u0939\u0947 \u0939\u0948\u0902\u0964 "
-        "\u0916\u0930\u094d\u091a \u092e\u0947\u0902 \u0935\u0943\u0926\u094d\u0927\u093f, \u0928\u0940\u0902\u0926 \u092e\u0947\u0902 \u092c\u093e\u0927\u093e \u0914\u0930 \u092c\u0947\u091a\u0948\u0928\u0940 \u0939\u094b \u0938\u0915\u0924\u0940 \u0939\u0948\u0964 "
-        "\u0927\u0948\u0930\u094d\u092f \u0930\u0916\u0947\u0902 \u0914\u0930 \u092c\u091a\u0924 \u0915\u0930\u0947\u0902\u0964"
+        "साढ़ेसाती (आरंभिक चरण): शनि आपकी चन्द्र राशि से 12वें भाव में गोचर कर रहे हैं। "
+        "खर्च में वृद्धि, नींद में बाधा और बेचैनी हो सकती है। "
+        "धैर्य रखें और बचत करें।"
     ),
     "peak": (
-        "\u0938\u093e\u0922\u093c\u0947\u0938\u093e\u0924\u0940 (\u091a\u0930\u092e \u091a\u0930\u0923): \u0936\u0928\u093f \u0906\u092a\u0915\u0940 \u091a\u0928\u094d\u0926\u094d\u0930 \u0930\u093e\u0936\u093f \u092a\u0930 \u0917\u094b\u091a\u0930 \u0915\u0930 \u0930\u0939\u0947 \u0939\u0948\u0902\u0964 "
-        "\u092f\u0939 \u0938\u092c\u0938\u0947 \u0924\u0940\u0935\u094d\u0930 \u091a\u0930\u0923 \u0939\u0948\u0964 \u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0926\u092c\u093e\u0935, \u0915\u0930\u093f\u092f\u0930 \u091a\u0941\u0928\u094c\u0924\u093f\u092f\u093e\u0901, "
-        "\u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u091a\u093f\u0902\u0924\u093e\u090f\u0901 \u0914\u0930 \u092e\u093e\u0928\u0938\u093f\u0915 \u092d\u093e\u0930\u0940\u092a\u0928 \u0939\u094b \u0938\u0915\u0924\u093e \u0939\u0948\u0964 "
-        "\u0905\u0928\u0941\u0936\u093e\u0938\u0928 \u092c\u0928\u093e\u090f \u0930\u0916\u0947\u0902, \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0938\u093e\u0927\u0928\u093e \u0915\u0930\u0947\u0902\u0964"
+        "साढ़ेसाती (चरम चरण): शनि आपकी चन्द्र राशि पर गोचर कर रहे हैं। "
+        "यह सबसे तीव्र चरण है। भावनात्मक दबाव, करियर चुनौतियाँ, "
+        "स्वास्थ्य चिंताएँ और मानसिक भारीपन हो सकता है। "
+        "अनुशासन बनाए रखें, आध्यात्मिक साधना करें।"
     ),
     "setting": (
-        "\u0938\u093e\u0922\u093c\u0947\u0938\u093e\u0924\u0940 (\u0905\u0902\u0924\u093f\u092e \u091a\u0930\u0923): \u0936\u0928\u093f \u0906\u092a\u0915\u0940 \u091a\u0928\u094d\u0926\u094d\u0930 \u0930\u093e\u0936\u093f \u0938\u0947 2\u0930\u0947 \u092d\u093e\u0935 \u092e\u0947\u0902 \u0939\u0948\u0902\u0964 "
-        "\u0924\u0940\u0935\u094d\u0930 \u0926\u092c\u093e\u0935 \u0927\u0940\u0930\u0947-\u0927\u0940\u0930\u0947 \u0915\u092e \u0939\u094b \u0930\u0939\u093e \u0939\u0948\u0964 "
-        "\u0906\u0930\u094d\u0925\u093f\u0915 \u092e\u093e\u092e\u0932\u094b\u0902 \u092a\u0930 \u0927\u094d\u092f\u093e\u0928 \u0926\u0947\u0902\u0964 \u0938\u094d\u0925\u093f\u0930 \u092a\u094d\u0930\u092f\u093e\u0938 \u091c\u093e\u0930\u0940 \u0930\u0916\u0947\u0902\u0964"
+        "साढ़ेसाती (अंतिम चरण): शनि आपकी चन्द्र राशि से 2रे भाव में हैं। "
+        "तीव्र दबाव धीरे-धीरे कम हो रहा है। "
+        "आर्थिक मामलों पर ध्यान दें। स्थिर प्रयास जारी रखें।"
     ),
 }
 
 # Hindi labels for readings
 _HI_LABELS = {
-    "overview": "\u0938\u093e\u0930\u093e\u0902\u0936",
-    "reading_for": "\u092a\u093e\u0920\u0928",
-    "moon_sign": "\u091a\u0928\u094d\u0926\u094d\u0930 \u0930\u093e\u0936\u093f",
-    "period": "\u0905\u0935\u0927\u093f",
-    "current_dasha": "\u0935\u0930\u094d\u0924\u092e\u093e\u0928 \u0926\u0936\u093e",
-    "mahadasha": "\u092e\u0939\u093e\u0926\u0936\u093e",
-    "antardasha": "\u0905\u0928\u094d\u0924\u0930\u094d\u0926\u0936\u093e",
-    "pratyantar": "\u092a\u094d\u0930\u0924\u094d\u092f\u0928\u094d\u0924\u0930 \u0926\u0936\u093e",
-    "dasha_influence": "\u0926\u0936\u093e \u092a\u094d\u0930\u092d\u093e\u0935",
-    "transit_effects": "\u0917\u094b\u091a\u0930 \u092a\u094d\u0930\u092d\u093e\u0935",
-    "this_week": "\u0907\u0938 \u0938\u092a\u094d\u0924\u093e\u0939 \u0915\u093e \u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 \u092a\u093e\u0920\u0928",
-    "this_month": "\u0907\u0938 \u092e\u0939\u0940\u0928\u0947 \u0915\u093e \u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 \u092a\u093e\u0920\u0928",
-    "this_year": "\u0907\u0938 \u0935\u0930\u094d\u0937 \u0915\u093e \u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 \u092a\u093e\u0920\u0928",
-    "nature": "\u092a\u094d\u0930\u0915\u0943\u0924\u093f",
-    "themes": "\u0935\u093f\u0937\u092f",
-    "strengths": "\u0936\u0915\u094d\u0924\u093f\u092f\u093e\u0901",
-    "caution": "\u0938\u093e\u0935\u0927\u093e\u0928\u0940",
-    "advice": "\u0938\u0932\u093e\u0939",
-    "guidance": "\u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928 \u0914\u0930 \u0938\u093e\u0930\u093e\u0902\u0936",
-    "favourable": "\u0905\u0928\u0941\u0915\u0942\u0932",
-    "challenging": "\u091a\u0941\u0928\u094c\u0924\u0940\u092a\u0942\u0930\u094d\u0923",
-    "house": "\u092d\u093e\u0935",
-    "from_moon": "\u091a\u0928\u094d\u0926\u094d\u0930 \u0938\u0947",
-    "retrograde": "\u0935\u0915\u094d\u0930\u0940",
-    "sade_sati": "\u0938\u093e\u0922\u093c\u0947\u0938\u093e\u0924\u0940 \u0938\u0942\u091a\u0928\u093e",
-    "weekly_transits": "\u0907\u0938 \u0938\u092a\u094d\u0924\u093e\u0939 \u0915\u0947 \u092a\u094d\u0930\u092e\u0941\u0916 \u0917\u094d\u0930\u0939 \u0917\u094b\u091a\u0930",
-    "monthly_transits": "\u0907\u0938 \u092e\u093e\u0939 \u0915\u0947 \u0917\u094d\u0930\u0939 \u0917\u094b\u091a\u0930",
-    "yearly_transits": "\u0907\u0938 \u0935\u0930\u094d\u0937 \u0915\u0947 \u092a\u094d\u0930\u092e\u0941\u0916 \u0917\u094b\u091a\u0930",
-    "overall_positive": "\u0915\u0941\u0932 \u092e\u093f\u0932\u093e\u0915\u0930, \u0917\u094d\u0930\u0939 \u0917\u094b\u091a\u0930 <strong>\u0905\u0927\u093f\u0915\u093e\u0902\u0936\u0924\u0903 \u0905\u0928\u0941\u0915\u0942\u0932</strong> \u0939\u0948\u0902\u0964",
-    "overall_mixed": "\u0917\u094d\u0930\u0939 \u0917\u094b\u091a\u0930 <strong>\u092e\u093f\u0936\u094d\u0930\u093f\u0924</strong> \u0939\u0948\u0902 \u2014 \u0915\u0941\u091b \u0915\u094d\u0937\u0947\u0924\u094d\u0930 \u0905\u091a\u094d\u091b\u0947, \u0915\u0941\u091b \u092e\u0947\u0902 \u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u091a\u093e\u0939\u093f\u090f\u0964",
-    "overall_challenging": "\u0917\u094d\u0930\u0939 \u0917\u094b\u091a\u0930 <strong>\u091a\u0941\u0928\u094c\u0924\u0940\u092a\u0942\u0930\u094d\u0923</strong> \u0939\u0948\u0902 \u2014 \u0927\u0948\u0930\u094d\u092f \u0914\u0930 \u092f\u094b\u091c\u0928\u093e \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948\u0964",
+    "overview": "सारांश",
+    "reading_for": "पाठन",
+    "moon_sign": "चन्द्र राशि",
+    "period": "अवधि",
+    "current_dasha": "वर्तमान दशा",
+    "mahadasha": "महादशा",
+    "antardasha": "अन्तर्दशा",
+    "pratyantar": "प्रत्यन्तर दशा",
+    "dasha_influence": "दशा प्रभाव",
+    "transit_effects": "गोचर प्रभाव",
+    "this_week": "इस सप्ताह का व्यक्तिगत पाठन",
+    "this_month": "इस महीने का व्यक्तिगत पाठन",
+    "this_year": "इस वर्ष का व्यक्तिगत पाठन",
+    "nature": "प्रकृति",
+    "themes": "विषय",
+    "strengths": "शक्तियाँ",
+    "caution": "सावधानी",
+    "advice": "सलाह",
+    "guidance": "मार्गदर्शन और सारांश",
+    "favourable": "अनुकूल",
+    "challenging": "चुनौतीपूर्ण",
+    "house": "भाव",
+    "from_moon": "चन्द्र से",
+    "retrograde": "वक्री",
+    "sade_sati": "साढ़ेसाती सूचना",
+    "weekly_transits": "इस सप्ताह के प्रमुख ग्रह गोचर",
+    "monthly_transits": "इस माह के ग्रह गोचर",
+    "yearly_transits": "इस वर्ष के प्रमुख गोचर",
+    "overall_positive": "कुल मिलाकर, ग्रह गोचर <strong>अधिकांशतः अनुकूल</strong> हैं।",
+    "overall_mixed": "ग्रह गोचर <strong>मिश्रित</strong> हैं — कुछ क्षेत्र अच्छे, कुछ में सावधानी चाहिए।",
+    "overall_challenging": "ग्रह गोचर <strong>चुनौतीपूर्ण</strong> हैं — धैर्य और योजना आवश्यक है।",
 }
 
 # Hindi gochar effects (short summaries per planet per house from Moon)
 GOCHAR_EFFECTS_HI = {
     "Sun": {
-        1: "\u0906\u0924\u094d\u092e-\u091a\u093f\u0902\u0924\u0928, \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u092a\u0930 \u0927\u094d\u092f\u093e\u0928 \u0926\u0947\u0902\u0964 \u0905\u0939\u0902\u0915\u093e\u0930 \u0938\u0947 \u092c\u091a\u0947\u0902\u0964",
-        2: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0938\u093e\u0935\u0927\u093e\u0928\u0940\u0964 \u0928\u0947\u0924\u094d\u0930 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u090f\u0901\u0964 \u0916\u0930\u094d\u091a \u092a\u0930 \u0928\u093f\u092f\u0902\u0924\u094d\u0930\u0923\u0964",
-        3: "\u0938\u093e\u0939\u0938 \u0914\u0930 \u0906\u0924\u094d\u092e\u0935\u093f\u0936\u094d\u0935\u093e\u0938 \u092c\u0922\u093c\u0924\u093e \u0939\u0948\u0964 \u092a\u094d\u0930\u0924\u093f\u0926\u094d\u0935\u0902\u0926\u094d\u0935\u093f\u092f\u094b\u0902 \u092a\u0930 \u0935\u093f\u091c\u092f\u0964",
-        4: "\u0918\u0930\u0947\u0932\u0942 \u0905\u0936\u093e\u0902\u0924\u093f\u0964 \u0935\u093e\u0939\u0928 \u0938\u0947 \u0938\u093e\u0935\u0927\u093e\u0928\u0940\u0964 \u092e\u093e\u0928\u0938\u093f\u0915 \u0924\u0928\u093e\u0935\u0964",
-        5: "\u0938\u0902\u0924\u093e\u0928 \u092f\u093e \u0928\u093f\u0935\u0947\u0936 \u092e\u0947\u0902 \u091a\u0941\u0928\u094c\u0924\u0940\u0964 \u0930\u091a\u0928\u093e\u0924\u094d\u092e\u0915 \u0905\u0935\u0930\u094b\u0927\u0964 \u092a\u0947\u091f \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964",
-        6: "\u0936\u0924\u094d\u0930\u0941\u0913\u0902 \u092a\u0930 \u0935\u093f\u091c\u092f\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u0941\u0927\u0930\u0924\u093e\u0964 \u0938\u0930\u0915\u093e\u0930\u0940 \u0915\u0943\u092a\u093e\u0964",
-        7: "\u092f\u093e\u0924\u094d\u0930\u093e \u0938\u0902\u092d\u0935\u0964 \u0930\u093f\u0936\u094d\u0924\u094b\u0902 \u092e\u0947\u0902 \u0924\u0928\u093e\u0935\u0964 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940 \u092e\u0947\u0902 \u092e\u0924\u092d\u0947\u0926\u0964",
-        8: "\u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u2014 \u092c\u0941\u0916\u093e\u0930, \u0925\u0915\u093e\u0928\u0964 \u091c\u094b\u0916\u093f\u092e \u0935\u093e\u0932\u0947 \u0915\u093e\u0930\u094d\u092f\u094b\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902\u0964",
-        9: "\u0932\u0902\u092c\u0940 \u092f\u093e\u0924\u094d\u0930\u093e\u0913\u0902 \u092e\u0947\u0902 \u092c\u093e\u0927\u093e\u0964 \u092a\u093f\u0924\u093e/\u0917\u0941\u0930\u0941 \u0938\u0947 \u0924\u0928\u093e\u0935\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u092a\u0930\u0940\u0915\u094d\u0937\u093e\u0964",
-        10: "\u0915\u0930\u093f\u092f\u0930 \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e \u0914\u0930 \u092e\u093e\u0928\u094d\u092f\u0924\u093e\u0964 \u0905\u0927\u093f\u0915\u093e\u0930\u093f\u092f\u094b\u0902 \u0915\u093e \u0938\u092e\u0930\u094d\u0925\u0928\u0964",
-        11: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0932\u093e\u092d \u0914\u0930 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0938\u092b\u0932\u0924\u093e\u0964 \u0932\u0915\u094d\u0937\u094d\u092f \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f\u0964 \u0936\u0941\u092d \u0938\u092e\u092f\u0964",
-        12: "\u0916\u0930\u094d\u091a \u092c\u0922\u093c\u0924\u093e \u0939\u0948\u0964 \u0928\u0947\u0924\u094d\u0930/\u0936\u0940\u0930\u094d\u0937 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0938\u0930\u0915\u093e\u0930\u0940 \u0924\u0928\u093e\u0935\u0964",
+        1: "आत्म-चिंतन, स्वास्थ्य पर ध्यान दें। अहंकार से बचें।",
+        2: "आर्थिक सावधानी। नेत्र संबंधी समस्याएँ। खर्च पर नियंत्रण।",
+        3: "साहस और आत्मविश्वास बढ़ता है। प्रतिद्वंद्वियों पर विजय।",
+        4: "घरेलू अशांति। वाहन से सावधानी। मानसिक तनाव।",
+        5: "संतान या निवेश में चुनौती। रचनात्मक अवरोध। पेट संबंधी समस्या।",
+        6: "शत्रुओं पर विजय। स्वास्थ्य सुधरता। सरकारी कृपा।",
+        7: "यात्रा संभव। रिश्तों में तनाव। साझेदारी में मतभेद।",
+        8: "स्वास्थ्य सावधानी — बुखार, थकान। जोखिम वाले कार्यों से बचें।",
+        9: "लंबी यात्राओं में बाधा। पिता/गुरु से तनाव। आध्यात्मिक परीक्षा।",
+        10: "करियर में सफलता और मान्यता। अधिकारियों का समर्थन।",
+        11: "आर्थिक लाभ और सामाजिक सफलता। लक्ष्य प्राप्ति। शुभ समय।",
+        12: "खर्च बढ़ता है। नेत्र/शीर्ष समस्या। सरकारी तनाव।",
     },
     "Moon": {
-        1: "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u0941\u0916 \u0914\u0930 \u0906\u0930\u093e\u092e\u0964 \u0905\u091a\u094d\u091b\u093e \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f\u0964",
-        2: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0932\u093e\u092d\u0964 \u092a\u093e\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u0938\u093e\u092e\u0902\u091c\u0938\u094d\u092f\u0964 \u0905\u091a\u094d\u091b\u093e \u092d\u094b\u091c\u0928 \u0914\u0930 \u0938\u0941\u0916\u0964",
-        3: "\u0915\u093e\u0930\u094d\u092f\u094b\u0902 \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u093e\u0939\u0938 \u092c\u0922\u093c\u0924\u093e \u0939\u0948\u0964",
-        4: "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0905\u0936\u093e\u0902\u0924\u093f\u0964 \u092d\u092f \u0914\u0930 \u091a\u093f\u0902\u0924\u093e\u0964 \u0918\u0930\u0947\u0932\u0942 \u0924\u0928\u093e\u0935\u0964",
-        5: "\u0938\u0902\u0924\u093e\u0928 \u0915\u0940 \u091a\u093f\u0902\u0924\u093e\u0964 \u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0905\u0938\u094d\u0925\u093f\u0930\u0924\u093e\u0964",
-        6: "\u0936\u0924\u094d\u0930\u0941\u0913\u0902 \u092a\u0930 \u0935\u093f\u091c\u092f\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u0941\u0927\u093e\u0930\u0964",
-        7: "\u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0938\u0941\u0916\u0964 \u0905\u091a\u094d\u091b\u0947 \u0938\u0902\u092c\u0902\u0927\u0964 \u0906\u0930\u093e\u092e\u0926\u093e\u092f\u0915 \u092f\u093e\u0924\u094d\u0930\u093e\u0964",
-        8: "\u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0935\u093f\u0915\u094d\u0937\u094b\u092d\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0905\u092a\u094d\u0930\u0924\u094d\u092f\u093e\u0936\u093f\u0924 \u0916\u0930\u094d\u091a\u0964",
-        9: "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0930\u0941\u091d\u093e\u0928\u0964 \u0924\u0940\u0930\u094d\u0925\u092f\u093e\u0924\u094d\u0930\u093e \u0938\u0902\u092d\u0935\u0964 \u0938\u0915\u093e\u0930\u093e\u0924\u094d\u092e\u0915 \u092e\u093e\u0928\u0938\u093f\u0915\u0924\u093e\u0964",
-        10: "\u092a\u0947\u0936\u0947\u0935\u0930 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u093e\u0930\u094d\u0935\u091c\u0928\u093f\u0915 \u092e\u093e\u0928\u094d\u092f\u0924\u093e\u0964 \u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u0902\u0924\u094b\u0937\u0964",
-        11: "\u0932\u093e\u092d \u0914\u0930 \u092a\u0942\u0930\u094d\u0924\u093f\u0964 \u0936\u0941\u092d \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0935\u0943\u0924\u094d\u0924\u0964 \u0907\u091a\u094d\u091b\u093e\u092a\u0942\u0930\u094d\u0924\u093f\u0964",
-        12: "\u0916\u0930\u094d\u091a \u0914\u0930 \u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u0925\u0915\u093e\u0928\u0964 \u0928\u0940\u0902\u0926 \u092e\u0947\u0902 \u092c\u093e\u0927\u093e\u0964 \u092c\u0947\u091a\u0948\u0928\u0940\u0964",
+        1: "भावनात्मक सुख और आराम। अच्छा स्वास्थ्य।",
+        2: "आर्थिक लाभ। पारिवारिक सामंजस्य। अच्छा भोजन और सुख।",
+        3: "कार्यों में सफलता। साहस बढ़ता है।",
+        4: "भावनात्मक अशांति। भय और चिंता। घरेलू तनाव।",
+        5: "संतान की चिंता। भावनात्मक अस्थिरता।",
+        6: "शत्रुओं पर विजय। स्वास्थ्य सुधार।",
+        7: "सामाजिक सुख। अच्छे संबंध। आरामदायक यात्रा।",
+        8: "भावनात्मक विक्षोभ। स्वास्थ्य समस्या। अप्रत्याशित खर्च।",
+        9: "आध्यात्मिक रुझान। तीर्थयात्रा संभव। सकारात्मक मानसिकता।",
+        10: "पेशेवर सफलता। सार्वजनिक मान्यता। भावनात्मक संतोष।",
+        11: "लाभ और पूर्ति। शुभ सामाजिक वृत्त। इच्छापूर्ति।",
+        12: "खर्च और भावनात्मक थकान। नींद में बाधा। बेचैनी।",
     },
     "Mars": {
-        1: "\u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e \u2014 \u092c\u0941\u0916\u093e\u0930, \u0930\u0915\u094d\u0924\u091a\u093e\u092a\u0964 \u0926\u0941\u0930\u094d\u0918\u091f\u0928\u093e \u0938\u0902\u092d\u0935\u0964 \u0915\u094d\u0930\u094b\u0927 \u092c\u0922\u093c\u0924\u093e \u0939\u0948\u0964",
-        2: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0939\u093e\u0928\u093f\u0964 \u092a\u093e\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u0935\u093f\u0935\u093e\u0926\u0964 \u0935\u093e\u0923\u0940 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964",
-        3: "\u0938\u093e\u0939\u0938 \u0914\u0930 \u0935\u093f\u091c\u092f\u0964 \u092a\u094d\u0930\u0924\u093f\u092f\u094b\u0917\u093f\u0924\u093e \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0932\u093e\u092d \u0938\u0902\u092d\u0935\u0964",
-        4: "\u0918\u0930\u0947\u0932\u0942 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0935\u093e\u0939\u0928 \u0926\u0941\u0930\u094d\u0918\u091f\u0928\u093e \u0938\u0902\u092d\u0935\u0964 \u0930\u0915\u094d\u0924 \u0938\u0902\u092c\u0902\u0927\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964",
-        5: "\u0938\u0902\u0924\u093e\u0928 \u0938\u0947 \u0935\u093f\u0935\u093e\u0926\u0964 \u0928\u093f\u0935\u0947\u0936 \u0939\u093e\u0928\u093f\u0964 \u0936\u0932\u094d\u092f \u0915\u094d\u0930\u093f\u092f\u093e \u0938\u0902\u092d\u0935\u0964",
-        6: "\u0936\u0924\u094d\u0930\u0941\u0913\u0902 \u092a\u0930 \u0935\u093f\u091c\u092f\u0964 \u0915\u093e\u0928\u0942\u0928\u0940 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u0941\u0927\u093e\u0930\u0964",
-        7: "\u0935\u0948\u0935\u093e\u0939\u093f\u0915 \u0935\u093f\u0935\u093e\u0926\u0964 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940 \u0938\u0902\u0918\u0930\u094d\u0937\u0964 \u0915\u0920\u093f\u0928 \u092f\u093e\u0924\u094d\u0930\u093e\u0964",
-        8: "\u0926\u0941\u0930\u094d\u0918\u091f\u0928\u093e \u0914\u0930 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u091c\u094b\u0916\u093f\u092e\u0964 \u0936\u0932\u094d\u092f \u0915\u094d\u0930\u093f\u092f\u093e\u0964 \u0906\u0930\u094d\u0925\u093f\u0915 \u0939\u093e\u0928\u093f\u0964",
-        9: "\u092c\u0921\u093c\u094b\u0902 \u0938\u0947 \u0935\u093f\u0935\u093e\u0926\u0964 \u0915\u093e\u0928\u0942\u0928\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0905\u0928\u093e\u0935\u0936\u094d\u092f\u0915 \u0906\u0915\u094d\u0930\u093e\u092e\u0915\u0924\u093e\u0964",
-        10: "\u092a\u0947\u0936\u0947\u0935\u0930 \u091a\u0941\u0928\u094c\u0924\u0940\u0964 \u0905\u0927\u093f\u0915\u093e\u0930\u093f\u092f\u094b\u0902 \u0938\u0947 \u0935\u093f\u0935\u093e\u0926\u0964 \u0915\u0920\u093f\u0928 \u092a\u0930\u093f\u0936\u094d\u0930\u092e\u0964",
-        11: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0932\u093e\u092d\u0964 \u092a\u094d\u0930\u092f\u093e\u0938 \u0938\u0947 \u0932\u0915\u094d\u0937\u094d\u092f \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f\u0964 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0938\u092b\u0932\u0924\u093e\u0964",
-        12: "\u0916\u0930\u094d\u091a \u092c\u0922\u093c\u0924\u093e \u0939\u0948\u0964 \u091b\u093f\u092a\u0947 \u0936\u0924\u094d\u0930\u0941 \u0938\u0915\u094d\u0930\u093f\u092f\u0964 \u0905\u0938\u094d\u092a\u0924\u093e\u0932 \u092e\u0947\u0902 \u092d\u0930\u094d\u0924\u0940 \u0938\u0902\u092d\u0935\u0964",
+        1: "स्वास्थ्य समस्या — बुखार, रक्तचाप। दुर्घटना संभव। क्रोध बढ़ता है।",
+        2: "आर्थिक हानि। पारिवारिक विवाद। वाणी संबंधी समस्या।",
+        3: "साहस और विजय। प्रतियोगिता में सफलता। संपत्ति लाभ संभव।",
+        4: "घरेलू समस्या। वाहन दुर्घटना संभव। रक्त संबंधी समस्या।",
+        5: "संतान से विवाद। निवेश हानि। शल्य क्रिया संभव।",
+        6: "शत्रुओं पर विजय। कानूनी सफलता। स्वास्थ्य सुधार।",
+        7: "वैवाहिक विवाद। साझेदारी संघर्ष। कठिन यात्रा।",
+        8: "दुर्घटना और स्वास्थ्य जोखिम। शल्य क्रिया। आर्थिक हानि।",
+        9: "बड़ों से विवाद। कानूनी समस्या। अनावश्यक आक्रामकता।",
+        10: "पेशेवर चुनौती। अधिकारियों से विवाद। कठिन परिश्रम।",
+        11: "आर्थिक लाभ। प्रयास से लक्ष्य प्राप्ति। सामाजिक सफलता।",
+        12: "खर्च बढ़ता है। छिपे शत्रु सक्रिय। अस्पताल में भर्ती संभव।",
     },
     "Mercury": {
-        1: "\u0938\u0902\u091a\u093e\u0930 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0924\u094d\u0935\u091a\u093e \u0930\u094b\u0917\u0964 \u0924\u0928\u093e\u0935\u0964",
-        2: "\u0935\u094d\u092f\u093e\u092a\u093e\u0930 \u0938\u0947 \u0906\u0930\u094d\u0925\u093f\u0915 \u0932\u093e\u092d\u0964 \u0905\u091a\u094d\u091b\u0940 \u0935\u093e\u0923\u0940\u0964",
-        3: "\u092d\u093e\u0908-\u092c\u0939\u0928\u094b\u0902 \u0938\u0947 \u0935\u093f\u0935\u093e\u0926\u0964 \u0938\u0902\u091a\u093e\u0930 \u092d\u0902\u0917\u0964",
-        4: "\u0936\u0948\u0915\u094d\u0937\u093f\u0915 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0932\u093e\u092d\u0964 \u092e\u093e\u0928\u0938\u093f\u0915 \u0936\u093e\u0902\u0924\u093f\u0964",
-        5: "\u092c\u094c\u0926\u094d\u0927\u093f\u0915 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0901\u0964 \u091b\u093e\u0924\u094d\u0930\u094b\u0902 \u0915\u0947 \u0932\u093f\u090f \u0905\u091a\u094d\u091b\u093e\u0964 \u0930\u091a\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u092b\u0932\u0924\u093e\u0964",
-        6: "\u092c\u0941\u0926\u094d\u0927\u093f \u0938\u0947 \u0935\u093f\u091c\u092f\u0964 \u0915\u093e\u0928\u0942\u0928\u0940 \u091c\u0940\u0924\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u0941\u0927\u093e\u0930\u0964",
-        7: "\u0935\u094d\u092f\u093e\u092a\u093e\u0930\u093f\u0915 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940 \u092b\u0932\u0924\u0940 \u0939\u0948\u0964 \u0905\u091a\u094d\u091b\u0940 \u0935\u093e\u0930\u094d\u0924\u093e\u0964 \u0935\u094d\u092f\u093e\u092a\u093e\u0930 \u092f\u093e\u0924\u094d\u0930\u093e\u0964",
-        8: "\u0936\u094b\u0927 \u0938\u092b\u0932\u0924\u093e\u0964 \u0935\u093f\u0930\u093e\u0938\u0924 \u0938\u0902\u092d\u0935\u0964 \u091b\u093f\u092a\u093e \u091c\u094d\u091e\u093e\u0928 \u092a\u094d\u0930\u0915\u091f\u0964",
-        9: "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0936\u093f\u0915\u094d\u0937\u093e\u0964 \u0909\u091a\u094d\u091a \u0936\u093f\u0915\u094d\u0937\u093e \u0938\u092b\u0932\u0924\u093e\u0964 \u0936\u093f\u0915\u094d\u0937\u0923 \u0915\u0947 \u0905\u0935\u0938\u0930\u0964",
-        10: "\u0938\u0902\u091a\u093e\u0930 \u0926\u094d\u0935\u093e\u0930\u093e \u0915\u0930\u093f\u092f\u0930 \u0909\u0928\u094d\u0928\u0924\u093f\u0964 \u0932\u0947\u0916\u0928 \u0938\u092b\u0932\u0924\u093e\u0964 \u092e\u093e\u0928\u094d\u092f\u0924\u093e\u0964",
-        11: "\u092c\u0941\u0926\u094d\u0927\u093f \u0938\u0947 \u0906\u0930\u094d\u0925\u093f\u0915 \u0932\u093e\u092d\u0964 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0928\u0947\u091f\u0935\u0930\u094d\u0915\u093f\u0902\u0917 \u0938\u092b\u0932\u0964 \u0907\u091a\u094d\u091b\u093e\u092a\u0942\u0930\u094d\u0924\u093f\u0964",
-        12: "\u0936\u093f\u0915\u094d\u0937\u093e \u092a\u0930 \u0916\u0930\u094d\u091a\u0964 \u0935\u093f\u0926\u0947\u0936\u0940 \u0938\u0902\u092c\u0902\u0927\u0964 \u0928\u0940\u0902\u0926 \u092e\u0947\u0902 \u092c\u093e\u0927\u093e\u0964",
+        1: "संचार समस्या। त्वचा रोग। तनाव।",
+        2: "व्यापार से आर्थिक लाभ। अच्छी वाणी।",
+        3: "भाई-बहनों से विवाद। संचार भंग।",
+        4: "शैक्षिक सफलता। संपत्ति लाभ। मानसिक शांति।",
+        5: "बौद्धिक उपलब्धियाँ। छात्रों के लिए अच्छा। रचनात्मक सफलता।",
+        6: "बुद्धि से विजय। कानूनी जीत। स्वास्थ्य सुधार।",
+        7: "व्यापारिक साझेदारी फलती है। अच्छी वार्ता। व्यापार यात्रा।",
+        8: "शोध सफलता। विरासत संभव। छिपा ज्ञान प्रकट।",
+        9: "आध्यात्मिक शिक्षा। उच्च शिक्षा सफलता। शिक्षण के अवसर।",
+        10: "संचार द्वारा करियर उन्नति। लेखन सफलता। मान्यता।",
+        11: "बुद्धि से आर्थिक लाभ। सामाजिक नेटवर्किंग सफल। इच्छापूर्ति।",
+        12: "शिक्षा पर खर्च। विदेशी संबंध। नींद में बाधा।",
     },
     "Jupiter": {
-        1: "\u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0935\u091c\u0928 \u0935\u0943\u0926\u094d\u0927\u093f\u0964 \u0927\u094d\u092f\u093e\u0928 \u0915\u0940 \u0915\u092e\u0940\u0964 \u0938\u094d\u0925\u093e\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964",
-        2: "\u0927\u0928 \u0935\u0943\u0926\u094d\u0927\u093f\u0964 \u092a\u093e\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u0938\u0941\u0916\u0964 \u0905\u091a\u094d\u091b\u0940 \u0935\u093e\u0923\u0940 \u0914\u0930 \u091c\u094d\u091e\u093e\u0928\u0964 \u0909\u0924\u094d\u0924\u092e \u0938\u092e\u092f\u0964",
-        3: "\u0938\u094d\u0925\u093e\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964 \u092d\u093e\u0908-\u092c\u0939\u0928 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u092a\u0926 \u0939\u093e\u0928\u093f\u0964",
-        4: "\u0938\u0941\u0916 \u0915\u0940 \u0939\u093e\u0928\u093f\u0964 \u0918\u0930\u0947\u0932\u0942 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0935\u093e\u0939\u0928 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u092e\u093e\u0928\u0938\u093f\u0915 \u0905\u0936\u093e\u0902\u0924\u093f\u0964",
-        5: "\u0938\u0902\u0924\u093e\u0928 \u091c\u0928\u094d\u092e\u0964 \u0936\u0948\u0915\u094d\u0937\u093f\u0915 \u0938\u092b\u0932\u0924\u093e\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u093f\u0915\u093e\u0938\u0964 \u0909\u0924\u094d\u0924\u092e \u0938\u092e\u092f\u0964",
-        6: "\u0936\u0924\u094d\u0930\u0941\u0913\u0902 \u0938\u0947 \u092a\u0930\u093e\u091c\u092f\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0915\u093e\u0928\u0942\u0928\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0910\u0923 \u0935\u0943\u0926\u094d\u0927\u093f\u0964",
-        7: "\u0935\u093f\u0935\u093e\u0939 \u092f\u093e \u0936\u0915\u094d\u0924\u093f\u0936\u093e\u0932\u0940 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940\u0964 \u092a\u0924\u094d\u0928\u0940 \u0938\u0941\u0916\u0964 \u092f\u093e\u0924\u094d\u0930\u093e\u0964 \u0905\u0924\u094d\u092f\u0902\u0924 \u0936\u0941\u092d\u0964",
-        8: "\u092c\u093e\u0927\u093e\u090f\u0901 \u0914\u0930 \u0935\u093f\u0932\u092e\u094d\u092c\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u092a\u094d\u0930\u0924\u093f\u0937\u094d\u0920\u093e \u0939\u093e\u0928\u093f\u0964 \u0915\u0920\u093f\u0928 \u0938\u092e\u092f\u0964",
-        9: "\u0909\u0924\u094d\u0924\u092e \u092d\u093e\u0917\u094d\u092f\u0964 \u0924\u0940\u0930\u094d\u0925\u092f\u093e\u0924\u094d\u0930\u093e\u0964 \u0909\u091a\u094d\u091a \u0936\u093f\u0915\u094d\u0937\u093e\u0964 \u0917\u0941\u0930\u0941 \u0915\u0943\u092a\u093e\u0964 \u0938\u0930\u094d\u0935\u0936\u094d\u0930\u0947\u0937\u094d\u0920 \u0917\u094b\u091a\u0930\u0964",
-        10: "\u0915\u0930\u093f\u092f\u0930 \u092e\u0947\u0902 \u0939\u093e\u0928\u093f\u0964 \u092a\u0926 \u0939\u093e\u0928\u093f\u0964 \u0905\u092a\u092e\u093e\u0928 \u0938\u0902\u092d\u0935\u0964 \u091a\u0941\u0928\u094c\u0924\u0940\u092a\u0942\u0930\u094d\u0923\u0964",
-        11: "\u0905\u0927\u093f\u0915\u0924\u092e \u0932\u093e\u092d\u0964 \u0907\u091a\u094d\u091b\u093e\u092a\u0942\u0930\u094d\u0924\u093f\u0964 \u0938\u0902\u0924\u093e\u0928 \u091c\u0928\u094d\u092e\u0964 \u0938\u0930\u094d\u0935\u0936\u094d\u0930\u0947\u0937\u094d\u0920 \u0906\u0930\u094d\u0925\u093f\u0915 \u0938\u092e\u092f\u0964",
-        12: "\u0916\u0930\u094d\u091a \u0914\u0930 \u0939\u093e\u0928\u093f\u0964 \u0928\u093f\u0935\u093e\u0938 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u092f\u093e\u0924\u094d\u0930\u093e\u0964 \u090f\u0915\u093e\u0902\u0924\u0964",
+        1: "स्वास्थ्य समस्या। वजन वृद्धि। ध्यान की कमी। स्थान परिवर्तन।",
+        2: "धन वृद्धि। पारिवारिक सुख। अच्छी वाणी और ज्ञान। उत्तम समय।",
+        3: "स्थान परिवर्तन। भाई-बहन समस्या। पद हानि।",
+        4: "सुख की हानि। घरेलू समस्या। वाहन समस्या। मानसिक अशांति।",
+        5: "संतान जन्म। शैक्षिक सफलता। आध्यात्मिक विकास। उत्तम समय।",
+        6: "शत्रुओं से पराजय। स्वास्थ्य समस्या। कानूनी समस्या। ऐण वृद्धि।",
+        7: "विवाह या शक्तिशाली साझेदारी। पत्नी सुख। यात्रा। अत्यंत शुभ।",
+        8: "बाधाएँ और विलम्ब। स्वास्थ्य समस्या। प्रतिष्ठा हानि। कठिन समय।",
+        9: "उत्तम भाग्य। तीर्थयात्रा। उच्च शिक्षा। गुरु कृपा। सर्वश्रेष्ठ गोचर।",
+        10: "करियर में हानि। पद हानि। अपमान संभव। चुनौतीपूर्ण।",
+        11: "अधिकतम लाभ। इच्छापूर्ति। संतान जन्म। सर्वश्रेष्ठ आर्थिक समय।",
+        12: "खर्च और हानि। निवास परिवर्तन। आध्यात्मिक यात्रा। एकांत।",
     },
     "Venus": {
-        1: "\u0906\u0930\u093e\u092e \u0914\u0930 \u0935\u093f\u0932\u093e\u0938\u0964 \u0930\u094b\u092e\u093e\u0902\u091f\u093f\u0915 \u0938\u0941\u0916\u0964 \u0905\u091a\u094d\u091b\u093e \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f\u0964",
-        2: "\u092a\u093e\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u0927\u0928 \u0935\u0943\u0926\u094d\u0927\u093f\u0964 \u0905\u091a\u094d\u091b\u093e \u092d\u094b\u091c\u0928\u0964 \u0938\u0941\u0916\u0926 \u0935\u093e\u0923\u0940\u0964",
-        3: "\u0915\u0932\u093e\u0924\u094d\u092e\u0915 \u0938\u092b\u0932\u0924\u093e\u0964 \u0905\u091a\u094d\u091b\u0947 \u0938\u0902\u092c\u0902\u0927\u0964 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0932\u094b\u0915\u092a\u094d\u0930\u093f\u092f\u0924\u093e\u0964",
-        4: "\u0918\u0930\u0947\u0932\u0942 \u0938\u0941\u0916\u0964 \u0935\u093e\u0939\u0928/\u0938\u0902\u092a\u0924\u094d\u0924\u093f \u092a\u094d\u0930\u093e\u092a\u094d\u0924\u093f\u0964 \u0906\u0930\u093e\u092e\u0926\u093e\u092f\u0915 \u0918\u0930\u0964",
-        5: "\u0930\u094b\u092e\u093e\u0902\u091f\u093f\u0915 \u0938\u0902\u092c\u0902\u0927\u0964 \u0930\u091a\u0928\u093e\u0924\u094d\u092e\u0915 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u0902\u0924\u093e\u0928 \u0938\u0941\u0916\u0964",
-        6: "\u0938\u0902\u092c\u0902\u0927\u094b\u0902 \u092e\u0947\u0902 \u091a\u0941\u0928\u094c\u0924\u0940\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u093e\u0935\u0927\u093e\u0928\u0940\u0964 \u0936\u0924\u094d\u0930\u0941 \u0915\u0937\u094d\u091f\u0964",
-        7: "\u0938\u0902\u092c\u0902\u0927\u094b\u0902 \u092e\u0947\u0902 \u0915\u0920\u093f\u0928\u093e\u0908\u0964 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940 \u0924\u0928\u093e\u0935\u0964 \u0928\u0908 \u092a\u094d\u0930\u0924\u093f\u092c\u0926\u094d\u0927\u0924\u093e\u0913\u0902 \u0938\u0947 \u092c\u091a\u0947\u0902\u0964",
-        8: "\u0905\u092a\u094d\u0930\u0924\u094d\u092f\u093e\u0936\u093f\u0924 \u0938\u094d\u0930\u094b\u0924\u094b\u0902 \u0938\u0947 \u0927\u0928\u0964 \u0924\u093e\u0902\u0924\u094d\u0930\u093f\u0915 \u0930\u0941\u091a\u093f\u0964 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964",
-        9: "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0914\u0930 \u0938\u093e\u0902\u0938\u094d\u0915\u0943\u0924\u093f\u0915 \u0915\u093e\u0930\u094d\u092f\u0964 \u0924\u0940\u0930\u094d\u0925\u092f\u093e\u0924\u094d\u0930\u093e\u0964 \u0915\u0932\u093e \u0938\u0947 \u092d\u093e\u0917\u094d\u092f\u0964",
-        10: "\u0915\u0930\u093f\u092f\u0930 \u0915\u0920\u093f\u0928\u093e\u0908\u0964 \u092a\u094d\u0930\u0924\u093f\u0937\u094d\u0920\u093e \u091a\u093f\u0902\u0924\u093e\u0964 \u092a\u0947\u0936\u0947\u0935\u0930 \u0908\u0930\u094d\u0937\u094d\u092f\u093e\u0964",
-        11: "\u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u0938\u092b\u0932\u0924\u093e \u0914\u0930 \u0932\u093e\u092d\u0964 \u0935\u093f\u0932\u093e\u0938\u093f\u0924\u093e \u092c\u0922\u093c\u0924\u0940 \u0939\u0948\u0964 \u0907\u091a\u094d\u091b\u093e\u092a\u0942\u0930\u094d\u0924\u093f\u0964",
-        12: "\u0938\u0941\u0916\u094b\u0902 \u092a\u0930 \u0916\u0930\u094d\u091a\u0964 \u0936\u092f\u094d\u092f\u093e \u0938\u0941\u0916\u0964 \u0935\u093f\u0926\u0947\u0936 \u092f\u093e\u0924\u094d\u0930\u093e \u0938\u0902\u092d\u0935\u0964",
+        1: "आराम और विलास। रोमांटिक सुख। अच्छा स्वास्थ्य।",
+        2: "पारिवारिक धन वृद्धि। अच्छा भोजन। सुखद वाणी।",
+        3: "कलात्मक सफलता। अच्छे संबंध। सामाजिक लोकप्रियता।",
+        4: "घरेलू सुख। वाहन/संपत्ति प्राप्ति। आरामदायक घर।",
+        5: "रोमांटिक संबंध। रचनात्मक सफलता। संतान सुख।",
+        6: "संबंधों में चुनौती। स्वास्थ्य सावधानी। शत्रु कष्ट।",
+        7: "संबंधों में कठिनाई। साझेदारी तनाव। नई प्रतिबद्धताओं से बचें।",
+        8: "अप्रत्याशित स्रोतों से धन। तांत्रिक रुचि। परिवर्तन।",
+        9: "आध्यात्मिक और सांस्कृतिक कार्य। तीर्थयात्रा। कला से भाग्य।",
+        10: "करियर कठिनाई। प्रतिष्ठा चिंता। पेशेवर ईर्ष्या।",
+        11: "सामाजिक सफलता और लाभ। विलासिता बढ़ती है। इच्छापूर्ति।",
+        12: "सुखों पर खर्च। शय्या सुख। विदेश यात्रा संभव।",
     },
     "Saturn": {
-        1: "\u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u092e\u093e\u0928\u0938\u093f\u0915 \u092d\u093e\u0930\u0940\u092a\u0928\u0964 \u0936\u093e\u0930\u0940\u0930\u093f\u0915 \u0925\u0915\u093e\u0928\u0964 \u0938\u093e\u0922\u093c\u0947\u0938\u093e\u0924\u0940 \u092a\u094d\u0930\u092d\u093e\u0935\u0964",
-        2: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0915\u0920\u093f\u0928\u093e\u0908\u0964 \u092a\u093e\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u0924\u0928\u093e\u0935\u0964 \u0935\u093e\u0923\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964",
-        3: "\u0915\u0920\u093f\u0928\u093e\u0907\u092f\u094b\u0902 \u0938\u0947 \u0930\u093e\u0939\u0924\u0964 \u0938\u0902\u0918\u0930\u094d\u0937 \u0915\u0947 \u092c\u093e\u0926 \u0938\u092b\u0932\u0924\u093e\u0964 \u0936\u0941\u092d \u0938\u092e\u092f\u0964",
-        4: "\u0918\u0930\u0947\u0932\u0942 \u0926\u0941\u0916\u0964 \u092e\u093e\u0924\u093e \u0915\u0947 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u091a\u093f\u0902\u0924\u093e\u0964 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0935\u093f\u0935\u093e\u0926\u0964",
-        5: "\u0938\u0902\u0924\u093e\u0928 \u0938\u0902\u092c\u0902\u0927\u0940 \u091a\u093f\u0902\u0924\u093e\u0964 \u0928\u093f\u0935\u0947\u0936 \u0939\u093e\u0928\u093f\u0964 \u092e\u093e\u0928\u0938\u093f\u0915 \u091a\u093f\u0902\u0924\u093e\u0964",
-        6: "\u0936\u0924\u094d\u0930\u0941\u0913\u0902 \u092a\u0930 \u0935\u093f\u091c\u092f\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u0941\u0927\u093e\u0930\u0964 \u0910\u0923 \u092e\u0941\u0915\u094d\u0924\u093f\u0964 \u0936\u0941\u092d \u0938\u092e\u092f\u0964",
-        7: "\u0935\u0948\u0935\u093e\u0939\u093f\u0915 \u091a\u0941\u0928\u094c\u0924\u0940\u0964 \u0938\u093e\u0925\u0940 \u0915\u0947 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f\u0964 \u0915\u0920\u093f\u0928 \u092f\u093e\u0924\u094d\u0930\u093e\u0964",
-        8: "\u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u091c\u094b\u0916\u093f\u092e\u0964 \u091c\u0940\u0930\u094d\u0923 \u0930\u094b\u0917 \u092c\u0922\u093c\u0947\u0964 \u0915\u093e\u0928\u0942\u0928\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964 \u0915\u0920\u093f\u0928 \u0938\u092e\u092f\u0964",
-        9: "\u092d\u093e\u0917\u094d\u092f \u092e\u0947\u0902 \u092c\u093e\u0927\u093e\u0964 \u092a\u093f\u0924\u093e \u0915\u0947 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0938\u0902\u0915\u091f\u0964",
-        10: "\u0915\u0930\u093f\u092f\u0930 \u0926\u092c\u093e\u0935\u0964 \u0915\u0920\u093f\u0928 \u092a\u0930\u093f\u0936\u094d\u0930\u092e \u092c\u093f\u0928\u093e \u0905\u0928\u0941\u092a\u093e\u0924\u093f\u0915 \u092b\u0932\u0964 \u091c\u093f\u092e\u094d\u092e\u0947\u0926\u093e\u0930\u093f\u092f\u093e\u0901\u0964",
-        11: "\u0938\u094d\u0925\u093f\u0930 \u0932\u093e\u092d\u0964 \u0926\u0940\u0930\u094d\u0918\u0915\u093e\u0932\u093f\u0915 \u0932\u0915\u094d\u0937\u094d\u092f \u092a\u0942\u0930\u0947 \u0939\u094b\u0924\u0947 \u0939\u0948\u0902\u0964 \u0938\u093e\u092e\u093e\u091c\u093f\u0915 \u092e\u093e\u0928\u094d\u092f\u0924\u093e\u0964 \u0936\u0941\u092d \u0938\u092e\u092f\u0964",
-        12: "\u0916\u0930\u094d\u091a \u0914\u0930 \u0939\u093e\u0928\u093f\u0964 \u090f\u0915\u093e\u0902\u0924\u0964 \u0935\u093f\u0926\u0947\u0936 \u092a\u094d\u0930\u0935\u093e\u0938\u0964 \u0905\u0938\u094d\u092a\u0924\u093e\u0932 \u092e\u0947\u0902 \u092d\u0930\u094d\u0924\u0940 \u0938\u0902\u092d\u0935\u0964",
+        1: "स्वास्थ्य समस्या। मानसिक भारीपन। शारीरिक थकान। साढ़ेसाती प्रभाव।",
+        2: "आर्थिक कठिनाई। पारिवारिक तनाव। वाणी समस्या।",
+        3: "कठिनाइयों से राहत। संघर्ष के बाद सफलता। शुभ समय।",
+        4: "घरेलू दुख। माता के स्वास्थ्य चिंता। संपत्ति विवाद।",
+        5: "संतान संबंधी चिंता। निवेश हानि। मानसिक चिंता।",
+        6: "शत्रुओं पर विजय। स्वास्थ्य सुधार। ऐण मुक्ति। शुभ समय।",
+        7: "वैवाहिक चुनौती। साथी के स्वास्थ्य। कठिन यात्रा।",
+        8: "स्वास्थ्य जोखिम। जीर्ण रोग बढ़े। कानूनी समस्या। कठिन समय।",
+        9: "भाग्य में बाधा। पिता के स्वास्थ्य। आध्यात्मिक संकट।",
+        10: "करियर दबाव। कठिन परिश्रम बिना अनुपातिक फल। जिम्मेदारियाँ।",
+        11: "स्थिर लाभ। दीर्घकालिक लक्ष्य पूरे होते हैं। सामाजिक मान्यता। शुभ समय।",
+        12: "खर्च और हानि। एकांत। विदेश प्रवास। अस्पताल में भर्ती संभव।",
     },
     "Rahu": {
-        1: "\u092a\u0939\u091a\u093e\u0928 \u092e\u0947\u0902 \u092d\u094d\u0930\u092e\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u091a\u093f\u0902\u0924\u093e\u0964 \u0935\u093f\u0926\u0947\u0936\u0940 \u092a\u094d\u0930\u092d\u093e\u0935 \u092a\u094d\u0930\u092c\u0932\u0964",
-        2: "\u0906\u0930\u094d\u0925\u093f\u0915 \u0905\u0928\u093f\u092f\u092e\u093f\u0924\u0924\u093e\u0964 \u092a\u0930\u093f\u0935\u093e\u0930 \u0917\u0932\u0924\u092b\u0939\u092e\u0940\u0964 \u0935\u093e\u0923\u0940 \u0938\u092e\u0938\u094d\u092f\u093e\u0964",
-        3: "\u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u0938\u093e\u0927\u0928\u094b\u0902 \u0938\u0947 \u0938\u093e\u0939\u0938\u0964 \u0924\u0915\u0928\u0940\u0915 \u092e\u0947\u0902 \u0938\u092b\u0932\u0924\u093e\u0964 \u0936\u0941\u092d \u0938\u092e\u092f\u0964",
-        4: "\u0918\u0930\u0947\u0932\u0942 \u092d\u094d\u0930\u092e\u0964 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0935\u093f\u0935\u093e\u0926\u0964 \u092e\u093e\u0924\u093e \u0915\u0940 \u091a\u093f\u0902\u0924\u093e\u0964",
-        5: "\u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u0938\u094b\u091a\u0964 \u091c\u094b\u0916\u093f\u092e \u0928\u093f\u0935\u0947\u0936\u0964 \u0938\u0902\u0924\u093e\u0928 \u091a\u093f\u0902\u0924\u093e\u0964",
-        6: "\u091a\u093e\u0932\u093e\u0915\u0940 \u0938\u0947 \u0936\u0924\u094d\u0930\u0941\u0913\u0902 \u092a\u0930 \u0935\u093f\u091c\u092f\u0964 \u0915\u093e\u0928\u0942\u0928\u0940 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0938\u0941\u0927\u093e\u0930\u0964",
-        7: "\u0905\u0938\u093e\u092e\u093e\u0928\u094d\u092f \u0938\u0902\u092c\u0902\u0927\u0964 \u0935\u093f\u0926\u0947\u0936\u0940 \u0938\u093e\u0925\u0940 \u0938\u0902\u092d\u0935\u0964 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940 \u092d\u094d\u0930\u092e\u0964",
-        8: "\u091b\u093f\u092a\u0947 \u092e\u093e\u092e\u0932\u0947 \u092a\u094d\u0930\u0915\u091f\u0964 \u0936\u094b\u0927 \u0938\u092b\u0932\u0924\u093e\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u092d\u092f\u0964",
-        9: "\u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u092e\u093e\u0930\u094d\u0917\u0964 \u0935\u093f\u0926\u0947\u0936 \u092f\u093e\u0924\u094d\u0930\u093e\u0964 \u0917\u0941\u0930\u0941 \u092d\u094d\u0930\u092e\u0964",
-        10: "\u0905\u091a\u093e\u0928\u0915 \u0915\u0930\u093f\u092f\u0930 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964 \u0905\u092a\u0930\u0902\u092a\u0930\u093e\u0917\u0924 \u0938\u092b\u0932\u0924\u093e\u0964 \u0924\u0915\u0928\u0940\u0915-\u091a\u093e\u0932\u093f\u0924 \u0935\u0943\u0926\u094d\u0927\u093f\u0964",
-        11: "\u0935\u093f\u0926\u0947\u0936\u0940 \u0938\u0902\u092c\u0902\u0927\u094b\u0902 \u0938\u0947 \u0932\u093e\u092d\u0964 \u0905\u092a\u094d\u0930\u0924\u094d\u092f\u093e\u0936\u093f\u0924 \u0932\u093e\u092d\u0964 \u0907\u091a\u094d\u091b\u093e\u092a\u0942\u0930\u094d\u0924\u093f\u0964",
-        12: "\u0935\u093f\u0926\u0947\u0936 \u092f\u093e\u0924\u094d\u0930\u093e/\u0928\u093f\u0935\u093e\u0938\u0964 \u0916\u0930\u094d\u091a\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0916\u094b\u091c\u0964 \u090f\u0915\u093e\u0902\u0924\u0964",
+        1: "पहचान में भ्रम। स्वास्थ्य चिंता। विदेशी प्रभाव प्रबल।",
+        2: "आर्थिक अनियमितता। परिवार गलतफहमी। वाणी समस्या।",
+        3: "अपरंपरागत साधनों से साहस। तकनीक में सफलता। शुभ समय।",
+        4: "घरेलू भ्रम। संपत्ति विवाद। माता की चिंता।",
+        5: "अपरंपरागत सोच। जोखिम निवेश। संतान चिंता।",
+        6: "चालाकी से शत्रुओं पर विजय। कानूनी सफलता। स्वास्थ्य सुधार।",
+        7: "असामान्य संबंध। विदेशी साथी संभव। साझेदारी भ्रम।",
+        8: "छिपे मामले प्रकट। शोध सफलता। स्वास्थ्य भय।",
+        9: "अपरंपरागत आध्यात्मिक मार्ग। विदेश यात्रा। गुरु भ्रम।",
+        10: "अचानक करियर परिवर्तन। अपरंपरागत सफलता। तकनीक-चालित वृद्धि।",
+        11: "विदेशी संबंधों से लाभ। अप्रत्याशित लाभ। इच्छापूर्ति।",
+        12: "विदेश यात्रा/निवास। खर्च। आध्यात्मिक खोज। एकांत।",
     },
     "Ketu": {
-        1: "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u091c\u093e\u0917\u0930\u0923\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u092d\u094d\u0930\u092e\u0964 \u092a\u0939\u091a\u093e\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964",
-        2: "\u092a\u093e\u0930\u093f\u0935\u093e\u0930\u093f\u0915 \u0935\u0948\u0930\u093e\u0917\u094d\u092f\u0964 \u0906\u0930\u094d\u0925\u093f\u0915 \u0905\u0928\u093f\u0936\u094d\u091a\u093f\u0924\u0924\u093e\u0964 \u0935\u093e\u0923\u0940 \u092d\u094d\u0930\u092e\u0964",
-        3: "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0938\u093e\u0939\u0938\u0964 \u0905\u0902\u0924\u0930\u094d\u091c\u094d\u091e\u093e\u0928 \u0938\u0947 \u0935\u093f\u091c\u092f\u0964 \u0927\u094d\u092f\u093e\u0928 \u0915\u0947 \u0932\u093f\u090f \u0905\u091a\u094d\u091b\u093e\u0964",
-        4: "\u0918\u0930\u0947\u0932\u0942 \u0935\u0948\u0930\u093e\u0917\u094d\u092f\u0964 \u0938\u0902\u092a\u0924\u094d\u0924\u093f \u0924\u094d\u092f\u093e\u0917\u0964 \u0906\u0902\u0924\u0930\u093f\u0915 \u0936\u093e\u0902\u0924\u093f \u0915\u0940 \u0916\u094b\u091c\u0964",
-        5: "\u0938\u0902\u0924\u093e\u0928 \u0938\u0947 \u092a\u0942\u0930\u094d\u0935 \u091c\u0928\u094d\u092e \u0938\u0902\u092c\u0902\u0927\u0964 \u0905\u0902\u0924\u0930\u094d\u091c\u094d\u091e\u093e\u0928 \u0938\u0947 \u0905\u0902\u0924\u0930\u094d\u0926\u0943\u0937\u094d\u091f\u093f\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0905\u0927\u094d\u092f\u092f\u0928\u0964",
-        6: "\u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u093f\u091c\u092f\u0964 \u0915\u093e\u0930\u094d\u092e\u093f\u0915 \u0910\u0923 \u092e\u0941\u0915\u094d\u0924\u093f\u0964 \u0936\u0941\u092d \u0938\u092e\u092f\u0964",
-        7: "\u0915\u093e\u0930\u094d\u092e\u093f\u0915 \u0938\u0902\u092c\u0902\u0927 \u0938\u092c\u0915\u0964 \u0938\u093e\u091d\u0947\u0926\u093e\u0930\u0940 \u0938\u0947 \u0935\u0948\u0930\u093e\u0917\u094d\u092f\u0964",
-        8: "\u0905\u091a\u093e\u0928\u0915 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0905\u0928\u0941\u092d\u0935\u0964 \u0924\u093e\u0902\u0924\u094d\u0930\u093f\u0915 \u0936\u094b\u0927\u0964 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928\u0964",
-        9: "\u0917\u0939\u0930\u0940 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0935\u0943\u0926\u094d\u0927\u093f\u0964 \u092a\u0942\u0930\u094d\u0935 \u091c\u0928\u094d\u092e \u0915\u0930\u094d\u092e \u0938\u092e\u093e\u0927\u093e\u0928\u0964 \u0924\u0940\u0930\u094d\u0925\u092f\u093e\u0924\u094d\u0930\u093e\u0964",
-        10: "\u0915\u0930\u093f\u092f\u0930 \u0935\u0948\u0930\u093e\u0917\u094d\u092f\u0964 \u092d\u094c\u0924\u093f\u0915 \u0938\u092b\u0932\u0924\u093e \u0938\u0947 \u092a\u0930\u0947 \u0909\u0926\u094d\u0926\u0947\u0936\u094d\u092f \u0915\u0940 \u0916\u094b\u091c\u0964",
-        11: "\u0905\u092a\u094d\u0930\u0924\u094d\u092f\u093e\u0936\u093f\u0924 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u0932\u093e\u092d\u0964 \u0907\u091a\u094d\u091b\u093e\u0913\u0902 \u0915\u094b \u091b\u094b\u0921\u093c\u0928\u0947 \u0938\u0947 \u092a\u0942\u0930\u094d\u0924\u093f\u0964",
-        12: "\u092e\u094b\u0915\u094d\u0937-\u0909\u0928\u094d\u092e\u0941\u0916\u0964 \u092e\u0941\u0915\u094d\u0924\u093f\u0964 \u0935\u093f\u0926\u0947\u0936\u0940 \u0906\u0936\u094d\u0930\u092e\u0964 \u0906\u0927\u094d\u092f\u093e\u0924\u094d\u092e\u093f\u0915 \u092a\u0930\u093f\u0923\u0924\u093f\u0964",
+        1: "आध्यात्मिक जागरण। स्वास्थ्य भ्रम। पहचान परिवर्तन।",
+        2: "पारिवारिक वैराग्य। आर्थिक अनिश्चितता। वाणी भ्रम।",
+        3: "आध्यात्मिक साहस। अंतर्ज्ञान से विजय। ध्यान के लिए अच्छा।",
+        4: "घरेलू वैराग्य। संपत्ति त्याग। आंतरिक शांति की खोज।",
+        5: "संतान से पूर्व जन्म संबंध। अंतर्ज्ञान से अंतर्दृष्टि। आध्यात्मिक अध्ययन।",
+        6: "आध्यात्मिक विजय। कार्मिक ऐण मुक्ति। शुभ समय।",
+        7: "कार्मिक संबंध सबक। साझेदारी से वैराग्य।",
+        8: "अचानक आध्यात्मिक अनुभव। तांत्रिक शोध। परिवर्तन।",
+        9: "गहरी आध्यात्मिक वृद्धि। पूर्व जन्म कर्म समाधान। तीर्थयात्रा।",
+        10: "करियर वैराग्य। भौतिक सफलता से परे उद्देश्य की खोज।",
+        11: "अप्रत्याशित आध्यात्मिक लाभ। इच्छाओं को छोड़ने से पूर्ति।",
+        12: "मोक्ष-उन्मुख। मुक्ति। विदेशी आश्रम। आध्यात्मिक परिणति।",
     },
 }
 
@@ -1725,14 +1906,14 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
                 maha_hi = planet_names.get(maha, maha)
                 antar_hi = planet_names.get(dasha_info['antar'], dasha_info['antar'])
                 dasha_content = (
-                    f"<p>\u0906\u092a\u0915\u093e \u0924\u093e\u0924\u094d\u0915\u093e\u0932\u093f\u0915 \u092a\u094d\u0930\u092d\u093e\u0935 <strong>{prat_hi} {labels['pratyantar']}</strong> "
-                    f"({prat_end.strftime('%d %b %Y')} \u0924\u0915) \u0939\u0948, \u091c\u094b "
-                    f"<strong>{prat_info.get('nature', '\u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923')}</strong> {labels['nature']} \u0915\u093e \u0939\u0948\u0964</p>"
-                    f"<p><strong>\u0907\u0938 \u0938\u092a\u094d\u0924\u093e\u0939 \u0915\u0940 \u090a\u0930\u094d\u091c\u093e:</strong> {prat_info.get('themes', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u091c\u0940\u0935\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928')}\u0964</p>"
-                    f"<p><strong>{labels['strengths']}:</strong> {prat_info.get('positive', '\u0935\u093f\u0915\u093e\u0938 \u0915\u0947 \u0905\u0935\u0938\u0930')}\u0964</p>"
-                    f"<p><strong>{labels['caution']}:</strong> {prat_info.get('challenges', '\u091a\u0941\u0928\u094c\u0924\u093f\u092f\u093e\u0901 \u0906 \u0938\u0915\u0924\u0940 \u0939\u0948\u0902')}\u0964</p>"
+                    f"<p>आपका तात्कालिक प्रभाव <strong>{prat_hi} {labels['pratyantar']}</strong> "
+                    f"({prat_end.strftime('%d %b %Y')} तक) है, जो "
+                    f"<strong>{prat_info.get('nature', 'महत्वपूर्ण')}</strong> {labels['nature']} का है।</p>"
+                    f"<p><strong>इस सप्ताह की ऊर्जा:</strong> {prat_info.get('themes', 'विभिन्न जीवन परिवर्तन')}।</p>"
+                    f"<p><strong>{labels['strengths']}:</strong> {prat_info.get('positive', 'विकास के अवसर')}।</p>"
+                    f"<p><strong>{labels['caution']}:</strong> {prat_info.get('challenges', 'चुनौतियाँ आ सकती हैं')}।</p>"
                 )
-                sections.append({"heading": f"{labels['dasha_influence']}: {maha_hi}\u2013{antar_hi}\u2013{prat_hi}", "content": dasha_content})
+                sections.append({"heading": f"{labels['dasha_influence']}: {maha_hi}–{antar_hi}–{prat_hi}", "content": dasha_content})
             else:
                 dasha_content = (
                     f"<p>Your immediate influence is the <strong>{prat} Pratyantar Dasha</strong> "
@@ -1742,7 +1923,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
                     f"<p><strong>Opportunities:</strong> {prat_info.get('positive', 'Growth opportunities')}.</p>"
                     f"<p><strong>Watch out for:</strong> {prat_info.get('challenges', 'Challenges may arise')}.</p>"
                 )
-                sections.append({"heading": f"Dasha Influence: {maha}\u2013{dasha_info['antar']}\u2013{prat}", "content": dasha_content})
+                sections.append({"heading": f"Dasha Influence: {maha}–{dasha_info['antar']}–{prat}", "content": dasha_content})
 
         elif period == "month" and dasha_info['antar']:
             # Monthly: focus on Antardasha
@@ -1753,15 +1934,15 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
                 antar_hi = planet_names.get(antar, antar)
                 maha_hi = planet_names.get(maha, maha)
                 dasha_content = (
-                    f"<p>\u0907\u0938 \u092e\u0939\u0940\u0928\u0947 \u092a\u0930 <strong>{antar_hi} {labels['antardasha']}</strong> "
-                    f"({antar_end.strftime('%b %Y')} \u0924\u0915) \u0915\u093e \u092a\u094d\u0930\u092d\u093e\u0935 \u0939\u0948, {maha_hi} {labels['mahadasha']} \u0915\u0947 \u0905\u0902\u0924\u0930\u094d\u0917\u0924\u0964</p>"
-                    f"<p>{antar_hi} \u0909\u092a-\u0915\u093e\u0932 <strong>{antar_info.get('nature', '\u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923')}</strong> \u0939\u0948\u0964 "
-                    f"\u092a\u094d\u0930\u092e\u0941\u0916 {labels['themes']}: {antar_info.get('themes', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928')}\u0964</p>"
-                    f"<p><strong>\u0907\u0938 \u092e\u093e\u0939 \u0915\u0940 {labels['strengths']}:</strong> {antar_info.get('positive', '\u0905\u0935\u0938\u0930')}\u0964</p>"
-                    f"<p><strong>{labels['caution']}:</strong> {antar_info.get('challenges', '\u0938\u093e\u0935\u0927\u093e\u0928 \u0930\u0939\u0947\u0902')}\u0964</p>"
-                    f"<p><strong>{labels['advice']}:</strong> {antar_info.get('advice', '\u0938\u0902\u0924\u0941\u0932\u0928 \u092c\u0928\u093e\u090f \u0930\u0916\u0947\u0902\u0964')}\u0964</p>"
+                    f"<p>इस महीने पर <strong>{antar_hi} {labels['antardasha']}</strong> "
+                    f"({antar_end.strftime('%b %Y')} तक) का प्रभाव है, {maha_hi} {labels['mahadasha']} के अंतर्गत।</p>"
+                    f"<p>{antar_hi} उप-काल <strong>{antar_info.get('nature', 'महत्वपूर्ण')}</strong> है। "
+                    f"प्रमुख {labels['themes']}: {antar_info.get('themes', 'विभिन्न परिवर्तन')}।</p>"
+                    f"<p><strong>इस माह की {labels['strengths']}:</strong> {antar_info.get('positive', 'अवसर')}।</p>"
+                    f"<p><strong>{labels['caution']}:</strong> {antar_info.get('challenges', 'सावधान रहें')}।</p>"
+                    f"<p><strong>{labels['advice']}:</strong> {antar_info.get('advice', 'संतुलन बनाए रखें।')}।</p>"
                 )
-                sections.append({"heading": f"{labels['dasha_influence']}: {maha_hi}\u2013{antar_hi}", "content": dasha_content})
+                sections.append({"heading": f"{labels['dasha_influence']}: {maha_hi}–{antar_hi}", "content": dasha_content})
             else:
                 dasha_content = (
                     f"<p>This month is shaped by your <strong>{antar} Antardasha</strong> "
@@ -1772,7 +1953,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
                     f"<p><strong>Areas of caution:</strong> {antar_info.get('challenges', 'Be mindful')}.</p>"
                     f"<p><strong>Advice:</strong> {antar_info.get('advice', 'Stay balanced.')}.</p>"
                 )
-                sections.append({"heading": f"Dasha Influence: {maha}\u2013{antar}", "content": dasha_content})
+                sections.append({"heading": f"Dasha Influence: {maha}–{antar}", "content": dasha_content})
 
         else:
             # Yearly: focus on Mahadasha
@@ -1781,13 +1962,13 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
             if lang == "hi":
                 maha_hi = planet_names.get(maha, maha)
                 dasha_content = (
-                    f"<p>{period_label} \u0915\u0940 \u092a\u094d\u0930\u092e\u0941\u0916 \u0925\u0940\u092e <strong>{maha_hi} {labels['mahadasha']}</strong> "
-                    f"(\u0936\u0947\u0937 {remaining:.1f} \u0935\u0930\u094d\u0937, {maha_end.strftime('%b %Y')} \u0924\u0915) \u0939\u0948\u0964</p>"
-                    f"<p>\u092f\u0939 \u0915\u093e\u0932 <strong>{maha_info.get('nature', '\u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923')}</strong> \u0939\u0948\u0964 "
-                    f"\u091c\u0940\u0935\u0928 {labels['themes']}: {maha_info.get('themes', '\u0935\u093f\u092d\u093f\u0928\u094d\u0928 \u092a\u0930\u093f\u0935\u0930\u094d\u0924\u0928')}\u0964</p>"
-                    f"<p><strong>\u0935\u0930\u094d\u0937 \u0915\u0940 {labels['strengths']}:</strong> {maha_info.get('positive', '\u0905\u0935\u0938\u0930')}\u0964</p>"
-                    f"<p><strong>\u0935\u0930\u094d\u0937 \u0915\u0940 \u091a\u0941\u0928\u094c\u0924\u093f\u092f\u093e\u0901:</strong> {maha_info.get('challenges', '\u0938\u093e\u0935\u0927\u093e\u0928 \u0930\u0939\u0947\u0902')}\u0964</p>"
-                    f"<p><strong>\u0935\u093e\u0930\u094d\u0937\u093f\u0915 {labels['advice']}:</strong> {maha_info.get('advice', '\u0938\u0902\u0924\u0941\u0932\u0928 \u092c\u0928\u093e\u090f \u0930\u0916\u0947\u0902\u0964')}</p>"
+                    f"<p>{period_label} की प्रमुख थीम <strong>{maha_hi} {labels['mahadasha']}</strong> "
+                    f"(शेष {remaining:.1f} वर्ष, {maha_end.strftime('%b %Y')} तक) है।</p>"
+                    f"<p>यह काल <strong>{maha_info.get('nature', 'महत्वपूर्ण')}</strong> है। "
+                    f"जीवन {labels['themes']}: {maha_info.get('themes', 'विभिन्न परिवर्तन')}।</p>"
+                    f"<p><strong>वर्ष की {labels['strengths']}:</strong> {maha_info.get('positive', 'अवसर')}।</p>"
+                    f"<p><strong>वर्ष की चुनौतियाँ:</strong> {maha_info.get('challenges', 'सावधान रहें')}।</p>"
+                    f"<p><strong>वार्षिक {labels['advice']}:</strong> {maha_info.get('advice', 'संतुलन बनाए रखें।')}</p>"
                 )
                 sections.append({"heading": f"{labels['dasha_influence']}: {maha_hi} {labels['mahadasha']}", "content": dasha_content})
             else:
@@ -1823,7 +2004,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
             transit_heading = "Major Transits This Year"
 
     if lang == "hi":
-        transit_content = f"<p>\u0906\u092a\u0915\u0940 {labels['moon_sign']} (<strong>{moon_sign_display}</strong>) \u0938\u0947 \u0917\u094b\u091a\u0930 \u092a\u094d\u0930\u092d\u093e\u0935:</p>"
+        transit_content = f"<p>आपकी {labels['moon_sign']} (<strong>{moon_sign_display}</strong>) से गोचर प्रभाव:</p>"
     else:
         transit_content = f"<p>Transit effects analysed from your Moon sign (<strong>{moon_sign}</strong>):</p>"
     transit_content += '<div class="transit-grid">'
@@ -1832,7 +2013,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
         ta = transit_analysis.get(planet, {})
         if not ta:
             continue
-        icon = "\u2705" if ta['is_benefic'] else "\u26a0\ufe0f"
+        icon = "✅" if ta['is_benefic'] else "⚠️"
         if lang == "hi":
             status = labels["favourable"] if ta['is_benefic'] else labels["challenging"]
             retro_mark = f" ({labels['retrograde']})" if ta.get('retro') else ""
@@ -1840,8 +2021,8 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
             sign_display = ta.get('sign_hi', ta['sign'])
             transit_content += (
                 f'<div class="transit-item {"benefic" if ta["is_benefic"] else "malefic"}">'
-                f'<strong>{icon} {p_name}</strong> {sign_display} \u092e\u0947\u0902{retro_mark} '
-                f'({labels["house"]} {ta["house"]} {labels["from_moon"]} \u2014 <em>{status}</em>)<br>'
+                f'<strong>{icon} {p_name}</strong> {sign_display} में{retro_mark} '
+                f'({labels["house"]} {ta["house"]} {labels["from_moon"]} — <em>{status}</em>)<br>'
                 f'<span class="effect-text">{ta["effect"]}</span>'
                 f'</div>'
             )
@@ -1851,7 +2032,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
             transit_content += (
                 f'<div class="transit-item {"benefic" if ta["is_benefic"] else "malefic"}">'
                 f'<strong>{icon} {planet}</strong> in {ta["sign"]}{retro_mark} '
-                f'(House {ta["house"]} from Moon \u2014 <em>{status}</em>)<br>'
+                f'(House {ta["house"]} from Moon — <em>{status}</em>)<br>'
                 f'<span class="effect-text">{ta["effect"]}</span>'
                 f'</div>'
             )
@@ -1862,7 +2043,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
     # ── Section 4: Sade Sati (if active) ──
     if sade_sati:
         sade_sati_content = f"<p>{sade_sati_data[sade_sati]}</p>"
-        sade_sati_heading = f"\u26a1 {labels['sade_sati']}" if lang == "hi" else "\u26a1 Sade Sati Alert"
+        sade_sati_heading = f"⚡ {labels['sade_sati']}" if lang == "hi" else "⚡ Sade Sati Alert"
         sections.append({"heading": sade_sati_heading, "content": sade_sati_content})
 
     # ── Section 5: Summary & Guidance ──
@@ -1880,7 +2061,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
         if lang == "hi":
             overall = labels["overall_mixed"]
         else:
-            overall = "The planetary transits present a <strong>mixed picture</strong> \u2014 some areas flourish while others need care."
+            overall = "The planetary transits present a <strong>mixed picture</strong> — some areas flourish while others need care."
         tone = "mixed"
     else:
         if lang == "hi":
@@ -1902,11 +2083,11 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
     if period == "week":
         if lang == "hi":
             if tone == "positive":
-                guidance += "<p><strong>\u0938\u093e\u092a\u094d\u0924\u093e\u0939\u093f\u0915 \u0938\u0932\u093e\u0939:</strong> \u092f\u0939 \u0938\u092a\u094d\u0924\u093e\u0939 \u0928\u0908 \u0917\u0924\u093f\u0935\u093f\u0927\u093f\u092f\u093e\u0902 \u0936\u0941\u0930\u0942 \u0915\u0930\u0928\u0947, \u0932\u094b\u0917\u094b\u0902 \u0938\u0947 \u092e\u093f\u0932\u0928\u0947 \u0914\u0930 \u0932\u0915\u094d\u0937\u094d\u092f\u094b\u0902 \u0915\u093e \u0938\u0915\u094d\u0930\u093f\u092f \u0930\u0942\u092a \u0938\u0947 \u0905\u0928\u0941\u0938\u0930\u0923 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u0905\u091a\u094d\u091b\u093e \u0939\u0948\u0964</p>"
+                guidance += "<p><strong>साप्ताहिक सलाह:</strong> यह सप्ताह नई गतिविधियां शुरू करने, लोगों से मिलने और लक्ष्यों का सक्रिय रूप से अनुसरण करने के लिए अच्छा है।</p>"
             elif tone == "mixed":
-                guidance += "<p><strong>\u0938\u093e\u092a\u094d\u0924\u093e\u0939\u093f\u0915 \u0938\u0932\u093e\u0939:</strong> \u0907\u0938 \u0938\u092a\u094d\u0924\u093e\u0939 \u0905\u092a\u0928\u0940 \u0936\u0915\u094d\u0924\u093f\u092f\u094b\u0902 \u092a\u0930 \u0927\u094d\u092f\u093e\u0928 \u0926\u0947\u0902\u0964 \u091c\u094b\u0916\u093f\u092e \u092d\u0930\u0947 \u0928\u093f\u0930\u094d\u0923\u092f \u091f\u093e\u0932\u0947\u0902\u0964</p>"
+                guidance += "<p><strong>साप्ताहिक सलाह:</strong> इस सप्ताह अपनी शक्तियों पर ध्यान दें। जोखिम भरे निर्णय टालें।</p>"
             else:
-                guidance += "<p><strong>\u0938\u093e\u092a\u094d\u0924\u093e\u0939\u093f\u0915 \u0938\u0932\u093e\u0939:</strong> \u0907\u0938 \u0938\u092a\u094d\u0924\u093e\u0939 \u0927\u0940\u0930\u0947 \u091a\u0932\u0947\u0902\u0964 \u0928\u093f\u092f\u092e\u093f\u0924 \u0915\u093e\u0930\u094d\u092f\u094b\u0902 \u0914\u0930 \u0906\u0924\u094d\u092e-\u0926\u0947\u0916\u092d\u093e\u0932 \u092a\u0930 \u0927\u094d\u092f\u093e\u0928 \u0926\u0947\u0902\u0964</p>"
+                guidance += "<p><strong>साप्ताहिक सलाह:</strong> इस सप्ताह धीरे चलें। नियमित कार्यों और आत्म-देखभाल पर ध्यान दें।</p>"
         else:
             if tone == "positive":
                 guidance += "<p><strong>Weekly Tip:</strong> This is a good week to initiate new activities, meet people, and pursue goals actively.</p>"
@@ -1917,11 +2098,11 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
     elif period == "month":
         if lang == "hi":
             if tone == "positive":
-                guidance += "<p><strong>\u092e\u093e\u0938\u093f\u0915 \u0938\u0932\u093e\u0939:</strong> \u090f\u0915 \u0909\u0924\u094d\u092a\u093e\u0926\u0915 \u092e\u0939\u0940\u0928\u093e\u0964 \u0906\u0924\u094d\u092e\u0935\u093f\u0936\u094d\u0935\u093e\u0938 \u0938\u0947 \u0932\u0915\u094d\u0937\u094d\u092f \u0928\u093f\u0930\u094d\u0927\u093e\u0930\u093f\u0924 \u0915\u0930\u0947\u0902\u0964</p>"
+                guidance += "<p><strong>मासिक सलाह:</strong> एक उत्पादक महीना। आत्मविश्वास से लक्ष्य निर्धारित करें।</p>"
             elif tone == "mixed":
-                guidance += "<p><strong>\u092e\u093e\u0938\u093f\u0915 \u0938\u0932\u093e\u0939:</strong> \u0907\u0938 \u092e\u0939\u0940\u0928\u0947 \u092e\u0939\u0924\u094d\u0935\u093e\u0915\u093e\u0902\u0915\u094d\u0937\u093e \u0914\u0930 \u0938\u093e\u0935\u0927\u093e\u0928\u0940 \u092e\u0947\u0902 \u0938\u0902\u0924\u0941\u0932\u0928 \u092c\u0928\u093e\u090f\u0902\u0964</p>"
+                guidance += "<p><strong>मासिक सलाह:</strong> इस महीने महत्वाकांक्षा और सावधानी में संतुलन बनाएं।</p>"
             else:
-                guidance += "<p><strong>\u092e\u093e\u0938\u093f\u0915 \u0938\u0932\u093e\u0939:</strong> \u0907\u0938 \u092e\u0939\u0940\u0928\u0947 \u0927\u0948\u0930\u094d\u092f \u0914\u0930 \u0938\u0902\u092f\u092e \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948\u0964 \u0938\u094d\u0935\u093e\u0938\u094d\u0925\u094d\u092f \u0914\u0930 \u092c\u091a\u0924 \u092a\u0930 \u0927\u094d\u092f\u093e\u0928 \u0926\u0947\u0902\u0964</p>"
+                guidance += "<p><strong>मासिक सलाह:</strong> इस महीने धैर्य और संयम आवश्यक है। स्वास्थ्य और बचत पर ध्यान दें।</p>"
         else:
             if tone == "positive":
                 guidance += "<p><strong>Monthly Tip:</strong> A productive month ahead. Set ambitious goals and work towards them with confidence.</p>"
@@ -1932,11 +2113,11 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
     else:
         if lang == "hi":
             if tone == "positive":
-                guidance += "<p><strong>\u0935\u093e\u0930\u094d\u0937\u093f\u0915 \u0926\u0943\u0937\u094d\u091f\u093f\u0915\u094b\u0923:</strong> \u0935\u093f\u0915\u093e\u0938 \u0914\u0930 \u0935\u093f\u0938\u094d\u0924\u093e\u0930 \u0915\u093e \u0935\u0930\u094d\u0937\u0964 \u091c\u0940\u0935\u0928 \u0915\u0940 \u092a\u094d\u0930\u092e\u0941\u0916 \u0909\u092a\u0932\u092c\u094d\u0927\u093f\u092f\u093e\u0902 \u0938\u0902\u092d\u0935\u0964</p>"
+                guidance += "<p><strong>वार्षिक दृष्टिकोण:</strong> विकास और विस्तार का वर्ष। जीवन की प्रमुख उपलब्धियां संभव।</p>"
             elif tone == "mixed":
-                guidance += "<p><strong>\u0935\u093e\u0930\u094d\u0937\u093f\u0915 \u0926\u0943\u0937\u094d\u091f\u093f\u0915\u094b\u0923:</strong> \u0938\u0940\u0916\u0928\u0947 \u0914\u0930 \u0905\u0928\u0941\u0915\u0942\u0932\u0928 \u0915\u093e \u0935\u0930\u094d\u0937\u0964 \u0932\u091a\u0940\u0932\u0947\u092a\u0928 \u0938\u0947 \u0938\u092b\u0932\u0924\u093e \u092e\u093f\u0932\u0947\u0917\u0940\u0964</p>"
+                guidance += "<p><strong>वार्षिक दृष्टिकोण:</strong> सीखने और अनुकूलन का वर्ष। लचीलेपन से सफलता मिलेगी।</p>"
             else:
-                guidance += "<p><strong>\u0935\u093e\u0930\u094d\u0937\u093f\u0915 \u0926\u0943\u0937\u094d\u091f\u093f\u0915\u094b\u0923:</strong> \u0917\u0939\u0928 \u0906\u0902\u0924\u0930\u093f\u0915 \u0915\u093e\u0930\u094d\u092f \u0914\u0930 \u0915\u093e\u0930\u094d\u092e\u093f\u0915 \u0936\u0941\u0926\u094d\u0927\u093f \u0915\u093e \u0935\u0930\u094d\u0937\u0964 \u092d\u0935\u093f\u0937\u094d\u092f \u0915\u0940 \u092e\u091c\u092c\u0942\u0924 \u0928\u0940\u0902\u0935 \u092c\u0928\u093e\u090f\u0902\u0964</p>"
+                guidance += "<p><strong>वार्षिक दृष्टिकोण:</strong> गहन आंतरिक कार्य और कार्मिक शुद्धि का वर्ष। भविष्य की मजबूत नींव बनाएं।</p>"
         else:
             if tone == "positive":
                 guidance += "<p><strong>Annual Outlook:</strong> A year of growth and expansion. Major life milestones possible. Stay grateful and grounded.</p>"
@@ -1951,10 +2132,10 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
     if lang == "hi":
         disclaimer = (
             "<p style='font-size:0.8rem; color:#999; margin-top:16px; border-top:1px solid #eee; padding-top:12px;'>"
-            "<em>\u092f\u0947 \u092a\u093e\u0920\u0928 \u0935\u0948\u0926\u093f\u0915 \u091c\u094d\u092f\u094b\u0924\u093f\u0937 \u0938\u093f\u0926\u094d\u0927\u093e\u0902\u0924\u094b\u0902 \u092a\u0930 \u0906\u0927\u093e\u0930\u093f\u0924 \u0939\u0948\u0902\u0964 "
-            "\u092f\u0947 \u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928 \u0914\u0930 \u092e\u0928\u094b\u0930\u0902\u091c\u0928 \u0915\u0947 \u0932\u093f\u090f \u0939\u0948\u0902\u0964 "
-            "\u092e\u0939\u0924\u094d\u0935\u092a\u0942\u0930\u094d\u0923 \u0928\u093f\u0930\u094d\u0923\u092f\u094b\u0902 \u0915\u0947 \u0932\u093f\u090f \u0905\u092a\u0928\u0947 \u0935\u093f\u0935\u0947\u0915 \u0915\u093e \u0909\u092a\u092f\u094b\u0917 \u0915\u0930\u0947\u0902\u0964</em></p>"
-            "<p style='font-size:0.75rem; color:#B8860B;'>by AstroShuklz \u00b7 \u0932\u093e\u0939\u093f\u0930\u0940 \u0905\u092f\u0928\u093e\u0902\u0936 \u00b7 Swiss Ephemeris</p>"
+            "<em>ये पाठन वैदिक ज्योतिष सिद्धांतों पर आधारित हैं। "
+            "ये मार्गदर्शन और मनोरंजन के लिए हैं। "
+            "महत्वपूर्ण निर्णयों के लिए अपने विवेक का उपयोग करें।</em></p>"
+            "<p style='font-size:0.75rem; color:#B8860B;'>by AstroShuklz · लाहिरी अयनांश · Swiss Ephemeris</p>"
         )
     else:
         disclaimer = (
@@ -1962,7 +2143,7 @@ def generate_personalized_reading(birth_data, period="week", lang="en"):
             "<em>These readings are based on Vedic astrological principles using your birth chart, "
             "current Vimshottari Dasha periods, and planetary transit (Gochar) positions. "
             "They are for guidance and entertainment purposes. Use your own judgement for important decisions.</em></p>"
-            "<p style='font-size:0.75rem; color:#B8860B;'>by AstroShuklz \u00b7 Lahiri Ayanamsha \u00b7 Swiss Ephemeris</p>"
+            "<p style='font-size:0.75rem; color:#B8860B;'>by AstroShuklz · Lahiri Ayanamsha · Swiss Ephemeris</p>"
         )
     sections.append({"heading": "", "content": disclaimer})
 
@@ -2082,7 +2263,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
         rashi = sidx + 1
         h_lag = (sidx - asc_sign) % 12 + 1
         h_moon = (sidx - moon_sign) % 12 + 1
-        retro = "\u211e" if p['retro'] else ""
+        retro = "℞" if p['retro'] else ""
         sign_str = f"{p['sign_en']} ({p['sign_hi']})"
         p_data.append([pname, sign_str, dms_str(p['deg']),
                        str(rashi), f"H{h_lag}", f"H{h_moon}", retro])
@@ -2112,7 +2293,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
         is_now = start <= today < end
         if is_now:
             current_maha = lord
-        marker = "\u25c4 NOW" if is_now else ""
+        marker = "◄ NOW" if is_now else ""
         m_data.append([lord, start.strftime('%b %Y'), end.strftime('%b %Y'),
                        f"{yrs:.1f}", marker])
 
@@ -2151,7 +2332,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
             is_now = ad_start <= today < ad_end
             if is_now:
                 current_antar = ad_lord
-            marker = "\u25c4 NOW" if is_now else ""
+            marker = "◄ NOW" if is_now else ""
             months = ad_yrs * 12
             dur_str = f"{ad_yrs:.1f}y" if months >= 12 else f"{months:.1f}m"
             a_data.append([ad_lord, ad_start.strftime('%d %b %Y'),
@@ -2190,7 +2371,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
                 pd_data = [pd_header]
                 for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
                     is_now = pd_start <= today < pd_end
-                    marker = "\u25c4 NOW" if is_now else ""
+                    marker = "◄ NOW" if is_now else ""
                     days = pd_yrs * 365.25
                     dur_str = f"{pd_yrs*12:.1f}m" if days >= 30 else f"{days:.0f}d"
                     pd_data.append([pd_lord, pd_start.strftime('%d %b %Y'),
@@ -2306,33 +2487,33 @@ def _generate_hindi_pdf(chart, today):
     html_parts = [f"<html><head><style>{css}</style></head><body>"]
 
     # ── Hindi Page 1: Header + Planetary Positions ───────────────
-    html_parts.append("<h1>\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940</h1>")
+    html_parts.append("<h1>जन्म कुण्डली</h1>")
     html_parts.append('<div class="brand">by AstroShuklz</div>')
     html_parts.append(f'<div class="info" style="font-size:11pt; color:#444; font-weight:bold;">{bd["name"]}</div>')
     html_parts.append(f'<div class="info">{bd["day"]:02d}/{bd["month"]:02d}/{bd["year"]}  '
-                       f'{bd["hour"]:02d}:{bd["minute"]:02d}  \u00b7  {bd["place"]}</div>')
-    html_parts.append(f'<div class="info">\u0932\u0917\u094d\u0928: {SIGNS_HI_FULL[asc_sign]} '
-                       f'{dms_str(chart["asc_deg"])}  \u00b7  '
-                       f'\u0930\u093e\u0936\u093f: {SIGNS_HI_FULL[moon_sign]}  \u00b7  '
-                       f'\u0928\u0915\u094d\u0937\u0924\u094d\u0930: {chart["nakshatra"]}, '
-                       f'\u092a\u0926 {chart["nak_pada"]} '
+                       f'{bd["hour"]:02d}:{bd["minute"]:02d}  ·  {bd["place"]}</div>')
+    html_parts.append(f'<div class="info">लग्न: {SIGNS_HI_FULL[asc_sign]} '
+                       f'{dms_str(chart["asc_deg"])}  ·  '
+                       f'राशि: {SIGNS_HI_FULL[moon_sign]}  ·  '
+                       f'नक्षत्र: {chart["nakshatra"]}, '
+                       f'पद {chart["nak_pada"]} '
                        f'({PLANET_HI_FULL.get(chart["nak_lord"], chart["nak_lord"])})</div>')
 
-    html_parts.append("<h2>\u0917\u094d\u0930\u0939 \u0938\u094d\u0925\u093f\u0924\u093f</h2>")
-    html_parts.append("<table><tr><th>\u0917\u094d\u0930\u0939</th><th>\u0930\u093e\u0936\u093f</th>"
-                       "<th>\u0905\u0902\u0936</th><th>\u0930\u093e\u0936\u093f#</th>"
-                       "<th>\u0932\u0917\u094d\u0928</th><th>\u091a\u0928\u094d\u0926\u094d\u0930</th><th>\u0935</th></tr>")
+    html_parts.append("<h2>ग्रह स्थिति</h2>")
+    html_parts.append("<table><tr><th>ग्रह</th><th>राशि</th>"
+                       "<th>अंश</th><th>राशि#</th>"
+                       "<th>लग्न</th><th>चन्द्र</th><th>व</th></tr>")
     for pname in order:
         p = planets[pname]
         sidx = p['sign_idx']
         rashi = sidx + 1
         h_lag = (sidx - asc_sign) % 12 + 1
         h_moon = (sidx - moon_sign) % 12 + 1
-        retro = "\u211e" if p['retro'] else ""
+        retro = "℞" if p['retro'] else ""
         html_parts.append(f"<tr><td>{PLANET_HI_FULL.get(pname, pname)}</td>"
                            f"<td>{SIGNS_HI_FULL[sidx]}</td>"
                            f"<td>{dms_str(p['deg'])}</td><td>{rashi}</td>"
-                           f"<td>\u092d{h_lag}</td><td>\u092d{h_moon}</td>"
+                           f"<td>भ{h_lag}</td><td>भ{h_moon}</td>"
                            f"<td>{retro}</td></tr>")
     html_parts.append("</table>")
 
@@ -2340,16 +2521,16 @@ def _generate_hindi_pdf(chart, today):
     html_parts.append('<div class="page-break"></div>')
 
     # Mahadasha
-    html_parts.append("<h2>\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 \u092e\u0939\u093e\u0926\u0936\u093e</h2>")
-    html_parts.append("<table><tr><th>\u0938\u094d\u0935\u093e\u092e\u0940</th><th>\u0906\u0930\u0902\u092d</th>"
-                       "<th>\u0905\u0902\u0924</th><th>\u0935\u0930\u094d\u0937</th><th></th></tr>")
+    html_parts.append("<h2>विंशोत्तरी दशा — महादशा</h2>")
+    html_parts.append("<table><tr><th>स्वामी</th><th>आरंभ</th>"
+                       "<th>अंत</th><th>वर्ष</th><th></th></tr>")
     current_maha = None
     for lord, start, end, yrs in chart['dashas']:
         is_now = start <= today < end
         if is_now:
             current_maha = lord
         cls = ' class="now"' if is_now else ""
-        marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+        marker = "◄ अभी" if is_now else ""
         html_parts.append(f"<tr{cls}><td>{PLANET_HI_FULL.get(lord, lord)}</td>"
                            f"<td>{start.strftime('%b %Y')}</td>"
                            f"<td>{end.strftime('%b %Y')}</td>"
@@ -2359,19 +2540,19 @@ def _generate_hindi_pdf(chart, today):
     # Antardasha
     if current_maha and current_maha in chart.get('antardasha', {}):
         maha_hi = PLANET_HI_FULL.get(current_maha, current_maha)
-        html_parts.append(f"<h2>\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
-                           f"\u0905\u0902\u0924\u0930\u094d\u0926\u0936\u093e ({maha_hi} \u092e\u0939\u093e\u0926\u0936\u093e \u092e\u0947\u0902)</h2>")
-        html_parts.append("<table><tr><th>\u0938\u094d\u0935\u093e\u092e\u0940</th><th>\u0906\u0930\u0902\u092d</th>"
-                           "<th>\u0905\u0902\u0924</th><th>\u0905\u0935\u0927\u093f</th><th></th></tr>")
+        html_parts.append(f"<h2>विंशोत्तरी दशा — "
+                           f"अंतर्दशा ({maha_hi} महादशा में)</h2>")
+        html_parts.append("<table><tr><th>स्वामी</th><th>आरंभ</th>"
+                           "<th>अंत</th><th>अवधि</th><th></th></tr>")
         current_antar = None
         for ad_lord, ad_start, ad_end, ad_yrs in chart['antardasha'][current_maha]:
             is_now = ad_start <= today < ad_end
             if is_now:
                 current_antar = ad_lord
             cls = ' class="now"' if is_now else ""
-            marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+            marker = "◄ अभी" if is_now else ""
             months = ad_yrs * 12
-            dur = f"{ad_yrs:.1f}\u0935" if months >= 12 else f"{months:.1f}\u092e"
+            dur = f"{ad_yrs:.1f}व" if months >= 12 else f"{months:.1f}म"
             html_parts.append(f"<tr{cls}><td>{PLANET_HI_FULL.get(ad_lord, ad_lord)}</td>"
                                f"<td>{ad_start.strftime('%d %b %Y')}</td>"
                                f"<td>{ad_end.strftime('%d %b %Y')}</td>"
@@ -2383,16 +2564,16 @@ def _generate_hindi_pdf(chart, today):
             key = (current_maha, current_antar)
             if key in chart.get('pratyantar', {}):
                 antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
-                html_parts.append(f"<h2>\u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 \u0926\u0936\u093e \u2014 "
-                                   f"\u092a\u094d\u0930\u0924\u094d\u092f\u0902\u0924\u0930 ({maha_hi}\u2013{antar_hi})</h2>")
-                html_parts.append("<table><tr><th>\u0938\u094d\u0935\u093e\u092e\u0940</th><th>\u0906\u0930\u0902\u092d</th>"
-                                   "<th>\u0905\u0902\u0924</th><th>\u0905\u0935\u0927\u093f</th><th></th></tr>")
+                html_parts.append(f"<h2>विंशोत्तरी दशा — "
+                                   f"प्रत्यंतर ({maha_hi}–{antar_hi})</h2>")
+                html_parts.append("<table><tr><th>स्वामी</th><th>आरंभ</th>"
+                                   "<th>अंत</th><th>अवधि</th><th></th></tr>")
                 for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
                     is_now = pd_start <= today < pd_end
                     cls = ' class="now"' if is_now else ""
-                    marker = "\u25c4 \u0905\u092d\u0940" if is_now else ""
+                    marker = "◄ अभी" if is_now else ""
                     days = pd_yrs * 365.25
-                    dur = f"{pd_yrs*12:.1f}\u092e" if days >= 30 else f"{days:.0f}\u0926"
+                    dur = f"{pd_yrs*12:.1f}म" if days >= 30 else f"{days:.0f}द"
                     html_parts.append(f"<tr{cls}><td>{PLANET_HI_FULL.get(pd_lord, pd_lord)}</td>"
                                        f"<td>{pd_start.strftime('%d %b %Y')}</td>"
                                        f"<td>{pd_end.strftime('%d %b %Y')}</td>"
@@ -2401,7 +2582,7 @@ def _generate_hindi_pdf(chart, today):
 
     # ── Hindi Page 3: Predictions ────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
-    html_parts.append("<h1>\u0926\u0936\u093e \u092b\u0932 \u090f\u0935\u0902 \u092d\u0935\u093f\u0937\u094d\u092f\u0935\u093e\u0923\u0940</h1>")
+    html_parts.append("<h1>दशा फल एवं भविष्यवाणी</h1>")
     html_parts.append('<div class="brand">by AstroShuklz</div>')
 
     hi_reading = _dasha_reading_hi(chart, today)
@@ -2413,14 +2594,14 @@ def _generate_hindi_pdf(chart, today):
 
     # Disclaimer
     html_parts.append('<div class="disclaimer">'
-                       '\u0905\u0938\u094d\u0935\u0940\u0915\u0930\u0923: \u092f\u0939 \u092a\u0920\u0928 '
-                       '\u0936\u093e\u0938\u094d\u0924\u094d\u0930\u0940\u092f \u0935\u093f\u0902\u0936\u094b\u0924\u094d\u0924\u0930\u0940 '
-                       '\u0926\u0936\u093e \u0935\u094d\u092f\u093e\u0916\u094d\u092f\u093e\u0913\u0902 \u092a\u0930 '
-                       '\u0906\u0927\u093e\u0930\u093f\u0924 \u0939\u0948\u0964 '
-                       '\u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924 \u092e\u093e\u0930\u094d\u0917\u0926\u0930\u094d\u0936\u0928 '
-                       '\u0915\u0947 \u0932\u093f\u090f \u0915\u093f\u0938\u0940 \u092f\u094b\u0917\u094d\u092f '
-                       '\u091c\u094d\u092f\u094b\u0924\u093f\u0937 \u0938\u0947 \u092a\u0930\u093e\u092e\u0930\u094d\u0936 \u0915\u0930\u0947\u0902\u0964</div>')
-    html_parts.append('<div class="footer">Lahiri Ayanamsha \u00b7 Swiss Ephemeris \u00b7 Generated by AstroShuklz</div>')
+                       'अस्वीकरण: यह पठन '
+                       'शास्त्रीय विंशोत्तरी '
+                       'दशा व्याख्याओं पर '
+                       'आधारित है। '
+                       'व्यक्तिगत मार्गदर्शन '
+                       'के लिए किसी योग्य '
+                       'ज्योतिष से परामर्श करें।</div>')
+    html_parts.append('<div class="footer">Lahiri Ayanamsha · Swiss Ephemeris · Generated by AstroShuklz</div>')
     html_parts.append("</body></html>")
 
     html_str = "\n".join(html_parts)
@@ -2513,23 +2694,37 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         alignment=TA_CENTER, spaceAfter=4*mm)
 
     # ── Page 1: Header + Planetary Positions ─────────────────────
-    story.append(Paragraph("\u091c\u0928\u094d\u092e \u0915\u0941\u0923\u094d\u0921\u0932\u0940", title_style))
+    story.append(Paragraph("जन्म कुण्डली", title_style))
     story.append(Paragraph("by AstroShuklz", brand_style))
     story.append(Paragraph(f"{bd['name']}", subtitle_style))
     story.append(Paragraph(
         f"{bd['day']:02d}/{bd['month']:02d}/{bd['year']}  &nbsp; "
-        f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;\u00b7&nbsp; {bd['place']}",
+        f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;·&nbsp; {bd['place']}",
         info_style))
 
     summary = (f"Lagna: {chart['asc_sign_en']} ({chart['asc_sign_hi']}) "
-               f"{dms_str(chart['asc_deg'])}  &nbsp;\u00b7&nbsp; "
-               f"Rashi: {chart['moon_rashi']} ({chart['moon_rashi_hi']})  &nbsp;\u00b7&nbsp; "
+               f"{dms_str(chart['asc_deg'])}  &nbsp;·&nbsp; "
+               f"Rashi: {chart['moon_rashi']} ({chart['moon_rashi_hi']})  &nbsp;·&nbsp; "
                f"Nakshatra: {chart['nakshatra']}, Pada {chart['nak_pada']} "
                f"({chart['nak_lord']})")
     story.append(Paragraph(summary, info_style))
-    story.append(Spacer(1, 5*mm))
+    story.append(Spacer(1, 3*mm))
 
-    # ── Planetary Positions Table ────────────────────────────────
+    # ── Golden Lagna Kundali Chart ─────────────────────────────
+    try:
+        from reportlab.platypus import Image as RLImage
+        golden_buf = generate_golden_chart_image(chart)
+        # Scale to fill ~half of A4 page (cropped image is 1245x930)
+        chart_width = 180*mm
+        chart_height = chart_width * (930 / 1245)  # maintain cropped aspect ratio
+        chart_img = RLImage(golden_buf, width=chart_width, height=chart_height)
+        story.append(chart_img)
+    except Exception as e:
+        # If chart generation fails, skip silently
+        story.append(Paragraph(f"[Chart unavailable: {e}]", info_style))
+
+    # ── Page 2: Planetary Positions Table ──────────────────────
+    story.append(PageBreak())
     story.append(Paragraph("Planetary Positions", section_style))
 
     p_header = ['Graha', 'Sign (Rashi)', 'Degree', 'Rashi#',
@@ -2542,7 +2737,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         rashi = sidx + 1
         h_lag = (sidx - asc_sign) % 12 + 1
         h_moon = (sidx - moon_sign) % 12 + 1
-        retro = "\u211e" if p['retro'] else ""
+        retro = "℞" if p['retro'] else ""
         sign_str = f"{p['sign_en']} ({p['sign_hi']})"
         p_data.append([pname, sign_str, dms_str(p['deg']),
                        str(rashi), f"H{h_lag}", f"H{h_moon}", retro])
@@ -2566,7 +2761,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     story.append(PageBreak())
 
     # Mahadasha
-    story.append(Paragraph("Vimshottari Dasha \u2014 Mahadasha", section_style))
+    story.append(Paragraph("Vimshottari Dasha — Mahadasha", section_style))
 
     m_header = ['Lord', 'Start', 'End', 'Years', '']
     m_data = [m_header]
@@ -2575,7 +2770,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         is_now = start <= today < end
         if is_now:
             current_maha = lord
-        marker = "\u25c4 NOW" if is_now else ""
+        marker = "◄ NOW" if is_now else ""
         m_data.append([lord, start.strftime('%b %Y'), end.strftime('%b %Y'),
                        f"{yrs:.1f}", marker])
 
@@ -2600,7 +2795,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
     if current_maha and current_maha in chart.get('antardasha', {}):
         story.append(Paragraph(
-            f"Vimshottari Dasha \u2014 Antardasha (within {current_maha} Mahadasha)",
+            f"Vimshottari Dasha — Antardasha (within {current_maha} Mahadasha)",
             section_style))
 
         a_header = ['Lord', 'Start', 'End', 'Duration', '']
@@ -2610,7 +2805,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             is_now = ad_start <= today < ad_end
             if is_now:
                 current_antar = ad_lord
-            marker = "\u25c4 NOW" if is_now else ""
+            marker = "◄ NOW" if is_now else ""
             months = ad_yrs * 12
             dur_str = f"{ad_yrs:.1f}y" if months >= 12 else f"{months:.1f}m"
             a_data.append([ad_lord, ad_start.strftime('%d %b %Y'),
@@ -2641,14 +2836,14 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             key = (current_maha, current_antar)
             if key in chart.get('pratyantar', {}):
                 story.append(Paragraph(
-                    f"Vimshottari Dasha \u2014 Pratyantar "
-                    f"(within {current_maha}\u2013{current_antar})",
+                    f"Vimshottari Dasha — Pratyantar "
+                    f"(within {current_maha}–{current_antar})",
                     section_style))
                 pd_header = ['Lord', 'Start', 'End', 'Duration', '']
                 pd_data = [pd_header]
                 for pd_lord, pd_start, pd_end, pd_yrs in chart['pratyantar'][key]:
                     is_now = pd_start <= today < pd_end
-                    marker = "\u25c4 NOW" if is_now else ""
+                    marker = "◄ NOW" if is_now else ""
                     days = pd_yrs * 365.25
                     dur_str = f"{pd_yrs*12:.1f}m" if days >= 30 else f"{days:.0f}d"
                     pd_data.append([pd_lord, pd_start.strftime('%d %b %Y'),
@@ -2713,7 +2908,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     footer_style = ParagraphStyle('KFooter2', parent=styles['Normal'],
         fontName='Helvetica', fontSize=7, textColor=colors.HexColor("#AAAAAA"),
         alignment=TA_CENTER)
-    story.append(Paragraph("Lahiri Ayanamsha  \u00b7  Swiss Ephemeris  \u00b7  "
+    story.append(Paragraph("Lahiri Ayanamsha  ·  Swiss Ephemeris  ·  "
                            "Generated by AstroShuklz", footer_style))
 
     doc.build(story)
@@ -2985,7 +3180,7 @@ def lookup_city(city_name, birth_year=None, birth_month=None, birth_day=None):
     result = CITY_DB.get(key)
     if result:
         lat, lon, utc = result
-        print(f"  \u2713 Found in CSV: lat={lat}, lon={lon}, UTC{utc:+.1f}")
+        print(f"  ✓ Found in CSV: lat={lat}, lon={lon}, UTC{utc:+.1f}")
         return result
 
     # ── 2. Try geopy (online lookup) ─────────────────────────────────────
@@ -3011,13 +3206,13 @@ def lookup_city(city_name, birth_year=None, birth_month=None, birth_day=None):
                     from datetime import datetime as _dt
                     dt = _dt.now()
                 offset_hours = tz.utcoffset(dt).total_seconds() / 3600
-                print(f"  \u2713 {location.address[:60]}")
+                print(f"  ✓ {location.address[:60]}")
                 print(f"    lat={lat:.4f}, lon={lon:.4f}, UTC{offset_hours:+.2f} ({tz_name})")
 
                 # Auto-save to CSV for future lookups
                 save_city_to_csv(key, lat, lon, offset_hours)
                 CITY_DB[key] = (lat, lon, offset_hours)
-                print(f"    \u2713 Saved to cities.csv")
+                print(f"    ✓ Saved to cities.csv")
 
                 return (lat, lon, offset_hours)
 
@@ -3030,7 +3225,7 @@ def lookup_city(city_name, birth_year=None, birth_month=None, birth_day=None):
     result = _LEGACY_CITY_DB.get(key)
     if result:
         lat, lon, utc = result
-        print(f"  \u2713 Found in legacy DB: lat={lat}, lon={lon}, UTC{utc:+.1f}")
+        print(f"  ✓ Found in legacy DB: lat={lat}, lon={lon}, UTC{utc:+.1f}")
         # Auto-save to CSV so it's available next time from CSV
         save_city_to_csv(key, lat, lon, utc)
         CITY_DB[key] = result
