@@ -428,9 +428,11 @@
             var entered = prompt("🔐 Enter 6-digit access code to generate PDF.\n\nContact astroshuklz@shuklz.com for getting the pass.");
             if (entered === null) return; // cancelled
             if (entered.trim() === correctCode) {
-                // Submit the form
+                // Show generating state and submit
                 var btn = document.getElementById("submit-btn");
+                btn.textContent = "Generating PDF…";
                 btn.classList.add("loading");
+                btn.disabled = true;
                 form.submit();
             } else {
                 alert("❌ Incorrect access code. Please contact astroshuklz@shuklz.com for assistance.");
