@@ -2536,23 +2536,96 @@ def _generate_hindi_pdf(chart, today):
                        f'पद {chart["nak_pada"]} '
                        f'({PLANET_HI_FULL.get(chart["nak_lord"], chart["nak_lord"])})</div>')
 
-    html_parts.append("<h2>ग्रह स्थिति</h2>")
-    html_parts.append("<table><tr><th>ग्रह</th><th>राशि</th>"
-                       "<th>अंश</th><th>राशि#</th>"
-                       "<th>लग्न</th><th>चन्द्र</th><th>व</th></tr>")
+    # ── Hindi House Position Table (same as English page 1) ──
+    BHAV_NAMES_HI_TBL = {
+        1: "तनु",    2: "धन",     3: "सहज",    4: "सुख",
+        5: "पुत्र",   6: "अरि",    7: "कलत्र",   8: "रन्ध्र",
+        9: "धर्म",  10: "कर्म",   11: "लाभ",   12: "व्यय",
+    }
+    HOUSE_DESC_HI = {
+        1: "स्वयं, शरीर, व्यक्तित्व, रूप, स्वास्थ्य",
+        2: "धन, परिवार, वाणी, भोजन, शिक्षा",
+        3: "भाई-बहन, साहस, संवाद, लघु यात्रा",
+        4: "माता, सुख, गृह, सम्पत्ति, वाहन",
+        5: "संतान, बुद्धि, रचनात्मकता, प्रेम",
+        6: "शत्रु, रोग, ऋण, बाधा, सेवा",
+        7: "पति/पत्नी, साझेदारी, व्यापार, विदेश",
+        8: "रूपांतरण, आयु, रहस्य, विरासत",
+        9: "भाग्य, पिता, धर्म, उच्च शिक्षा, गुरु",
+        10: "कर्म, पद, अधिकार, यश, सरकार",
+        11: "लाभ, आय, मित्र, इच्छापूर्ति",
+        12: "हानि, व्यय, विदेश, मोक्ष, एकांत",
+    }
+    SIGNS_HI_TBL = ["मेष","वृषभ","मिथुन","कर्क","सिंह","कन्या",
+                     "तुला","वृश्चिक","धनु","मकर","कुम्भ","मीन"]
+    RASHI_ELEMENT_HI = ["अग्नि","पृथ्वी","वायु","जल","अग्नि","पृथ्वी",
+                         "वायु","जल","अग्नि","पृथ्वी","वायु","जल"]
+    RASHI_NATURE_HI = ["चर","स्थिर","द्विस्वभाव","चर","स्थिर","द्विस्वभाव",
+                        "चर","स्थिर","द्विस्वभाव","चर","स्थिर","द्विस्वभाव"]
+
+    # Build planet lookup for Hindi table
+    hi_planet_in_house = {h: [] for h in range(1, 13)}
     for pname in order:
         p = planets[pname]
         sidx = p['sign_idx']
-        rashi = sidx + 1
         h_lag = (sidx - asc_sign) % 12 + 1
-        h_moon = (sidx - moon_sign) % 12 + 1
-        retro = "℞" if p['retro'] else ""
-        html_parts.append(f"<tr><td>{PLANET_HI_FULL.get(pname, pname)}</td>"
-                           f"<td>{SIGNS_HI_FULL[sidx]}</td>"
-                           f"<td>{dms_str(p['deg'])}</td><td>{rashi}</td>"
-                           f"<td>भ{h_lag}</td><td>भ{h_moon}</td>"
-                           f"<td>{retro}</td></tr>")
+        hi_planet_in_house[h_lag].append((pname, dms_str(p['deg']),
+                                          "℞" if p['retro'] else ""))
+
+    html_parts.append("<h2>ग्रह स्थिति</h2>")
+    html_parts.append('<table style="font-size:8pt;"><tr>'
+                       '<th>क्रम</th><th>भवन</th><th>भाव</th>'
+                       '<th>भवन विशेषता</th><th>राशि</th>'
+                       '<th>राशि विशेषता</th><th>ग्रह</th>'
+                       '<th>अंश</th><th>व</th><th>चं.भ</th></tr>')
+
+    moon_sign_val = planets['Moon']['sign_idx']
+    for rank in range(1, 13):
+        sign_idx = (asc_sign + rank - 1) % 12
+        house_num = ((asc_sign + rank - 1) % 12) + 1
+        bhav_hi = BHAV_NAMES_HI_TBL[house_num]
+        desc_hi = HOUSE_DESC_HI[house_num]
+        rashi_hi = SIGNS_HI_TBL[sign_idx]
+        elem_hi = RASHI_ELEMENT_HI[sign_idx]
+        nature_hi = RASHI_NATURE_HI[sign_idx]
+        hfm = (sign_idx - moon_sign_val) % 12 + 1
+
+        plist = hi_planet_in_house[rank]
+        if plist:
+            planet_str = ", ".join(PLANET_HI_FULL.get(p[0], p[0]) for p in plist)
+            deg_str = "<br/>".join(f"{PLANET_HI_FULL.get(p[0], p[0])}: {p[1]}" for p in plist)
+            retro_str = "<br/>".join(p[2] for p in plist)
+        else:
+            planet_str = "-"
+            deg_str = "-"
+            retro_str = ""
+
+        # Highlight 1st row (Ascendant) and Moon row
+        row_style = ""
+        if rank == 1:
+            row_style = ' style="background:#FFF3CD; font-weight:bold;"'
+        elif hfm == 1:
+            row_style = ' style="background:#E3F2FD;"'
+
+        html_parts.append(f"<tr{row_style}><td>{rank}</td><td><b>{house_num}</b></td>"
+                           f"<td>{bhav_hi}</td><td>{desc_hi}</td>"
+                           f"<td>{rashi_hi}</td>"
+                           f"<td>{elem_hi} | {nature_hi}</td>"
+                           f"<td>{planet_str}</td><td>{deg_str}</td>"
+                           f"<td>{retro_str}</td><td>{hfm}</td></tr>")
     html_parts.append("</table>")
+
+    # Hindi footnotes
+    html_parts.append('<div style="font-size:7pt; color:#666; margin-top:8px; line-height:1.4;">'
+        '<b>प्रथम भवन (लग्न):</b> लग्न आपकी कुण्डली का प्रथम भवन है। यह आपके व्यक्तित्व, '
+        'शारीरिक रूप और जीवन दृष्टिकोण को दर्शाता है। '
+        '<span style="color:#DAA520;"><b>ऊपर स्वर्ण रंग में चिह्नित।</b></span><br/>'
+        '<b>चं.भ (चन्द्र से भवन):</b> वैदिक ज्योतिष में भवन लग्न और चन्द्रमा दोनों से पढ़े जाते हैं। '
+        'चं.भ चन्द्रमा की स्थिति से गिनती दर्शाता है। चन्द्र कुण्डली मन और भावनाओं को दर्शाती है। '
+        '<span style="color:#1E88E5;"><b>ऊपर नीले रंग में चिह्नित।</b></span><br/>'
+        '<b>व (वक्री):</b> वक्री ग्रह पृथ्वी से पीछे चलते प्रतीत होते हैं। ये अंतर्मुखी ऊर्जा, '
+        'कार्मिक पाठ या विलम्बित परिणाम दर्शाते हैं।'
+        '</div>')
 
     # ── Hindi Page 2: Dasha Tables ───────────────────────────────
     html_parts.append('<div class="page-break"></div>')
@@ -2797,10 +2870,10 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
     # ── Paragraph styles for table cells ──
     cell_style = ParagraphStyle('CellStyle', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=6.5, leading=8,
+        fontName='Helvetica', fontSize=7.5, leading=9.5,
         textColor=colors.HexColor("#333"))
     cell_style_bold = ParagraphStyle('CellBold', parent=cell_style,
-        fontName='Helvetica-Bold', fontSize=7)
+        fontName='Helvetica-Bold', fontSize=8)
     cell_center = ParagraphStyle('CellCenter', parent=cell_style,
         alignment=TA_CENTER)
     cell_center_bold = ParagraphStyle('CellCenterBold', parent=cell_style_bold,
@@ -2857,8 +2930,8 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         # HFM: house from Moon (count from Moon's sign)
         hfm = (sign_idx - moon_sign) % 12 + 1
 
-        # Planets in this house
-        plist = planet_in_house[house_num]
+        # Planets in this house (rank = house from lagna)
+        plist = planet_in_house[rank]
         if plist:
             planet_str = ", ".join(p[0] for p in plist)
             deg_str = "\n".join(f"{p[0]}: {p[1]}" for p in plist)
@@ -2887,16 +2960,22 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     hp_col_w = [24, 28, 36, 110, 48, 42, 105, 50, 48, 14, 25]
     hp_table = Table(hp_data, colWidths=hp_col_w, repeatRows=1)
 
+    # Header cell style with white text for dark background
+    cell_header = ParagraphStyle('CellHeader', parent=cell_center_bold,
+        textColor=colors.white, fontSize=7.5)
+    cell_header_left = ParagraphStyle('CellHeaderLeft', parent=cell_style_bold,
+        textColor=colors.white, fontSize=7.5)
+
     hp_style_rules = [
         ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE',   (0,0), (-1,0), 7),
-        ('FONTSIZE',   (0,1), (-1,-1), 6.5),
-        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
-        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+        ('FONTSIZE',   (0,0), (-1,0), 7.5),
+        ('FONTSIZE',   (0,1), (-1,-1), 7.5),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#F5E6C8")),
+        ('TEXTCOLOR',  (0,0), (-1,0), MAROON),
         ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
         ('VALIGN',     (0,0), (-1,-1), 'MIDDLE'),
         ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        ('BACKGROUND', (0,1), (-1,-1), colors.white),
         ('TOPPADDING',  (0,0), (-1,-1), 3),
         ('BOTTOMPADDING',(0,0), (-1,-1), 3),
         ('LEFTPADDING', (0,0), (-1,-1), 3),
