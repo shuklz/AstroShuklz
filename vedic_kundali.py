@@ -3134,6 +3134,87 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                            '<b>विधि:</b> अंक राशि गरिमा (35), भवन स्थान (20), अंश परिपक्वता (10), '
                            'दृष्टि (±15), युति (±8), अस्त (−15), वक्री (±5) पर आधारित। सीमा: 0-100।</div>')
 
+    # ── Hindi Vedic Remedies Page ─────────────────────────────
+    if strength_data:
+        PLANET_REMEDIES_HI = {
+            "Sun": ("माणिक्य (Ruby)", "सूर्य नमस्कार, आदित्य हृदयम्",
+                    "रविवार", "गेहूँ, गुड़, ताँबा — पिता तुल्य व्यक्तियों को",
+                    "रविवार को लाल/गहरे लाल वस्त्र"),
+            "Moon": ("मोती (Pearl)", "चन्द्र मंत्र, दुर्गा चालीसा",
+                     "सोमवार", "सफेद चावल, दूध, चाँदी — माता तुल्य व्यक्तियों को",
+                     "सोमवार को सफेद वस्त्र"),
+            "Mars": ("मूँगा (Red Coral)", "हनुमान चालीसा, मंगल मंत्र",
+                     "मंगलवार", "लाल मसूर, गुड़ — भाई-बहन/सैनिकों को",
+                     "मंगलवार को लाल वस्त्र"),
+            "Mercury": ("पन्ना (Emerald)", "विष्णु सहस्रनाम, बुध मंत्र",
+                        "बुधवार", "हरी मूँग दाल, पुस्तकें — छात्रों को",
+                        "बुधवार को हरे वस्त्र"),
+            "Jupiter": ("पुखराज (Yellow Sapphire)", "गुरु मंत्र, बृहस्पति स्तोत्रम्",
+                        "गुरुवार", "पीली वस्तुएँ, हल्दी, केला — ब्राह्मणों/गुरुओं को",
+                        "गुरुवार को पीले वस्त्र"),
+            "Venus": ("हीरा / सफेद पुखराज", "शुक्र मंत्र, लक्ष्मी स्तोत्रम्",
+                      "शुक्रवार", "सफेद वस्तुएँ, चावल, रेशम — महिलाओं को",
+                      "शुक्रवार को सफेद/क्रीम वस्त्र"),
+            "Saturn": ("नीलम (Blue Sapphire) — सावधानी से", "शनि मंत्र, हनुमान चालीसा",
+                       "शनिवार", "काले तिल, सरसों का तेल, लोहा — श्रमिकों को",
+                       "शनिवार को काले/गहरे नीले वस्त्र"),
+            "Rahu": ("गोमेद (Hessonite)", "राहु मंत्र, दुर्गा सप्तशती",
+                     "शनिवार", "काली वस्तुएँ, नारियल — सफाईकर्मियों को",
+                     "नशे से बचें, ईमानदारी का अभ्यास करें"),
+            "Ketu": ("लहसुनिया (Cat's Eye)", "केतु मंत्र, गणेश अथर्वशीर्ष",
+                     "मंगलवार/शनिवार", "बहुरंगी कम्बल — संन्यासियों/तपस्वियों को",
+                     "आध्यात्मिक साधना, ध्यान, वैराग्य"),
+        }
+
+        html_parts.append('<div class="page-break"></div>')
+        html_parts.append("<h2>वैदिक उपाय — त्वरित संदर्भ</h2>")
+        html_parts.append('<div class="brand">by AstroShuklz</div>')
+
+        html_parts.append('<div class="reading" style="font-style:italic; font-size:8pt; color:#666;">'
+            'नोट: रत्न केवल योग्य ज्योतिषी से परामर्श के बाद ही धारण करें। '
+            'मंत्र, दान और कर्म सुधार सबसे सुरक्षित और सर्वाधिक अनुशंसित उपाय हैं।</div>')
+
+        html_parts.append(
+            '<h3 style="color:#8B0000;">उपाय क्रम (सर्वोच्च से भौतिक):</h3>'
+            '<div class="reading">'
+            '🧘 <b>सर्वोच्च:</b> मंत्र/जप, दान, कर्म सुधार (व्यवहार परिवर्तन)<br/>'
+            '🔮 <b>मध्यम:</b> व्रत (उपवास), पूजा/अनुष्ठान<br/>'
+            '💎 <b>भौतिक:</b> रत्न (केवल योग्य मार्गदर्शन से)</div>')
+
+        for pname in order:
+            sinfo = strength_data[pname]
+            hi_name = PLANET_HI_FULL.get(pname, pname)
+            remedy_class = sinfo.get('remedy', 'Balance')
+            remedy_hi = REMEDY_HI.get(remedy_class, 'संतुलित करें')
+            icon = REMEDY_ICONS.get(remedy_class, '⚖️')
+            ovr_hi = STRENGTH_LABELS_HI.get(sinfo['overall'], sinfo['overall'])
+            gem, mantra, day, charity, tip = PLANET_REMEDIES_HI[pname]
+
+            html_parts.append(
+                f'<h3 style="color:#8B0000;">{icon} {hi_name} — '
+                f'{ovr_hi} ({sinfo["score"]}/100) — {remedy_hi}</h3>')
+
+            if remedy_class == "Strengthen":
+                html_parts.append(
+                    f'<div class="reading">'
+                    f'<b>मंत्र:</b> {mantra} | <b>दिन:</b> {day}<br/>'
+                    f'<b>दान:</b> {charity}<br/>'
+                    f'<b>रत्न:</b> {gem} (पहले ज्योतिषी से परामर्श करें)<br/>'
+                    f'<b>सुझाव:</b> {tip}</div>')
+            elif remedy_class == "Pacify":
+                html_parts.append(
+                    f'<div class="reading">'
+                    f'<b>मंत्र:</b> {mantra} | <b>व्रत:</b> {day}<br/>'
+                    f'<b>दान:</b> {charity}<br/>'
+                    f'<b>सावधानी:</b> {gem} न पहनें — शांत करें, बल न बढ़ाएँ<br/>'
+                    f'<b>सुझाव:</b> {tip}</div>')
+            else:
+                html_parts.append(
+                    f'<div class="reading">'
+                    f'<b>मंत्र:</b> {mantra} | <b>दिन:</b> {day}<br/>'
+                    f'<b>दान:</b> {charity}<br/>'
+                    f'<b>सुझाव:</b> {tip}</div>')
+
     # ── Hindi Dasha Tables ───────────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
 
