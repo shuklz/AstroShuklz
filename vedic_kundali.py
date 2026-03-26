@@ -71,6 +71,391 @@ DASHA_SEQUENCE = ["Ketu","Venus","Sun","Moon","Mars","Rahu","Jupiter","Saturn","
 DASHA_YEARS    = {"Ketu":7,"Venus":20,"Sun":6,"Moon":10,"Mars":7,
                   "Rahu":18,"Jupiter":16,"Saturn":19,"Mercury":17}
 
+# ─── Planet Strength Scorecard Data ──────────────────────────────────────────
+
+# Exaltation signs (0-indexed)
+EXALTATION = {
+    "Sun": 0, "Moon": 1, "Mars": 9, "Mercury": 5,
+    "Jupiter": 3, "Venus": 11, "Saturn": 6, "Rahu": 1, "Ketu": 7,
+}
+# Debilitation signs (0-indexed)
+DEBILITATION = {
+    "Sun": 6, "Moon": 7, "Mars": 3, "Mercury": 11,
+    "Jupiter": 9, "Venus": 5, "Saturn": 0, "Rahu": 7, "Ketu": 1,
+}
+# Mulatrikona: planet -> (sign_idx, deg_start, deg_end)
+MULATRIKONA = {
+    "Sun": (4, 0, 20),      # Leo 0-20°
+    "Moon": (1, 3, 30),      # Taurus 3-30°
+    "Mars": (0, 0, 12),      # Aries 0-12°
+    "Mercury": (5, 15, 20),  # Virgo 15-20°
+    "Jupiter": (8, 0, 10),   # Sagittarius 0-10°
+    "Venus": (6, 0, 15),     # Libra 0-15°
+    "Saturn": (10, 0, 20),   # Aquarius 0-20°
+}
+# Own signs: planet -> list of sign indices it rules
+OWN_SIGNS = {
+    "Sun": [4], "Moon": [3], "Mars": [0, 7], "Mercury": [2, 5],
+    "Jupiter": [8, 11], "Venus": [1, 6], "Saturn": [9, 10],
+    "Rahu": [10], "Ketu": [7],
+}
+# Natural friendships (classical Vedic)
+NATURAL_FRIENDS = {
+    "Sun":     {"friends": ["Moon","Mars","Jupiter"], "enemies": ["Venus","Saturn"], "neutral": ["Mercury"]},
+    "Moon":    {"friends": ["Sun","Mercury"], "enemies": [], "neutral": ["Mars","Jupiter","Venus","Saturn"]},
+    "Mars":    {"friends": ["Sun","Moon","Jupiter"], "enemies": ["Mercury"], "neutral": ["Venus","Saturn"]},
+    "Mercury": {"friends": ["Sun","Venus"], "enemies": ["Moon"], "neutral": ["Mars","Jupiter","Saturn"]},
+    "Jupiter": {"friends": ["Sun","Moon","Mars"], "enemies": ["Mercury","Venus"], "neutral": ["Saturn"]},
+    "Venus":   {"friends": ["Mercury","Saturn"], "enemies": ["Sun","Moon"], "neutral": ["Mars","Jupiter"]},
+    "Saturn":  {"friends": ["Mercury","Venus"], "enemies": ["Sun","Moon","Mars"], "neutral": ["Jupiter"]},
+    "Rahu":    {"friends": ["Venus","Saturn"], "enemies": ["Sun","Moon","Mars"], "neutral": ["Mercury","Jupiter"]},
+    "Ketu":    {"friends": ["Mars","Jupiter"], "enemies": ["Venus","Saturn"], "neutral": ["Sun","Moon","Mercury"]},
+}
+# Combustion orbs in degrees from Sun. Tuple = (direct, retrograde)
+COMBUSTION_ORBS = {
+    "Moon": 12, "Mars": 17, "Mercury": (14, 12),
+    "Jupiter": 11, "Venus": (10, 8), "Saturn": 15,
+}
+NATURAL_BENEFICS = {"Jupiter", "Venus", "Mercury", "Moon"}
+NATURAL_MALEFICS = {"Saturn", "Mars", "Rahu", "Ketu", "Sun"}
+# Special Vedic aspects (house offset from planet's position)
+SPECIAL_ASPECTS = {
+    "Mars": [4, 8],       # 4th and 8th house aspect
+    "Jupiter": [5, 9],    # 5th and 9th house aspect
+    "Saturn": [3, 10],    # 3rd and 10th house aspect
+}
+# House placement scores
+HOUSE_SCORES = {1:20, 4:20, 7:20, 10:20, 5:18, 9:18,
+                3:14, 6:14, 11:14, 2:12, 8:5, 12:5}
+# Sign rulers (index-based) for dignity lookup
+_SIGN_RULERS_IDX = ["Mars","Venus","Mercury","Moon","Sun","Mercury",
+                    "Venus","Mars","Jupiter","Saturn","Saturn","Jupiter"]
+
+# Hindi labels for strength display
+DIGNITY_HI = {
+    "Exalted": "उच्च", "Own Sign": "स्वराशि", "Mulatrikona": "मूलत्रिकोण",
+    "Friendly": "मित्र राशि", "Neutral": "सम राशि",
+    "Enemy": "शत्रु राशि", "Debilitated": "नीच",
+}
+MATURITY_LABELS = {
+    "Infant": (0, 5), "Young": (5, 10), "Mature": (10, 20),
+    "Old": (20, 25), "Aged": (25, 30),
+}
+MATURITY_SCORES = {"Infant": 4, "Young": 7, "Mature": 10, "Old": 7, "Aged": 4}
+MATURITY_HI = {"Infant": "शिशु", "Young": "युवा", "Mature": "परिपक्व",
+               "Old": "वृद्ध", "Aged": "जीर्ण"}
+STRENGTH_LABELS_HI = {"Strong": "बलवान", "Moderate": "मध्यम", "Weak": "दुर्बल"}
+
+
+def _get_sign_dignity(planet, sign_idx, deg):
+    """Return (dignity_label, points) for a planet in a sign."""
+    if sign_idx == EXALTATION.get(planet):
+        return ("Exalted", 35)
+    if sign_idx == DEBILITATION.get(planet):
+        return ("Debilitated", 0)
+    mt = MULATRIKONA.get(planet)
+    if mt and sign_idx == mt[0] and mt[1] <= deg <= mt[2]:
+        return ("Mulatrikona", 28)
+    if sign_idx in OWN_SIGNS.get(planet, []):
+        return ("Own Sign", 30)
+    # Check friendship via sign ruler
+    ruler = _SIGN_RULERS_IDX[sign_idx]
+    fdata = NATURAL_FRIENDS.get(planet, {})
+    if ruler in fdata.get("friends", []):
+        return ("Friendly", 22)
+    if ruler in fdata.get("enemies", []):
+        return ("Enemy", 8)
+    return ("Neutral", 15)
+
+
+def _get_maturity(deg):
+    """Return (maturity_label, points) for a degree within sign."""
+    for label, (lo, hi) in MATURITY_LABELS.items():
+        if lo <= deg < hi:
+            return (label, MATURITY_SCORES[label])
+    return ("Aged", 4)
+
+
+def calculate_planet_strength(chart):
+    """
+    Calculate strength score (0-100) for each of 9 planets.
+    Returns dict: { "Sun": {"score":72, "dignity":"Own Sign", ...}, ... }
+    """
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+    sun_lon = planets['Sun']['lon']
+    order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
+    results = {}
+
+    # Pre-compute house for each planet
+    planet_houses = {}
+    for pn in order:
+        sidx = planets[pn]['sign_idx']
+        planet_houses[pn] = (sidx - asc_sign) % 12 + 1
+
+    for pname in order:
+        p = planets[pname]
+        sidx = p['sign_idx']
+        deg = p['deg']
+        house = planet_houses[pname]
+
+        # 1. Sign Dignity (0-35)
+        dignity_label, dignity_pts = _get_sign_dignity(pname, sidx, deg)
+
+        # 2. House Placement (5-20)
+        house_pts = HOUSE_SCORES.get(house, 10)
+
+        # 3. Degree Maturity (4-10)
+        maturity_label, maturity_pts = _get_maturity(deg)
+
+        # 4. Combustion (-15 to 0)
+        combustion_pts = 0
+        is_combust = False
+        if pname not in ("Sun", "Rahu", "Ketu") and pname in COMBUSTION_ORBS:
+            orb_val = COMBUSTION_ORBS[pname]
+            if isinstance(orb_val, tuple):
+                orb = orb_val[1] if p['retro'] else orb_val[0]
+            else:
+                orb = orb_val
+            diff = abs(p['lon'] - sun_lon)
+            diff = min(diff, 360 - diff)
+            if diff <= orb:
+                combustion_pts = -15
+                is_combust = True
+            elif diff <= orb * 1.5:
+                combustion_pts = -8
+
+        # 5. Retrograde (±5, skip Rahu/Ketu)
+        retro_pts = 0
+        if p['retro'] and pname not in ("Rahu", "Ketu"):
+            if pname in NATURAL_BENEFICS:
+                retro_pts = -5
+            else:
+                retro_pts = 5
+
+        # 6. Aspects received (-15 to +15)
+        aspect_pts = 0
+        for other in order:
+            if other == pname:
+                continue
+            o_house = planet_houses[other]
+            # Universal 7th aspect
+            aspected_houses = [(o_house + 6) % 12 + 1]  # 7th from other
+            # Special aspects
+            for offset in SPECIAL_ASPECTS.get(other, []):
+                aspected_houses.append((o_house + offset - 1) % 12 + 1)
+            if house in aspected_houses:
+                if other in NATURAL_BENEFICS:
+                    aspect_pts += 5
+                else:
+                    aspect_pts -= 5
+        aspect_pts = max(-15, min(15, aspect_pts))
+
+        # 7. Conjunctions (-8 to +8)
+        conj_pts = 0
+        for other in order:
+            if other == pname:
+                continue
+            if planets[other]['sign_idx'] == sidx:  # same sign
+                if other in NATURAL_BENEFICS:
+                    conj_pts += 4
+                else:
+                    conj_pts -= 4
+        conj_pts = max(-8, min(8, conj_pts))
+
+        # Final score
+        raw = dignity_pts + house_pts + maturity_pts + combustion_pts + retro_pts + aspect_pts + conj_pts
+        score = max(0, min(100, raw))
+        overall = "Strong" if score >= 70 else ("Moderate" if score >= 40 else "Weak")
+
+        results[pname] = {
+            "score": score,
+            "dignity": dignity_label, "dignity_pts": dignity_pts,
+            "house": house, "house_pts": house_pts,
+            "maturity": maturity_label, "maturity_pts": maturity_pts,
+            "combustion_pts": combustion_pts, "is_combust": is_combust,
+            "retro_pts": retro_pts,
+            "aspect_pts": aspect_pts,
+            "conj_pts": conj_pts,
+            "overall": overall,
+        }
+
+    # ── Classify: Strengthen / Balance / Pacify ──
+    # Functional benefics for each Lagna (lords of trikona 1,5,9 and kendra 1,4,7,10)
+    # Functional malefics = lords of trishthana (6,8,12) and maraka (2,7)
+    for pname in order:
+        house = planet_houses[pname]
+        sign_idx = planets[pname]['sign_idx']
+        # Determine houses ruled by this planet
+        ruled_houses = []
+        for h in range(12):
+            if _SIGN_RULERS_IDX[h] == pname or (
+                _SIGN_RULERS_IDX[(asc_sign + h) % 12] == pname):
+                pass
+        # Simplified: use owned signs relative to lagna
+        owns = OWN_SIGNS.get(pname, [])
+        ruled = [(s - asc_sign) % 12 + 1 for s in owns]
+
+        is_func_benefic = any(h in (1, 5, 9) for h in ruled)
+        is_func_malefic = any(h in (6, 8, 12) for h in ruled)
+        score = results[pname]['score']
+
+        if is_func_benefic and score < 50:
+            remedy = "Strengthen"
+        elif is_func_malefic and score >= 50:
+            remedy = "Pacify"
+        elif is_func_malefic and score < 40:
+            remedy = "Pacify"
+        else:
+            remedy = "Balance"
+
+        results[pname]['remedy'] = remedy
+        results[pname]['func_benefic'] = is_func_benefic
+        results[pname]['func_malefic'] = is_func_malefic
+
+    return results
+
+
+REMEDY_HI = {"Strengthen": "बल बढ़ाएँ", "Balance": "संतुलित करें", "Pacify": "शांत करें"}
+REMEDY_ICONS = {"Strengthen": "✅", "Balance": "⚖️", "Pacify": "⚠️"}
+
+
+def _planet_strength_reading(pname, pdata, sinfo, lang="en"):
+    """Generate a 2-3 sentence reading for a planet's strength."""
+    score = sinfo['score']
+    dignity = sinfo['dignity']
+    maturity = sinfo['maturity']
+    house = sinfo['house']
+    overall = sinfo['overall']
+
+    if lang == "hi":
+        sign_name = SIGNS_HI_FULL[pdata['sign_idx']]
+        dig_hi = DIGNITY_HI.get(dignity, dignity)
+        mat_hi = MATURITY_HI.get(maturity, maturity)
+        ovr_hi = STRENGTH_LABELS_HI.get(overall, overall)
+        bhav_names = {1:"तनु",2:"धन",3:"सहज",4:"सुख",5:"पुत्र",6:"अरि",
+                      7:"कलत्र",8:"रन्ध्र",9:"धर्म",10:"कर्म",11:"लाभ",12:"व्यय"}
+        bhav = bhav_names.get(house, str(house))
+        parts = [f"{sign_name} में {dig_hi} स्थिति में, भवन {house} ({bhav}) में स्थित।"]
+        parts.append(f"{pdata['deg']:.0f}° पर {mat_hi} अवस्था।")
+        if sinfo['is_combust']:
+            parts.append("सूर्य से अस्त — प्रभाव में कमी।")
+        if pdata['retro'] and pname not in ("Rahu", "Ketu"):
+            parts.append("वक्री — अंतर्मुखी ऊर्जा।")
+        remedy_hi = REMEDY_HI.get(sinfo.get('remedy', 'Balance'), 'संतुलित करें')
+        icon = REMEDY_ICONS.get(sinfo.get('remedy', 'Balance'), '⚖️')
+        parts.append(f"समग्र: {ovr_hi} ({score}/100)। {icon} {remedy_hi}।")
+        return " ".join(parts)
+    else:
+        sign_name = pdata['sign_en']
+        bhav_names = {1:"Tanu",2:"Dhana",3:"Sahaja",4:"Sukha",5:"Putra",6:"Ari",
+                      7:"Kalatra",8:"Randhra",9:"Dharma",10:"Karma",11:"Labha",12:"Vyaya"}
+        bhav = bhav_names.get(house, str(house))
+        parts = [f"{dignity} in {sign_name}, placed in House {house} ({bhav})."]
+        parts.append(f"At {pdata['deg']:.0f}°, in {maturity} phase.")
+        if sinfo['is_combust']:
+            parts.append("Combust (close to Sun) — effectiveness reduced.")
+        if pdata['retro'] and pname not in ("Rahu", "Ketu"):
+            if pname in NATURAL_BENEFICS:
+                parts.append("Retrograde — blessings may be delayed but eventually strong.")
+            else:
+                parts.append("Retrograde — challenges intensify but bring hidden strength.")
+        remedy = sinfo.get('remedy', 'Balance')
+        icon = REMEDY_ICONS.get(remedy, '')
+        parts.append(f"Overall: {overall} ({score}/100). {icon} {remedy}.")
+        return " ".join(parts)
+
+
+def _draw_strength_bar_chart(strength_data):
+    """Draw horizontal bar chart of planet scores using PIL. Returns BytesIO PNG."""
+    from PIL import Image, ImageDraw, ImageFont
+    import io
+
+    W, H = 820, 480
+    img = Image.new("RGB", (W, H), "#FFFDF5")
+    draw = ImageDraw.Draw(img)
+
+    # Use standard fonts (avoid Devanagari shaping issues in PIL)
+    try:
+        # Try system fonts that render Latin well
+        _sys_fonts = [
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        ]
+        font_path = None
+        for fp in _sys_fonts:
+            if os.path.exists(fp):
+                font_path = fp
+                break
+        font_label = ImageFont.truetype(font_path, 16) if font_path else ImageFont.load_default()
+        font_score = ImageFont.truetype(font_path, 14) if font_path else ImageFont.load_default()
+        font_title = ImageFont.truetype(font_path, 20) if font_path else ImageFont.load_default()
+        font_axis = ImageFont.truetype(font_path, 11) if font_path else ImageFont.load_default()
+    except Exception:
+        font_label = font_score = font_title = font_axis = ImageFont.load_default()
+
+    # Title
+    draw.text((W // 2, 20), "Planet Strength Visualization", fill="#8B0000",
+              font=font_title, anchor="mt")
+
+    # Chart area
+    left_margin = 120
+    right_margin = 60
+    top = 55
+    bar_area_w = W - left_margin - right_margin
+    order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
+    bar_h = 32
+    gap = 10
+    colors_map = {"Sun": "#B8860B", "Moon": "#1E5FAD", "Mars": "#CC0000",
+                  "Mercury": "#1C7C3A", "Jupiter": "#E07000", "Venus": "#7B00CC",
+                  "Saturn": "#1C1C8C", "Rahu": "#006400", "Ketu": "#8B3A00"}
+
+    # Scale lines
+    for pct in [0, 25, 50, 75, 100]:
+        x = left_margin + int(bar_area_w * pct / 100)
+        draw.line([(x, top - 5), (x, top + 9 * (bar_h + gap))], fill="#E0E0E0", width=1)
+        draw.text((x, top + 9 * (bar_h + gap) + 5), str(pct), fill="#999",
+                  font=font_axis, anchor="mt")
+
+    for i, pname in enumerate(order):
+        sinfo = strength_data[pname]
+        score = sinfo['score']
+        y = top + i * (bar_h + gap)
+
+        # Planet label
+        draw.text((left_margin - 10, y + bar_h // 2), pname,
+                  fill=colors_map.get(pname, "#333"), font=font_label, anchor="rm")
+
+        # Bar
+        bar_w = int(bar_area_w * score / 100)
+        if score >= 70:
+            bar_color = "#4CAF50"  # green
+        elif score >= 40:
+            bar_color = "#FF9800"  # orange
+        else:
+            bar_color = "#F44336"  # red
+        draw.rounded_rectangle(
+            [(left_margin, y), (left_margin + bar_w, y + bar_h)],
+            radius=4, fill=bar_color)
+
+        # Score label
+        draw.text((left_margin + bar_w + 8, y + bar_h // 2),
+                  f"{score}", fill="#333", font=font_score, anchor="lm")
+
+        # Overall + Remedy label
+        remedy = sinfo.get('remedy', 'Balance')
+        icon = REMEDY_ICONS.get(remedy, '')
+        ovr = sinfo['overall']
+        ovr_color = "#4CAF50" if ovr == "Strong" else ("#FF9800" if ovr == "Moderate" else "#F44336")
+        draw.text((W - 15, y + bar_h // 2), f"{ovr} {icon}", fill=ovr_color,
+                  font=font_axis, anchor="rm")
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG", quality=95)
+    buf.seek(0)
+    return buf
+
 
 # ─── Core Calculation ─────────────────────────────────────────────────────────
 
@@ -2476,7 +2861,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
     print(f"  PDF report saved: {output_path}")
 
 
-def _generate_hindi_pdf(chart, today):
+def _generate_hindi_pdf(chart, today, strength_data=None):
     """Generate Hindi pages as PDF using WeasyPrint for proper Devanagari rendering.
     Returns a BytesIO buffer, or None if WeasyPrint is unavailable."""
     try:
@@ -2727,7 +3112,29 @@ def _generate_hindi_pdf(chart, today):
         'शासित जीवन क्षेत्र का वर्णन करता है। किसी भवन में स्थित ग्रह अपने '
         'प्राकृतिक कारकत्व के अनुसार उन जीवन क्षेत्रों को प्रभावित करते हैं।</div>')
 
-    # ── Hindi Page 2: Dasha Tables ───────────────────────────────
+    # ── Hindi Planet Strength Page ───────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h2>ग्रह बल विश्लेषण</h2>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+
+    if strength_data:
+        for pname in order:
+            hi_name = PLANET_HI_FULL.get(pname, pname)
+            reading = _planet_strength_reading(pname, planets[pname],
+                                               strength_data[pname], lang="hi")
+            html_parts.append(f'<div class="reading"><b>{hi_name}:</b> {reading}</div>')
+
+        # Embed bar chart as base64 image
+        import base64 as _b64
+        chart_buf = _draw_strength_bar_chart(strength_data)
+        img_b64 = _b64.b64encode(chart_buf.read()).decode()
+        html_parts.append(f'<img src="data:image/png;base64,{img_b64}" '
+                           f'style="width:100%; max-width:600px; margin:10px auto; display:block;"/>')
+        html_parts.append('<div class="reading" style="font-size:8pt; color:#666;">'
+                           '<b>विधि:</b> अंक राशि गरिमा (35), भवन स्थान (20), अंश परिपक्वता (10), '
+                           'दृष्टि (±15), युति (±8), अस्त (−15), वक्री (±5) पर आधारित। सीमा: 0-100।</div>')
+
+    # ── Hindi Dasha Tables ───────────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
 
     # Mahadasha
@@ -3229,7 +3636,143 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         'influence those life areas according to their natural significations.',
         note_style))
 
-    # ── Page 2: All three Dasha tables ───────────────────────────
+    # ── Planet Strength Analysis Page ────────────────────────────
+    story.append(PageBreak())
+    strength_data = calculate_planet_strength(chart)
+    story.append(Paragraph("Planet Strength Analysis", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 2*mm))
+
+    strength_reading_style = ParagraphStyle('StrReading', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=8.5, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, leading=12, spaceBefore=1*mm, spaceAfter=1*mm)
+    strength_planet_style = ParagraphStyle('StrPlanet', parent=strength_reading_style,
+        fontName='Helvetica-Bold', fontSize=9, textColor=MAROON)
+
+    planet_order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
+    for pname in planet_order:
+        reading = _planet_strength_reading(pname, planets[pname],
+                                           strength_data[pname], lang="en")
+        story.append(Paragraph(f"<b>{pname}:</b> {reading}", strength_reading_style))
+
+    story.append(Spacer(1, 3*mm))
+
+    # Bar chart
+    try:
+        from reportlab.platypus import Image as RLImage
+        chart_buf = _draw_strength_bar_chart(strength_data)
+        chart_img = RLImage(chart_buf, width=165*mm, height=97*mm)
+        story.append(chart_img)
+    except Exception as e:
+        story.append(Paragraph(f"[Chart unavailable: {e}]", info_style))
+
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph(
+        "<b>Methodology:</b> Scores combine sign dignity (35), house placement (20), "
+        "degree maturity (10), aspects (±15), conjunctions (±8), combustion (−15), "
+        "and retrogression (±5) per classical Vedic principles. Range: 0-100.",
+        footnote_style))
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph(
+        "<b>Remedy Classification:</b> "
+        "✅ <b>Strengthen</b> — Functional benefic that is weak; "
+        "strengthen through mantras, charity, and positive karma. "
+        "⚖️ <b>Balance</b> — Planet is neutral or mixed; "
+        "maintain awareness and balance through mindful actions. "
+        "⚠️ <b>Pacify</b> — Functional malefic or strong negative influence; "
+        "pacify through specific rituals, fasting, and charitable acts.",
+        footnote_style))
+
+    # ── Vedic Remedies Reference ─────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Vedic Remedies — Quick Reference", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 3*mm))
+
+    PLANET_REMEDIES = {
+        "Sun": ("Ruby (Manikya)", "Surya Namaskar, Aditya Hridayam",
+                "Sunday", "Wheat, jaggery, copper to father figures",
+                "Red/dark red clothing on Sundays"),
+        "Moon": ("Pearl (Moti)", "Chandra mantra, Durga Chalisa",
+                 "Monday", "White rice, milk, silver to mother figures",
+                 "White clothing on Mondays"),
+        "Mars": ("Red Coral (Moonga)", "Hanuman Chalisa, Mangal mantra",
+                 "Tuesday", "Red lentils, jaggery to siblings/soldiers",
+                 "Red clothing on Tuesdays"),
+        "Mercury": ("Emerald (Panna)", "Vishnu Sahasranama, Budh mantra",
+                    "Wednesday", "Green moong dal, books to students",
+                    "Green clothing on Wednesdays"),
+        "Jupiter": ("Yellow Sapphire (Pukhraj)", "Guru mantra, Brihaspati Stotram",
+                    "Thursday", "Yellow items, turmeric, bananas to Brahmins/teachers",
+                    "Yellow clothing on Thursdays"),
+        "Venus": ("Diamond (Heera) / White Sapphire", "Shukra mantra, Lakshmi Stotram",
+                  "Friday", "White items, rice, silk to women",
+                  "White/cream clothing on Fridays"),
+        "Saturn": ("Blue Sapphire (Neelam) — with caution", "Shani mantra, Hanuman Chalisa",
+                   "Saturday", "Black sesame, mustard oil, iron to labourers",
+                   "Black/dark blue clothing on Saturdays"),
+        "Rahu": ("Hessonite (Gomed)", "Rahu mantra, Durga Saptashati",
+                 "Saturday", "Black items, coconut to sweepers/outcasts",
+                 "Avoid intoxicants, practice honesty"),
+        "Ketu": ("Cat's Eye (Lehsunia)", "Ketu mantra, Ganesh Atharvashirsha",
+                 "Tuesday/Saturday", "Multi-coloured blanket to sages/ascetics",
+                 "Spiritual practice, meditation, detachment"),
+    }
+
+    remedy_header_style = ParagraphStyle('RemedyHead', parent=note_style,
+        fontName='Helvetica-Bold', fontSize=9.5, textColor=MAROON,
+        spaceBefore=3*mm, spaceAfter=1*mm)
+
+    story.append(Paragraph(
+        '<i>Note: Gemstones should only be worn after consulting a qualified '
+        'Jyotish practitioner. Mantras, charity, and karma correction are the '
+        'safest and most universally recommended remedies.</i>',
+        footnote_style))
+    story.append(Spacer(1, 2*mm))
+
+    # Tiered approach
+    story.append(Paragraph("Remedy Hierarchy (Highest to Material):", remedy_header_style))
+    tier_style = ParagraphStyle('TierStyle', parent=note_style, fontSize=8.5, leading=12)
+    story.append(Paragraph(
+        "🧘 <b>Highest:</b> Mantra/Japa, Charity (Dana), Karma correction (behaviour change)<br/>"
+        "🔮 <b>Medium:</b> Fasting (Vrat), Pooja/Rituals<br/>"
+        "💎 <b>Material:</b> Gemstones (only with qualified guidance)",
+        tier_style))
+    story.append(Spacer(1, 2*mm))
+
+    # Per-planet remedies based on their classification
+    for pname in planet_order:
+        sinfo = strength_data[pname]
+        remedy_class = sinfo.get('remedy', 'Balance')
+        icon = REMEDY_ICONS.get(remedy_class, '')
+        gem, mantra, day, charity, tip = PLANET_REMEDIES[pname]
+
+        story.append(Paragraph(
+            f"{icon} <b>{pname}</b> — {sinfo['overall']} ({sinfo['score']}/100) — {remedy_class}",
+            remedy_header_style))
+
+        if remedy_class == "Strengthen":
+            story.append(Paragraph(
+                f"<b>Mantra:</b> {mantra} | <b>Day:</b> {day}<br/>"
+                f"<b>Charity:</b> {charity}<br/>"
+                f"<b>Gemstone:</b> {gem} (consult astrologer first)<br/>"
+                f"<b>Tip:</b> {tip}",
+                tier_style))
+        elif remedy_class == "Pacify":
+            story.append(Paragraph(
+                f"<b>Mantra:</b> {mantra} | <b>Fast:</b> {day}<br/>"
+                f"<b>Charity:</b> {charity}<br/>"
+                f"<b>Caution:</b> Do NOT wear {gem} — pacify, don't strengthen<br/>"
+                f"<b>Tip:</b> {tip}",
+                tier_style))
+        else:  # Balance
+            story.append(Paragraph(
+                f"<b>Mantra:</b> {mantra} | <b>Day:</b> {day}<br/>"
+                f"<b>Charity:</b> {charity}<br/>"
+                f"<b>Tip:</b> {tip}",
+                tier_style))
+
+    # ── Dasha tables ───────────────────────────────────────────
     story.append(PageBreak())
 
     # Mahadasha
@@ -3388,7 +3931,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     # ══════════════════════════════════════════════════════════════
     # HINDI PAGES via WeasyPrint (proper Devanagari conjunct rendering)
     # ══════════════════════════════════════════════════════════════
-    hindi_pdf_buf = _generate_hindi_pdf(chart, today)
+    hindi_pdf_buf = _generate_hindi_pdf(chart, today, strength_data)
 
     # Merge English + Hindi PDFs
     if hindi_pdf_buf:
