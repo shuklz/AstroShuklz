@@ -2870,17 +2870,17 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
     # ── Paragraph styles for table cells ──
     cell_style = ParagraphStyle('CellStyle', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=7.5, leading=9.5,
+        fontName='Helvetica', fontSize=8.5, leading=11,
         textColor=colors.HexColor("#333"))
     cell_style_bold = ParagraphStyle('CellBold', parent=cell_style,
-        fontName='Helvetica-Bold', fontSize=8)
+        fontName='Helvetica-Bold', fontSize=9)
     cell_center = ParagraphStyle('CellCenter', parent=cell_style,
         alignment=TA_CENTER)
     cell_center_bold = ParagraphStyle('CellCenterBold', parent=cell_style_bold,
         alignment=TA_CENTER)
     footnote_style = ParagraphStyle('Footnote', parent=styles['Normal'],
-        fontName='Helvetica', fontSize=6.5, textColor=colors.HexColor("#666"),
-        leading=9, spaceBefore=3*mm)
+        fontName='Helvetica', fontSize=8, textColor=colors.HexColor("#666"),
+        leading=11, spaceBefore=3*mm)
     footnote_bold = ParagraphStyle('FootnoteBold', parent=footnote_style,
         fontName='Helvetica-Bold', textColor=MAROON)
 
@@ -2968,8 +2968,8 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
     hp_style_rules = [
         ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE',   (0,0), (-1,0), 7.5),
-        ('FONTSIZE',   (0,1), (-1,-1), 7.5),
+        ('FONTSIZE',   (0,0), (-1,0), 8.5),
+        ('FONTSIZE',   (0,1), (-1,-1), 8.5),
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#F5E6C8")),
         ('TEXTCOLOR',  (0,0), (-1,0), MAROON),
         ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
