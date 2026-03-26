@@ -366,6 +366,281 @@ def _planet_strength_reading(pname, pdata, sinfo, lang="en"):
         return " ".join(parts)
 
 
+# ─── Bhava (House) Reading Engine ─────────────────────────────────────────────
+
+BHAV_FULL_EN = {
+    1: ("Tanu", "Self & Personality"),
+    2: ("Dhana", "Wealth & Family"),
+    3: ("Sahaja", "Siblings & Courage"),
+    4: ("Sukha", "Happiness & Home"),
+    5: ("Putra", "Children & Creativity"),
+    6: ("Ari", "Enemies & Health"),
+    7: ("Kalatra", "Marriage & Partnership"),
+    8: ("Randhra", "Transformation & Longevity"),
+    9: ("Dharma", "Fortune & Higher Wisdom"),
+    10: ("Karma", "Career & Status"),
+    11: ("Labha", "Gains & Networks"),
+    12: ("Vyaya", "Loss & Spirituality"),
+}
+
+BHAV_FULL_HI = {
+    1: ("तनु", "स्वयं एवं व्यक्तित्व"),
+    2: ("धन", "धन एवं परिवार"),
+    3: ("सहज", "भाई-बहन एवं साहस"),
+    4: ("सुख", "सुख एवं गृह"),
+    5: ("पुत्र", "संतान एवं रचनात्मकता"),
+    6: ("अरि", "शत्रु एवं स्वास्थ्य"),
+    7: ("कलत्र", "विवाह एवं साझेदारी"),
+    8: ("रन्ध्र", "रूपांतरण एवं आयु"),
+    9: ("धर्म", "भाग्य एवं उच्च ज्ञान"),
+    10: ("कर्म", "कैरियर एवं प्रतिष्ठा"),
+    11: ("लाभ", "लाभ एवं मित्र-मंडल"),
+    12: ("व्यय", "हानि एवं आध्यात्मिकता"),
+}
+
+# What each house governs — used in readings
+BHAV_GOVERNS_EN = {
+    1: "your physical body, health, personality, first impressions, and how you approach life",
+    2: "your wealth, family values, speech, food habits, and early education",
+    3: "your siblings, courage, communication skills, short journeys, and self-effort",
+    4: "your mother, home environment, emotional peace, vehicles, and property",
+    5: "your children, intelligence, creativity, romance, past-life merit, and education",
+    6: "your enemies, diseases, debts, daily struggles, service, and competition",
+    7: "your spouse, marriage, business partnerships, public dealings, and legal matters",
+    8: "your longevity, sudden events, inheritance, occult knowledge, and transformation",
+    9: "your father, fortune, higher learning, dharma, long-distance travel, and guru",
+    10: "your career, reputation, authority, government dealings, and public status",
+    11: "your income, gains, elder siblings, social networks, and fulfilment of desires",
+    12: "your expenses, foreign lands, moksha, isolation, spiritual growth, and hidden enemies",
+}
+
+BHAV_GOVERNS_HI = {
+    1: "आपका शरीर, स्वास्थ्य, व्यक्तित्व, प्रथम प्रभाव और जीवन दृष्टिकोण",
+    2: "आपका धन, पारिवारिक मूल्य, वाणी, भोजन और प्रारंभिक शिक्षा",
+    3: "आपके भाई-बहन, साहस, संवाद कौशल, लघु यात्राएँ और पुरुषार्थ",
+    4: "आपकी माता, घरेलू वातावरण, मानसिक शांति, वाहन और संपत्ति",
+    5: "आपकी संतान, बुद्धि, रचनात्मकता, प्रेम, पूर्व जन्म के पुण्य और शिक्षा",
+    6: "आपके शत्रु, रोग, ऋण, दैनिक संघर्ष, सेवा और प्रतिस्पर्धा",
+    7: "आपका जीवनसाथी, विवाह, व्यापार साझेदारी और कानूनी मामले",
+    8: "आपकी आयु, अचानक घटनाएँ, विरासत, गुप्त ज्ञान और रूपांतरण",
+    9: "आपके पिता, भाग्य, उच्च शिक्षा, धर्म, लंबी यात्राएँ और गुरु",
+    10: "आपका कैरियर, प्रतिष्ठा, अधिकार, सरकारी संबंध और सामाजिक स्थिति",
+    11: "आपकी आय, लाभ, बड़े भाई-बहन, सामाजिक नेटवर्क और इच्छापूर्ति",
+    12: "आपके व्यय, विदेश, मोक्ष, एकांत, आध्यात्मिक विकास और छिपे शत्रु",
+}
+
+# Planet effects when placed in a house — short phrases
+PLANET_IN_HOUSE_EN = {
+    "Sun": {
+        "benefic": "brings leadership, confidence, and authority",
+        "malefic": "may cause ego conflicts, health issues related to heat, and strained relations with authority",
+    },
+    "Moon": {
+        "benefic": "brings emotional fulfilment, popularity, and mental peace",
+        "malefic": "may cause emotional instability, mood swings, and mental restlessness",
+    },
+    "Mars": {
+        "benefic": "brings energy, courage, and the drive to take action",
+        "malefic": "may cause aggression, accidents, conflicts, and impulsive decisions",
+    },
+    "Mercury": {
+        "benefic": "brings intelligence, communication skills, and analytical ability",
+        "malefic": "may cause nervousness, indecision, and issues with speech or paperwork",
+    },
+    "Jupiter": {
+        "benefic": "brings wisdom, expansion, blessings, and good fortune",
+        "malefic": "may cause over-optimism, excess, or missed opportunities due to complacency",
+    },
+    "Venus": {
+        "benefic": "brings beauty, comfort, romance, and artistic expression",
+        "malefic": "may cause over-indulgence, relationship complications, or vanity",
+    },
+    "Saturn": {
+        "benefic": "brings discipline, patience, long-term success through hard work",
+        "malefic": "may cause delays, obstacles, hardship, and chronic issues",
+    },
+    "Rahu": {
+        "benefic": "brings unconventional success, foreign connections, and material ambition",
+        "malefic": "may cause obsession, confusion, illusions, and sudden disruptions",
+    },
+    "Ketu": {
+        "benefic": "brings spiritual insight, detachment, and past-life wisdom",
+        "malefic": "may cause disinterest, isolation, mysterious problems, and lack of direction",
+    },
+}
+
+PLANET_IN_HOUSE_HI = {
+    "Sun": {
+        "benefic": "नेतृत्व, आत्मविश्वास और अधिकार प्रदान करता है",
+        "malefic": "अहंकार, ताप संबंधी स्वास्थ्य समस्या और अधिकार से तनावपूर्ण संबंध हो सकते हैं",
+    },
+    "Moon": {
+        "benefic": "भावनात्मक संतुष्टि, लोकप्रियता और मानसिक शांति देता है",
+        "malefic": "भावनात्मक अस्थिरता, मनोदशा परिवर्तन और मानसिक बेचैनी हो सकती है",
+    },
+    "Mars": {
+        "benefic": "ऊर्जा, साहस और कार्य करने की प्रेरणा देता है",
+        "malefic": "आक्रामकता, दुर्घटना, विवाद और आवेगपूर्ण निर्णय हो सकते हैं",
+    },
+    "Mercury": {
+        "benefic": "बुद्धि, संवाद कौशल और विश्लेषण क्षमता प्रदान करता है",
+        "malefic": "घबराहट, अनिर्णय और वाणी या दस्तावेज़ी समस्याएँ हो सकती हैं",
+    },
+    "Jupiter": {
+        "benefic": "ज्ञान, विस्तार, आशीर्वाद और शुभ भाग्य लाता है",
+        "malefic": "अति-आशावाद, अतिरेक या आत्मसंतुष्टि से अवसर चूक सकते हैं",
+    },
+    "Venus": {
+        "benefic": "सौंदर्य, सुख-सुविधा, प्रेम और कलात्मक अभिव्यक्ति देता है",
+        "malefic": "अति-भोग, संबंधों में जटिलता या अहंकार हो सकता है",
+    },
+    "Saturn": {
+        "benefic": "अनुशासन, धैर्य और कठोर परिश्रम से दीर्घकालिक सफलता देता है",
+        "malefic": "विलंब, बाधाएँ, कष्ट और दीर्घकालिक समस्याएँ हो सकती हैं",
+    },
+    "Rahu": {
+        "benefic": "अपरंपरागत सफलता, विदेशी संबंध और भौतिक महत्वाकांक्षा लाता है",
+        "malefic": "जुनून, भ्रम, माया और अचानक व्यवधान हो सकते हैं",
+    },
+    "Ketu": {
+        "benefic": "आध्यात्मिक अंतर्दृष्टि, वैराग्य और पूर्वजन्म का ज्ञान देता है",
+        "malefic": "उदासीनता, एकांत, रहस्यमय समस्याएँ और दिशाहीनता हो सकती है",
+    },
+}
+
+
+def generate_bhava_readings(chart, strength_data, lang="en"):
+    """
+    Generate a personalized reading for each of the 12 houses.
+    Returns list of dicts: [{house_num, bhav, title, sign, reading_para}, ...]
+    """
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']  # 0-based index
+    order = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"]
+
+    # Map planets to houses
+    planet_in_house = {h: [] for h in range(1, 13)}
+    for pname in order:
+        sidx = planets[pname]['sign_idx']
+        house = (sidx - asc_sign) % 12 + 1
+        planet_in_house[house].append(pname)
+
+    # House lord for each house
+    def get_house_lord(house_num):
+        sign_idx = (asc_sign + house_num - 1) % 12
+        return _SIGN_RULERS_IDX[sign_idx]
+
+    bhav_data = BHAV_FULL_HI if lang == "hi" else BHAV_FULL_EN
+    governs = BHAV_GOVERNS_HI if lang == "hi" else BHAV_GOVERNS_EN
+    planet_effects = PLANET_IN_HOUSE_HI if lang == "hi" else PLANET_IN_HOUSE_EN
+    signs = SIGNS_HI_FULL if lang == "hi" else None
+
+    readings = []
+    for h in range(1, 13):
+        bhav_name, bhav_title = bhav_data[h]
+        sign_idx = (asc_sign + h - 1) % 12
+        if lang == "hi":
+            sign_name = SIGNS_HI_FULL[sign_idx]
+        else:
+            sign_name = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+                         "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"][sign_idx]
+
+        lord = get_house_lord(h)
+        lord_house = (planets[lord]['sign_idx'] - asc_sign) % 12 + 1
+        lord_strength = strength_data.get(lord, {})
+        lord_score = lord_strength.get('score', 50)
+        lord_overall = lord_strength.get('overall', 'Moderate')
+
+        plist = planet_in_house[h]
+
+        # Build reading paragraph
+        parts = []
+
+        if lang == "hi":
+            parts.append(f"भवन {h} ({bhav_name} — {bhav_title}) में {sign_name} राशि विराजमान है।")
+            parts.append(f"यह भवन {governs[h]} को नियंत्रित करता है।")
+            lord_hi = PLANET_HI_FULL.get(lord, lord)
+            lord_ovr_hi = STRENGTH_LABELS_HI.get(lord_overall, lord_overall)
+            lord_bhav_hi = BHAV_FULL_HI.get(lord_house, (str(lord_house), ""))[0]
+            parts.append(f"इस भवन का स्वामी {lord_hi} है जो भवन {lord_house} ({lord_bhav_hi}) में स्थित है "
+                         f"और {lord_ovr_hi} ({lord_score}/100) स्थिति में है।")
+
+            if not plist:
+                parts.append("इस भवन में कोई ग्रह स्थित नहीं है। फलाफल भवन स्वामी की स्थिति पर निर्भर करेगा।")
+                if lord_score >= 70:
+                    parts.append("भवन स्वामी बलवान होने से इस भवन के क्षेत्रों में शुभ परिणाम अपेक्षित हैं।")
+                elif lord_score < 40:
+                    parts.append("भवन स्वामी दुर्बल होने से इन क्षेत्रों में चुनौतियाँ संभव हैं।")
+            else:
+                for pname in plist:
+                    pinfo = strength_data.get(pname, {})
+                    pscore = pinfo.get('score', 50)
+                    poverall = pinfo.get('overall', 'Moderate')
+                    p_hi = PLANET_HI_FULL.get(pname, pname)
+                    p_ovr_hi = STRENGTH_LABELS_HI.get(poverall, poverall)
+                    effect_type = "benefic" if pscore >= 50 else "malefic"
+                    effect = planet_effects.get(pname, {}).get(effect_type, "")
+                    parts.append(f"{p_hi} ({p_ovr_hi}, {pscore}/100): {effect}।")
+
+                # Overall house assessment
+                avg_score = sum(strength_data.get(p, {}).get('score', 50) for p in plist) / len(plist)
+                benefic_count = sum(1 for p in plist if p in NATURAL_BENEFICS)
+                malefic_count = sum(1 for p in plist if p in NATURAL_MALEFICS)
+
+                if avg_score >= 65 and benefic_count >= malefic_count:
+                    parts.append("कुल मिलाकर यह भवन बहुत अनुकूल है — इन जीवन क्षेत्रों में सकारात्मक परिणाम अपेक्षित हैं।")
+                elif avg_score >= 50:
+                    parts.append("यह भवन संतुलित है — मिश्रित परिणाम संभव, सचेत प्रयास से लाभ होगा।")
+                elif malefic_count > benefic_count:
+                    parts.append("इस भवन में चुनौतियाँ अधिक हैं — धैर्य और उचित उपाय से सुधार संभव है।")
+
+        else:  # English
+            parts.append(f"House {h} ({bhav_name} — {bhav_title}) is occupied by {sign_name}.")
+            parts.append(f"This house governs {governs[h]}.")
+            lord_bhav = BHAV_FULL_EN.get(lord_house, (str(lord_house), ""))[0]
+            parts.append(f"The lord of this house is {lord}, placed in House {lord_house} ({lord_bhav}), "
+                         f"currently {lord_overall} ({lord_score}/100).")
+
+            if not plist:
+                parts.append("No planets occupy this house. Results depend primarily on the house lord's placement and strength.")
+                if lord_score >= 70:
+                    parts.append("With a strong house lord, favourable outcomes are expected in these life areas.")
+                elif lord_score < 40:
+                    parts.append("The house lord is weak, which may bring challenges in these areas. Remedies for the lord planet are recommended.")
+            else:
+                for pname in plist:
+                    pinfo = strength_data.get(pname, {})
+                    pscore = pinfo.get('score', 50)
+                    poverall = pinfo.get('overall', 'Moderate')
+                    effect_type = "benefic" if pscore >= 50 else "malefic"
+                    effect = planet_effects.get(pname, {}).get(effect_type, "")
+                    parts.append(f"{pname} ({poverall}, {pscore}/100): {effect}.")
+
+                # Overall house assessment
+                avg_score = sum(strength_data.get(p, {}).get('score', 50) for p in plist) / len(plist)
+                benefic_count = sum(1 for p in plist if p in NATURAL_BENEFICS)
+                malefic_count = sum(1 for p in plist if p in NATURAL_MALEFICS)
+
+                if avg_score >= 65 and benefic_count >= malefic_count:
+                    parts.append("Overall, this is a very favourable house — expect positive outcomes in these life areas.")
+                elif avg_score >= 50:
+                    parts.append("This house shows balanced energy — mixed results are likely, conscious effort will tip the balance favourably.")
+                elif malefic_count > benefic_count:
+                    parts.append("This house faces challenges — patience and appropriate remedies can bring improvement.")
+
+        readings.append({
+            "house": h,
+            "bhav": bhav_name,
+            "title": bhav_title,
+            "sign": sign_name,
+            "planets": plist,
+            "lord": lord,
+            "para": " ".join(parts),
+        })
+
+    return readings
+
+
 def _draw_strength_bar_chart(strength_data):
     """Draw horizontal bar chart of planet scores using PIL. Returns BytesIO PNG."""
     from PIL import Image, ImageDraw, ImageFont
@@ -3112,6 +3387,28 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         'शासित जीवन क्षेत्र का वर्णन करता है। किसी भवन में स्थित ग्रह अपने '
         'प्राकृतिक कारकत्व के अनुसार उन जीवन क्षेत्रों को प्रभावित करते हैं।</div>')
 
+    # ── Hindi Bhava Reading Page ─────────────────────────────────
+    bhava_readings_hi = generate_bhava_readings(chart, strength_data, lang="hi")
+
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h2>भाव विश्लेषण — भवन पठन</h2>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+    html_parts.append(
+        '<div class="reading" style="font-size:11px; margin-bottom:8px;">'
+        '12 भवनों में से प्रत्येक जीवन के विशिष्ट क्षेत्रों को नियंत्रित करता है। '
+        'नीचे दिया गया पठन प्रत्येक भवन में स्थित राशि, ग्रह, उनके बल और '
+        'भवन स्वामी की स्थिति को मिलाकर आपके प्रत्येक जीवन क्षेत्र का '
+        'व्यक्तिगत मूल्यांकन प्रस्तुत करता है।</div>')
+
+    for br in bhava_readings_hi:
+        h = br['house']
+        planet_list_hi = ", ".join([PLANET_HI_FULL.get(p, p) for p in br['planets']]) if br['planets'] else "रिक्त"
+        html_parts.append(
+            f'<div style="margin-top:8px;">'
+            f'<b style="color:#8B0000; font-size:13px;">भवन {h} — {br["bhav"]} '
+            f'({br["title"]}) · {br["sign"]} · [{planet_list_hi}]</b></div>')
+        html_parts.append(f'<div class="reading">{br["para"]}</div>')
+
     # ── Hindi Planet Strength Page ───────────────────────────────
     html_parts.append('<div class="page-break"></div>')
     html_parts.append("<h2>ग्रह बल विश्लेषण</h2>")
@@ -3799,9 +4096,40 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         'influence those life areas according to their natural significations.',
         note_style))
 
+    # ── Bhava (House) Reading Pages ──────────────────────────────
+    strength_data = calculate_planet_strength(chart)
+    bhava_readings = generate_bhava_readings(chart, strength_data, lang="en")
+
+    story.append(PageBreak())
+    story.append(Paragraph("Bhava Reading — House Analysis", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 3*mm))
+
+    bhava_intro_style = ParagraphStyle('BhavaIntro', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor("#333333"),
+        leading=13, spaceAfter=4*mm)
+    story.append(Paragraph(
+        "Each of the 12 Bhavas (houses) governs specific life areas. The reading below combines "
+        "the sign occupying each house, the planets placed there (if any), their strength scores, "
+        "and the house lord's condition to give you a personalised assessment of each life domain.",
+        bhava_intro_style))
+
+    bhava_head_style = ParagraphStyle('BhavaHead', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=11, textColor=colors.HexColor("#8B0000"),
+        leading=14, spaceBefore=4*mm, spaceAfter=1*mm)
+    bhava_body_style = ParagraphStyle('BhavaBody', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9.5, textColor=colors.HexColor("#222222"),
+        leading=13, spaceAfter=2*mm, leftIndent=4*mm)
+
+    for br in bhava_readings:
+        h = br['house']
+        planet_str = ", ".join(br['planets']) if br['planets'] else "Empty"
+        heading = f"House {h} — {br['bhav']} ({br['title']}) · {br['sign']} · [{planet_str}]"
+        story.append(Paragraph(heading, bhava_head_style))
+        story.append(Paragraph(br['para'], bhava_body_style))
+
     # ── Planet Strength Analysis Page ────────────────────────────
     story.append(PageBreak())
-    strength_data = calculate_planet_strength(chart)
     story.append(Paragraph("Planet Strength Analysis", section_style))
     story.append(Paragraph("by AstroShuklz", brand_style))
     story.append(Spacer(1, 2*mm))
