@@ -3964,12 +3964,19 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
 
         _cfont = None
         _cfont_candidates = [
+            # macOS
             "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
             "/System/Library/Fonts/SFNS.ttf",
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansDevanagari.ttf"),
+            # Linux — Latin-capable fonts FIRST
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+            # Bundled Devanagari as last resort
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansDevanagari.ttf"),
         ]
         for _fc in _cfont_candidates:
             try:
@@ -4096,6 +4103,7 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         ("६", "साढ़ेसाती — विश्लेषण एवं उपाय"),
         ("७", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
         ("८", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
+        ("९", "अस्वीकरण"),
     ]
     html_parts.append('<div class="toc-page">')
     html_parts.append('<div class="toc-title">विषय सूची</div>')
@@ -4885,6 +4893,9 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         '<div style="text-align:center; margin-top:15px; font-style:italic; '
         'color:#8B0000; font-size:11pt;">'
         '"सजग रहें। सही कर्म करें। अपना मार्ग स्वयं बनाएँ।"</div>')
+    html_parts.append(
+        '<div style="text-align:center; margin-top:10px; color:#666; font-size:9pt;">'
+        '\u00a9 AstroShuklz (astroshuklz@shuklz.com)</div>')
 
     html_parts.append('</div>')  # close content-section div
     html_parts.append("</body></html>")
@@ -5017,15 +5028,21 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         # Try to load a nice font for the name overlay
         # Prefer system fonts with good Latin support; fall back to bundled Devanagari
         cover_font = None
-        cover_font_size = 36
+        cover_font_size = 42
         font_candidates = [
+            # macOS
             "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
             "/System/Library/Fonts/Helvetica.ttc",
             "/System/Library/Fonts/SFNS.ttf",
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansDevanagari.ttf"),
-            # Linux system fonts
+            # Linux — Latin-capable fonts FIRST (before Devanagari)
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+            # Bundled Devanagari as last resort
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansDevanagari.ttf"),
         ]
         for fc in font_candidates:
             try:
@@ -5083,6 +5100,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ("6", "Sade Sati \u2014 Analysis &amp; Remedies"),
         ("7", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
         ("8", "Current Period Analysis &amp; Guidance"),
+        ("9", "Disclaimer"),
     ]
 
     # Build TOC as a clean table
@@ -6351,6 +6369,12 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ParagraphStyle('DiscQuote', parent=disc_style,
             alignment=TA_CENTER, fontName='Helvetica-Oblique',
             textColor=MAROON, fontSize=10)))
+    story.append(Spacer(1, 3*mm))
+    story.append(Paragraph(
+        '\u00a9 AstroShuklz (astroshuklz@shuklz.com)',
+        ParagraphStyle('DiscCopy', parent=disc_style,
+            alignment=TA_CENTER, fontName='Helvetica',
+            textColor=colors.HexColor("#666666"), fontSize=9)))
 
     doc.build(story)
 
