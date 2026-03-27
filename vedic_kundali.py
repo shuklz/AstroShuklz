@@ -4570,9 +4570,10 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                 varg_str = ""
 
             row_style = ""
-            if rank == 1:
+            has_varg_check = has_varg if plist else False
+            if rank == 1 and (navamsha.get('nav_asc_vargottama') or plist):
                 row_style = ' style="background:#FFF3CD; font-weight:bold;"'
-            elif has_varg if plist else False:
+            elif has_varg_check:
                 row_style = ' style="background:#E8F5E9;"'
 
             html_parts.append(f"<tr{row_style}><td>{rank}</td><td><b>{house_num}</b></td>"
@@ -5821,9 +5822,11 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             ('RIGHTPADDING', (0, 0), (-1, -1), 3),
         ]
 
-        # Highlight Row 1 (Nav Lagna) with golden background
-        nav_style_rules.append(('BACKGROUND', (0, 1), (-1, 1), GOLD_BG))
-        nav_style_rules.append(('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'))
+        # Highlight Row 1 (Nav Lagna) only if it has planets or Lagna is Vargottama
+        nav_lagna_has_planets = bool(nav_house_planets.get(1, []))
+        if navamsha.get('nav_asc_vargottama') or nav_lagna_has_planets:
+            nav_style_rules.append(('BACKGROUND', (0, 1), (-1, 1), GOLD_BG))
+            nav_style_rules.append(('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'))
 
         # Highlight Vargottama rows in light green
         for vr in varg_rows:
