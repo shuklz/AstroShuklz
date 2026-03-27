@@ -4134,6 +4134,15 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
     html_parts.append(f'<div class="info" style="font-size:11pt; color:#444; font-weight:bold;">{bd["name"]}</div>')
     html_parts.append(f'<div class="info">{bd["day"]:02d}/{bd["month"]:02d}/{bd["year"]}  '
                        f'{bd["hour"]:02d}:{bd["minute"]:02d}  ·  {bd["place"]}</div>')
+    # Coordinates line (Hindi)
+    _hi_utc = bd['utc_offset']
+    _hi_us = "+" if _hi_utc >= 0 else "-"
+    _hi_uh = int(abs(_hi_utc))
+    _hi_um = int((abs(_hi_utc) - _hi_uh) * 60)
+    _hi_ustr = f"UTC{_hi_us}{_hi_uh}" + (f":{_hi_um:02d}" if _hi_um else "")
+    html_parts.append(f'<div class="info" style="font-size:8pt; color:#888;">'
+                       f'({bd["lat"]:.4f}°N, {bd["lon"]:.4f}°E  ·  {_hi_ustr}  ·  '
+                       f'लाहिरी अयनांश  ·  स्विस एफेमेरिस)</div>')
     html_parts.append(f'<div class="info">लग्न: {SIGNS_HI_FULL[asc_sign]} '
                        f'{dms_str(chart["asc_deg"])}  ·  '
                        f'राशि: {SIGNS_HI_FULL[moon_sign]}  ·  '
@@ -4272,6 +4281,36 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         'प्रथम भवन की पंक्ति तालिका में '
         '<span style="color:#DAA520;"><b>स्वर्ण रंग</b></span> में चिह्नित है।'
         '</div>')
+
+    # Calculation methodology (Hindi)
+    _utc_off_h = bd['utc_offset']
+    _utc_sign_h = "+" if _utc_off_h >= 0 else "-"
+    _utc_hh = int(abs(_utc_off_h))
+    _utc_mm = int((abs(_utc_off_h) - _utc_hh) * 60)
+    _utc_str_h = f"UTC{_utc_sign_h}{_utc_hh}" + (f":{_utc_mm:02d}" if _utc_mm else "")
+
+    html_parts.append(
+        '<div class="reading"><b>गणना पद्धति — आपका लग्न कैसे निर्धारित किया गया:</b></div>'
+        '<div class="reading">'
+        'लग्न कुण्डली का सबसे समय-संवेदनशील बिंदु है — कुछ मिनटों का अंतर भी आपकी उदय राशि बदल सकता है। '
+        'सटीकता तीन महत्वपूर्ण तत्वों पर निर्भर करती है:</div>')
+    html_parts.append(
+        f'<div class="reading"><b>(क) भौगोलिक निर्देशांक:</b> '
+        f'आपका जन्म स्थान <b>{bd["place"]}</b> को निर्देशांक '
+        f'<b>{bd["lat"]:.4f}°N, {bd["lon"]:.4f}°E</b> पर मैप किया गया है। '
+        f'ये हमारे सत्यापित शहर डेटाबेस से प्राप्त हैं। सटीक अक्षांश और देशांतर '
+        f'निर्धारित करते हैं कि जन्म के समय कौन सा अंश पूर्वी क्षितिज पर उदय हो रहा था।</div>')
+    html_parts.append(
+        f'<div class="reading"><b>(ख) समय क्षेत्र ऑफसेट:</b> '
+        f'हमने {bd["place"]} के लिए <b>{_utc_str_h}</b> मानक समय ऑफसेट का उपयोग किया है। '
+        f'यह वैदिक ज्योतिषियों द्वारा अनुशंसित मानक ऑफसेट है और क्षेत्र के आधिकारिक समय क्षेत्र का अनुसरण करता है। '
+        f'ग्रह स्थिति की गणना से पहले जन्म समय को इस ऑफसेट द्वारा सार्वभौमिक समय (UT) में बदला जाता है।</div>')
+    html_parts.append(
+        '<div class="reading"><b>(ग) पंचांग और अयनांश:</b> '
+        'ग्रह स्थितियों की गणना <b>स्विस एफेमेरिस</b> (खगोलीय गणना का स्वर्ण मानक, '
+        'NASA और विश्वभर के पेशेवर ज्योतिष सॉफ्टवेयर द्वारा उपयोग किया जाता है) से की गई है। '
+        'हम <b>लाहिरी अयनांश</b> (चित्रपक्ष) लागू करते हैं — वैदिक ज्योतिष में सबसे व्यापक रूप से '
+        'स्वीकृत अयनांश जो भारत सरकार की पंचांग सुधार समिति द्वारा आधिकारिक रूप से अपनाया गया है।</div>')
 
     html_parts.append(
         '<div class="reading"><b>अंश व्याख्या:</b> '
@@ -5203,10 +5242,24 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     story.append(Paragraph("जन्म कुण्डली", title_style))
     story.append(Paragraph("by AstroShuklz", brand_style))
     story.append(Paragraph(f"{bd['name']}", subtitle_style))
+    # Format UTC offset nicely
+    utc_off = bd['utc_offset']
+    utc_sign = "+" if utc_off >= 0 else "-"
+    utc_h = int(abs(utc_off))
+    utc_m = int((abs(utc_off) - utc_h) * 60)
+    utc_str = f"UTC{utc_sign}{utc_h}" + (f":{utc_m:02d}" if utc_m else "")
+
     story.append(Paragraph(
         f"{bd['day']:02d}/{bd['month']:02d}/{bd['year']}  &nbsp; "
         f"{bd['hour']:02d}:{bd['minute']:02d}  &nbsp;·&nbsp; {bd['place']}",
         info_style))
+    # Coordinates and offset line
+    coord_style = ParagraphStyle('CoordStyle', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=7.5, textColor=colors.HexColor("#888"),
+        alignment=TA_CENTER, spaceBefore=1*mm, spaceAfter=2*mm)
+    story.append(Paragraph(
+        f"({bd['lat']:.4f}°N, {bd['lon']:.4f}°E  ·  {utc_str}  ·  Lahiri Ayanamsha  ·  Swiss Ephemeris)",
+        coord_style))
 
     summary = (f"Lagna: {chart['asc_sign_en']} ({chart['asc_sign_hi']}) "
                f"{dms_str(chart['asc_deg'])}  &nbsp;·&nbsp; "
@@ -5454,6 +5507,39 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         'The 1st House row is <font color="#DAA520"><b>highlighted in gold</b></font> '
         'in the table above.',
         note_style))
+
+    # Calculation methodology
+    utc_off_bd = bd['utc_offset']
+    utc_sign_bd = "+" if utc_off_bd >= 0 else "-"
+    utc_h_bd = int(abs(utc_off_bd))
+    utc_m_bd = int((abs(utc_off_bd) - utc_h_bd) * 60)
+    utc_str_bd = f"UTC{utc_sign_bd}{utc_h_bd}" + (f":{utc_m_bd:02d}" if utc_m_bd else "")
+
+    story.append(Paragraph("<b>Calculation Methodology — How We Derived Your Ascendant:</b>", note_style))
+    story.append(Paragraph(
+        f'The Ascendant is the most time-sensitive point in your chart — even a few minutes '
+        f'difference can change your Rising Sign. Accuracy depends on three critical inputs:',
+        note_style))
+    story.append(Paragraph(
+        f'<b>(a) Geographic Coordinates:</b> Your birth place <b>{bd["place"]}</b> is mapped to '
+        f'coordinates <b>{bd["lat"]:.4f}°N, {bd["lon"]:.4f}°E</b>. These are sourced from our '
+        f'verified city database (cross-referenced with geographic databases). The exact latitude '
+        f'and longitude determine which degree of the zodiac was rising on the eastern horizon at your birth.',
+        note_style))
+    story.append(Paragraph(
+        f'<b>(b) Time Zone Offset:</b> We use <b>{utc_str_bd}</b> as the standard time offset for '
+        f'{bd["place"]}. This is the standard offset recommended by Vedic astrologers and follows the '
+        f'official timezone of the region. The birth time is converted to Universal Time (UT) using this '
+        f'offset before computing planetary positions.',
+        note_style))
+    story.append(Paragraph(
+        f'<b>(c) Ephemeris & Ayanamsha:</b> Planetary positions are computed using the <b>Swiss Ephemeris</b> '
+        f'(the gold standard in astronomical computation, used by NASA and professional astrology software worldwide). '
+        f'We apply the <b>Lahiri Ayanamsha</b> (Chitrapaksha) — the most widely accepted ayanamsha in Vedic astrology '
+        f'and officially adopted by the Indian Government\'s Calendar Reform Committee. This converts tropical '
+        f'(Western) longitudes to sidereal (Vedic) longitudes.',
+        note_style))
+    story.append(Spacer(1, 2*mm))
 
     # Degree interpretation
     story.append(Paragraph("<b>Degree Interpretation:</b>", note_style))
