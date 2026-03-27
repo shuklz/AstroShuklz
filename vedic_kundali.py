@@ -2514,7 +2514,10 @@ def calculate_sade_sati(moon_sign_idx, birth_year):
 
     today = datetime.now()
     scan_start = birth_year - 5   # catch a cycle that may have started before birth
-    scan_end = birth_year + 95
+    # Ensure we always scan at least 35 years into the future to find upcoming cycles
+    # (Saturn's orbital period is ~29.5 years)
+    current_year = datetime.now().year
+    scan_end = max(birth_year + 120, current_year + 35)
 
     # --- Pass 1: Scan at 15-day intervals to find raw in/out transitions ---
     raw_segments = []  # list of (date, sign) tuples where Saturn is in a SS sign
