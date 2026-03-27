@@ -5625,13 +5625,16 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
     # Build House Rulers table
     strength_data = calculate_planet_strength(chart)
+    # White text style for header on dark background
+    hr_hdr_style = ParagraphStyle('HRHeader', parent=cell_center_bold,
+        textColor=colors.white, fontSize=8)
     hr_header = [
-        Paragraph('<b>House</b>', cell_center_bold),
-        Paragraph('<b>Bhav</b>', cell_center_bold),
-        Paragraph('<b>Sign</b>', cell_center_bold),
-        Paragraph('<b>Ruler</b>', cell_center_bold),
-        Paragraph('<b>Score</b>', cell_center_bold),
-        Paragraph('<b>Strength</b>', cell_center_bold),
+        Paragraph('<b>House</b>', hr_hdr_style),
+        Paragraph('<b>Bhav</b>', hr_hdr_style),
+        Paragraph('<b>Sign</b>', hr_hdr_style),
+        Paragraph('<b>Ruler</b>', hr_hdr_style),
+        Paragraph('<b>Score</b>', hr_hdr_style),
+        Paragraph('<b>Strength</b>', hr_hdr_style),
     ]
     hr_data = [hr_header]
 
