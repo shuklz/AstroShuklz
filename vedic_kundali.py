@@ -4332,6 +4332,48 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         'शासित जीवन क्षेत्र का वर्णन करता है। किसी भवन में स्थित ग्रह अपने '
         'प्राकृतिक कारकत्व के अनुसार उन जीवन क्षेत्रों को प्रभावित करते हैं।</div>')
 
+    # 5. House Rulers (Hindi)
+    PLANET_HI_RULER = {
+        "Sun": "सूर्य", "Moon": "चन्द्र", "Mars": "मंगल", "Mercury": "बुध",
+        "Jupiter": "गुरु", "Venus": "शुक्र", "Saturn": "शनि",
+        "Rahu": "राहु", "Ketu": "केतु",
+    }
+    BHAV_SHORT_HI = {1:"तनु", 2:"धन", 3:"सहज", 4:"सुख", 5:"पुत्र", 6:"अरि",
+                     7:"कलत्र", 8:"रन्ध्र", 9:"धर्म", 10:"कर्म", 11:"लाभ", 12:"व्यय"}
+    STRENGTH_HI = {"Strong": "बलवान", "Moderate": "मध्यम", "Weak": "दुर्बल"}
+
+    html_parts.append(
+        '<h3 style="color:#8B0000;">5. भवनेश (भाव स्वामी)</h3>'
+        '<div class="reading">'
+        'प्रत्येक भवन का स्वामी वह ग्रह होता है जो उस भवन में स्थित राशि का मालिक है। '
+        'स्वामी ग्रह की शक्ति (ग्रह बल सारणी से) उस भवन के परिणामों को सीधे प्रभावित करती है। '
+        'बलवान स्वामी भवन के वादे पूरे करता है; दुर्बल स्वामी विलम्ब या कठिनाइयाँ ला सकता है।</div>')
+
+    html_parts.append('<table><tr style="background:#8B0000; color:white;">'
+                      '<th>भवन</th><th>भाव</th><th>राशि</th>'
+                      '<th>स्वामी</th><th>बल</th><th>स्थिति</th></tr>')
+    for h in range(1, 13):
+        sign_idx = (asc_sign + h - 1) % 12
+        sign_name = SIGNS_EN[sign_idx]
+        rashi_hi = SIGNS_HI_TBL[sign_idx]
+        ruler_en = SIGN_RULERS_HI_MAP.get(sign_name, "") if 'SIGN_RULERS_HI_MAP' in dir() else _SIGN_RULERS_IDX[sign_idx]
+        ruler_hi = PLANET_HI_RULER.get(ruler_en, ruler_en)
+        score = strength_data.get(ruler_en, {}).get('score', 0)
+        if score >= 70:
+            s_label = STRENGTH_HI["Strong"]
+            s_color = "#006400"
+        elif score >= 40:
+            s_label = STRENGTH_HI["Moderate"]
+            s_color = "#B8860B"
+        else:
+            s_label = STRENGTH_HI["Weak"]
+            s_color = "#CC0000"
+        html_parts.append(
+            f'<tr><td><b>{h}</b></td><td>{BHAV_SHORT_HI.get(h,"")}</td>'
+            f'<td>{rashi_hi}</td><td><b>{ruler_hi}</b></td><td>{score}/100</td>'
+            f'<td style="color:{s_color};"><b>{s_label}</b></td></tr>')
+    html_parts.append('</table>')
+
     # ── Hindi Bhava Reading Page ─────────────────────────────────
     bhava_readings_hi = generate_bhava_readings(chart, strength_data, lang="hi")
 
@@ -5483,8 +5525,75 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         'influence those life areas according to their natural significations.',
         note_style))
 
-    # ── Bhava (House) Reading Pages ──────────────────────────────
+    # 5. HOUSE RULERS (Bhavesh)
+    story.append(Paragraph("5. House Rulers (Bhavesh)", note_heading))
+    story.append(Paragraph(
+        'Each house is ruled by the planet that owns the sign occupying it. '
+        'The ruler\'s strength (from the Planet Strength Scorecard) directly impacts '
+        'that house\'s results. A strong ruler delivers the house\'s promise; a weak '
+        'ruler may cause delays or difficulties in that life area.',
+        note_style))
+    story.append(Spacer(1, 2*mm))
+
+    # Build House Rulers table
     strength_data = calculate_planet_strength(chart)
+    hr_header = [
+        Paragraph('<b>House</b>', cell_center_bold),
+        Paragraph('<b>Bhav</b>', cell_center_bold),
+        Paragraph('<b>Sign</b>', cell_center_bold),
+        Paragraph('<b>Ruler</b>', cell_center_bold),
+        Paragraph('<b>Score</b>', cell_center_bold),
+        Paragraph('<b>Strength</b>', cell_center_bold),
+    ]
+    hr_data = [hr_header]
+
+    BHAV_SHORT = {1:"Tanu", 2:"Dhana", 3:"Sahaja", 4:"Sukha", 5:"Putra", 6:"Ari",
+                  7:"Kalatra", 8:"Randhra", 9:"Dharma", 10:"Karma", 11:"Labha", 12:"Vyaya"}
+
+    for h in range(1, 13):
+        sign_idx = (asc_sign + h - 1) % 12
+        sign_name = SIGNS_EN[sign_idx]
+        ruler = SIGN_RULERS.get(sign_name, "")
+        score = strength_data.get(ruler, {}).get('score', 0) if ruler else 0
+        if score >= 70:
+            strength_label = "Strong"
+            strength_color = "#006400"
+        elif score >= 40:
+            strength_label = "Moderate"
+            strength_color = "#B8860B"
+        else:
+            strength_label = "Weak"
+            strength_color = "#CC0000"
+
+        hr_row = [
+            Paragraph(f'<b>{h}</b>', cell_center_bold),
+            Paragraph(BHAV_SHORT.get(h, ""), cell_center),
+            Paragraph(sign_name, cell_center),
+            Paragraph(f'<b>{ruler}</b>', cell_center_bold),
+            Paragraph(f'{score}/100', cell_center),
+            Paragraph(f'<font color="{strength_color}"><b>{strength_label}</b></font>', cell_center),
+        ]
+        hr_data.append(hr_row)
+
+    hr_col_widths = [45, 55, 75, 65, 55, 70]
+    hr_table = Table(hr_data, colWidths=hr_col_widths, repeatRows=1)
+    hr_style_rules = [
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8B0000")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.white),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFF8F0"), colors.white]),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+    ]
+    hr_table.setStyle(TableStyle(hr_style_rules))
+    story.append(hr_table)
+    story.append(Spacer(1, 3*mm))
+
+    # ── Bhava (House) Reading Pages ──────────────────────────────
     bhava_readings = generate_bhava_readings(chart, strength_data, lang="en")
 
     story.append(PageBreak())
