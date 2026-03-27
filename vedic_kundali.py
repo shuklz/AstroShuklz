@@ -3987,8 +3987,21 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         if _cfont is None:
             _cfont = ImageFont.load_default()
 
+        # Auto-scale font if name is too wide (keep 10% margin each side)
+        _max_tw = int(_cw * 0.80)
+        _cfs = 36
         _bbox = _cdraw.textbbox((0, 0), _name_text, font=_cfont)
         _tw = _bbox[2] - _bbox[0]
+        while _tw > _max_tw and _cfs > 18:
+            _cfs -= 2
+            for _fc in _cfont_candidates:
+                try:
+                    _cfont = ImageFont.truetype(_fc, _cfs)
+                    break
+                except Exception:
+                    continue
+            _bbox = _cdraw.textbbox((0, 0), _name_text, font=_cfont)
+            _tw = _bbox[2] - _bbox[0]
         _tx = (_cw - _tw) // 2
         _ty = int(_ch * 0.62)
         _cdraw.text((_tx + 2, _ty + 2), _name_text, font=_cfont, fill=(0, 0, 0, 160))
@@ -5054,9 +5067,22 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         if cover_font is None:
             cover_font = ImageFont.load_default()
 
-        # Measure text and center it at ~62% down
+        # Auto-scale font if name is too wide (keep 10% margin each side)
+        max_text_w = int(img_w * 0.80)
         bbox = draw.textbbox((0, 0), name_text, font=cover_font)
         text_w = bbox[2] - bbox[0]
+        while text_w > max_text_w and cover_font_size > 20:
+            cover_font_size -= 2
+            for fc in font_candidates:
+                try:
+                    cover_font = ImageFont.truetype(fc, cover_font_size)
+                    break
+                except Exception:
+                    continue
+            bbox = draw.textbbox((0, 0), name_text, font=cover_font)
+            text_w = bbox[2] - bbox[0]
+
+        # Center text at ~62% down
         text_x = (img_w - text_w) // 2
         text_y = int(img_h * 0.62)
 
