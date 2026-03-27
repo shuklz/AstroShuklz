@@ -124,6 +124,13 @@ SPECIAL_ASPECTS = {
     "Jupiter": [5, 9],    # 5th and 9th house aspect
     "Saturn": [3, 10],    # 3rd and 10th house aspect
 }
+# Navamsha (D-9) starting signs by element
+NAVAMSHA_START = {
+    0: 0, 4: 0, 8: 0,    # Fire signs (Aries/Leo/Sag) → start from Aries
+    1: 9, 5: 9, 9: 9,    # Earth signs (Tau/Vir/Cap) → start from Capricorn
+    2: 6, 6: 6, 10: 6,   # Air signs (Gem/Lib/Aqu) → start from Libra
+    3: 3, 7: 3, 11: 3,   # Water signs (Can/Sco/Pis) → start from Cancer
+}
 # House placement scores
 HOUSE_SCORES = {1:20, 4:20, 7:20, 10:20, 5:18, 9:18,
                 3:14, 6:14, 11:14, 2:12, 8:5, 12:5}
@@ -508,6 +515,95 @@ PLANET_IN_HOUSE_HI = {
     },
 }
 
+# ─── Navamsha (D-9) Interpretation Data ──────────────────────────────────────
+
+# Navamsha Lagna interpretations (12 signs)
+NAVAMSHA_LAGNA_EN = {
+    0: "Aries Navamsha Lagna reveals a soul driven by initiative, courage, and pioneering spirit. Your inner nature is assertive and independent. Over time, you develop strong leadership qualities and a desire to forge new paths.",
+    1: "Taurus Navamsha Lagna reveals a soul seeking stability, comfort, and material security. Your inner nature values beauty, loyalty, and steady growth. You develop patience and a deep appreciation for life's pleasures.",
+    2: "Gemini Navamsha Lagna reveals a soul driven by intellectual curiosity and communication. Your inner nature is adaptable, witty, and versatile. You develop through knowledge, networking, and diverse experiences.",
+    3: "Cancer Navamsha Lagna reveals a soul seeking emotional security and nurturing connections. Your inner nature is caring, intuitive, and deeply sensitive. You develop through family bonds and emotional wisdom.",
+    4: "Leo Navamsha Lagna reveals a soul driven by creativity, self-expression, and leadership. Your inner nature is confident, generous, and dramatic. You develop through creative pursuits and inspiring others.",
+    5: "Virgo Navamsha Lagna reveals a soul seeking perfection, service, and analytical clarity. Your inner nature is practical, detail-oriented, and health-conscious. You develop through service and self-improvement.",
+    6: "Libra Navamsha Lagna reveals a soul driven by harmony, partnership, and aesthetic beauty. Your inner nature values balance, diplomacy, and fairness. You develop through relationships and artistic expression.",
+    7: "Scorpio Navamsha Lagna reveals a soul driven by transformation, depth, and intensity. Your inner nature is powerful, researching, and secretive. You develop through crisis, rebirth, and uncovering hidden truths.",
+    8: "Sagittarius Navamsha Lagna reveals a soul seeking wisdom, higher knowledge, and dharmic living. Your inner nature is philosophical, optimistic, and truth-seeking. You develop through travel, teaching, and spiritual growth.",
+    9: "Capricorn Navamsha Lagna reveals a soul driven by ambition, discipline, and responsibility. Your inner nature is structured, hardworking, and goal-oriented. You develop through perseverance and building lasting achievements.",
+    10: "Aquarius Navamsha Lagna reveals a soul seeking humanitarian ideals, innovation, and independence. Your inner nature is progressive, unconventional, and community-minded. You develop through social reform and original thinking.",
+    11: "Pisces Navamsha Lagna reveals a soul driven by spirituality, compassion, and transcendence. Your inner nature is intuitive, imaginative, and deeply empathetic. You develop through devotion, art, and selfless service.",
+}
+
+NAVAMSHA_LAGNA_HI = {
+    0: "मेष नवांश लग्न पहल, साहस और अग्रणी भावना से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव दृढ़ और स्वतंत्र है। समय के साथ आप मजबूत नेतृत्व गुण विकसित करते हैं।",
+    1: "वृषभ नवांश लग्न स्थिरता, आराम और भौतिक सुरक्षा चाहने वाली आत्मा को दर्शाता है। आपका आंतरिक स्वभाव सौंदर्य, वफादारी और स्थिर विकास को महत्व देता है।",
+    2: "मिथुन नवांश लग्न बौद्धिक जिज्ञासा और संचार से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव अनुकूलनशील, बुद्धिमान और बहुमुखी है।",
+    3: "कर्क नवांश लग्न भावनात्मक सुरक्षा और पोषण संबंधों की तलाश करने वाली आत्मा को दर्शाता है। आपका आंतरिक स्वभाव देखभाल करने वाला, सहज और गहरा संवेदनशील है।",
+    4: "सिंह नवांश लग्न रचनात्मकता, आत्म-अभिव्यक्ति और नेतृत्व से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव आत्मविश्वासी, उदार और प्रभावशाली है।",
+    5: "कन्या नवांश लग्न पूर्णता, सेवा और विश्लेषणात्मक स्पष्टता चाहने वाली आत्मा को दर्शाता है। आपका आंतरिक स्वभाव व्यावहारिक और विस्तार-उन्मुख है।",
+    6: "तुला नवांश लग्न सद्भाव, साझेदारी और सौंदर्यात्मक सुंदरता से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव संतुलन और कूटनीति को महत्व देता है।",
+    7: "वृश्चिक नवांश लग्न परिवर्तन, गहराई और तीव्रता से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव शक्तिशाली, गहन अनुसंधानी और रहस्यमय है।",
+    8: "धनु नवांश लग्न ज्ञान, उच्च शिक्षा और धार्मिक जीवन चाहने वाली आत्मा को दर्शाता है। आपका आंतरिक स्वभाव दार्शनिक, आशावादी और सत्य-खोजी है।",
+    9: "मकर नवांश लग्न महत्वाकांक्षा, अनुशासन और जिम्मेदारी से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव संरचित, कर्मठ और लक्ष्य-उन्मुख है।",
+    10: "कुंभ नवांश लग्न मानवतावादी आदर्शों, नवाचार और स्वतंत्रता चाहने वाली आत्मा को दर्शाता है। आपका आंतरिक स्वभाव प्रगतिशील और समुदाय-उन्मुख है।",
+    11: "मीन नवांश लग्न आध्यात्मिकता, करुणा और उत्कर्ष से प्रेरित आत्मा को दर्शाता है। आपका आंतरिक स्वभाव सहज, कल्पनाशील और गहरा सहानुभूतिपूर्ण है।",
+}
+
+# 7th house of Navamsha - Marriage/Spouse indicators
+NAVAMSHA_7TH_EN = {
+    0: "Aries on the 7th house of Navamsha suggests a spouse who is assertive, energetic, and independent. The marriage dynamic involves initiative and passion. Your partner may have strong leadership qualities.",
+    1: "Taurus on the 7th house of Navamsha suggests a spouse who is stable, loyal, and comfort-loving. The marriage is grounded in material security and sensual pleasures. Your partner values tradition.",
+    2: "Gemini on the 7th house of Navamsha suggests a spouse who is communicative, intellectual, and versatile. The marriage thrives on mental stimulation and variety. Your partner may be youthful in spirit.",
+    3: "Cancer on the 7th house of Navamsha suggests a spouse who is nurturing, emotional, and family-oriented. The marriage is deeply caring and protective. Your partner values emotional bonding.",
+    4: "Leo on the 7th house of Navamsha suggests a spouse who is confident, creative, and generous. The marriage involves mutual respect and admiration. Your partner may have a commanding presence.",
+    5: "Virgo on the 7th house of Navamsha suggests a spouse who is practical, analytical, and service-oriented. The marriage values organization and health. Your partner is detail-conscious and helpful.",
+    6: "Libra on the 7th house of Navamsha suggests a spouse who is diplomatic, charming, and harmony-seeking. The marriage is balanced and aesthetically refined. Your partner values fairness and beauty.",
+    7: "Scorpio on the 7th house of Navamsha suggests a spouse who is intense, passionate, and transformative. The marriage involves deep emotional bonding. Your partner has magnetic personality.",
+    8: "Sagittarius on the 7th house of Navamsha suggests a spouse who is philosophical, adventurous, and optimistic. The marriage involves shared beliefs and exploration. Your partner values freedom.",
+    9: "Capricorn on the 7th house of Navamsha suggests a spouse who is disciplined, ambitious, and responsible. The marriage is structured and goal-oriented. Your partner values commitment and status.",
+    10: "Aquarius on the 7th house of Navamsha suggests a spouse who is progressive, independent, and humanitarian. The marriage is unconventional and friendship-based. Your partner values individuality.",
+    11: "Pisces on the 7th house of Navamsha suggests a spouse who is spiritual, compassionate, and imaginative. The marriage involves deep soul connection and empathy. Your partner is intuitive and selfless.",
+}
+
+NAVAMSHA_7TH_HI = {
+    0: "नवांश के 7वें भाव में मेष एक ऐसे जीवनसाथी का संकेत देता है जो दृढ़, ऊर्जावान और स्वतंत्र है। विवाह में पहल और जुनून शामिल है।",
+    1: "नवांश के 7वें भाव में वृषभ एक स्थिर, वफादार और आराम-प्रेमी जीवनसाथी का संकेत देता है। विवाह भौतिक सुरक्षा पर आधारित है।",
+    2: "नवांश के 7वें भाव में मिथुन एक संवादशील, बौद्धिक और बहुमुखी जीवनसाथी का संकेत देता है। विवाह मानसिक उत्तेजना पर पनपता है।",
+    3: "नवांश के 7वें भाव में कर्क एक पोषण करने वाले, भावनात्मक और परिवार-उन्मुख जीवनसाथी का संकेत देता है।",
+    4: "नवांश के 7वें भाव में सिंह एक आत्मविश्वासी, रचनात्मक और उदार जीवनसाथी का संकेत देता है।",
+    5: "नवांश के 7वें भाव में कन्या एक व्यावहारिक, विश्लेषणात्मक और सेवा-उन्मुख जीवनसाथी का संकेत देता है।",
+    6: "नवांश के 7वें भाव में तुला एक कूटनीतिक, आकर्षक और सामंजस्य-प्रेमी जीवनसाथी का संकेत देता है।",
+    7: "नवांश के 7वें भाव में वृश्चिक एक तीव्र, भावुक और परिवर्तनकारी जीवनसाथी का संकेत देता है।",
+    8: "नवांश के 7वें भाव में धनु एक दार्शनिक, साहसी और आशावादी जीवनसाथी का संकेत देता है।",
+    9: "नवांश के 7वें भाव में मकर एक अनुशासित, महत्वाकांक्षी और जिम्मेदार जीवनसाथी का संकेत देता है।",
+    10: "नवांश के 7वें भाव में कुंभ एक प्रगतिशील, स्वतंत्र और मानवतावादी जीवनसाथी का संकेत देता है।",
+    11: "नवांश के 7वें भाव में मीन एक आध्यात्मिक, दयालु और कल्पनाशील जीवनसाथी का संकेत देता है।",
+}
+
+# Vargottama planet interpretations
+VARGOTTAMA_EN = {
+    "Sun": "Your Sun is Vargottama — your sense of authority, self-identity, and soul purpose is deeply confirmed. You carry natural leadership and clarity of purpose that strengthens with age.",
+    "Moon": "Your Moon is Vargottama — your emotional nature and mental stability are exceptionally strong. You have a naturally settled mind and strong intuitive abilities.",
+    "Mars": "Your Mars is Vargottama — your courage, energy, and drive are powerfully confirmed. You possess unwavering determination and physical vitality.",
+    "Mercury": "Your Mercury is Vargottama — your intellect, communication skills, and analytical abilities are deeply confirmed. You excel in learning and articulation.",
+    "Jupiter": "Your Jupiter is Vargottama — your wisdom, spirituality, and fortune are powerfully confirmed. You are blessed with genuine knowledge and dharmic guidance.",
+    "Venus": "Your Venus is Vargottama — your capacity for love, beauty, and luxury is deeply confirmed. Relationships and artistic talents are naturally strong.",
+    "Saturn": "Your Saturn is Vargottama — your discipline, perseverance, and karmic lessons are powerfully confirmed. You have extraordinary endurance and practical wisdom.",
+    "Rahu": "Your Rahu is Vargottama — your worldly ambitions and desires are intensely focused. Material pursuits carry strong karmic momentum from past lives.",
+    "Ketu": "Your Ketu is Vargottama — your spiritual detachment and past-life wisdom are deeply confirmed. You have natural inclination toward moksha and spiritual liberation.",
+}
+
+VARGOTTAMA_HI = {
+    "Sun": "आपका सूर्य वर्गोत्तम है — आपकी अधिकार भावना, आत्म-पहचान और जीवन उद्देश्य गहराई से पुष्ट है। आप प्राकृतिक नेतृत्व और उद्देश्य की स्पष्टता रखते हैं।",
+    "Moon": "आपका चन्द्र वर्गोत्तम है — आपका भावनात्मक स्वभाव और मानसिक स्थिरता असाधारण रूप से मजबूत है। आपके पास स्वाभाविक रूप से स्थिर मन है।",
+    "Mars": "आपका मंगल वर्गोत्तम है — आपका साहस, ऊर्जा और संकल्प शक्तिशाली रूप से पुष्ट है। आप अटल दृढ़ संकल्प रखते हैं।",
+    "Mercury": "आपका बुध वर्गोत्तम है — आपकी बुद्धि, संवाद कौशल और विश्लेषणात्मक क्षमताएं गहराई से पुष्ट हैं।",
+    "Jupiter": "आपका गुरु वर्गोत्तम है — आपका ज्ञान, आध्यात्मिकता और भाग्य शक्तिशाली रूप से पुष्ट है।",
+    "Venus": "आपका शुक्र वर्गोत्तम है — प्रेम, सौंदर्य और विलासिता की आपकी क्षमता गहराई से पुष्ट है।",
+    "Saturn": "आपका शनि वर्गोत्तम है — आपका अनुशासन, दृढ़ता और कार्मिक सबक शक्तिशाली रूप से पुष्ट है।",
+    "Rahu": "आपका राहु वर्गोत्तम है — आपकी सांसारिक महत्वाकांक्षाएं तीव्रता से केंद्रित हैं।",
+    "Ketu": "आपका केतु वर्गोत्तम है — आपका आध्यात्मिक वैराग्य और पूर्व जन्म का ज्ञान गहराई से पुष्ट है।",
+}
+
 
 def generate_bhava_readings(chart, strength_data, lang="en"):
     """
@@ -871,6 +967,145 @@ def pratyantar_dasha(antar_lord, antar_start, antar_duration_years):
     return sub_periods
 
 
+# ─── Navamsha (D-9) Calculation ──────────────────────────────────────────────
+
+def _navamsha_sign(lon):
+    """Given sidereal longitude (0-360), return navamsha sign index (0-11)."""
+    sign_idx = int(lon / 30) % 12
+    deg_in_sign = lon % 30
+    pada = min(int(deg_in_sign / (30.0 / 9)), 8)  # 0-8
+    start = NAVAMSHA_START[sign_idx]
+    return (start + pada) % 12
+
+
+def calculate_navamsha(planets, asc_lon):
+    """Compute Navamsha (D-9) positions for all planets and ascendant."""
+    nav_asc_idx = _navamsha_sign(asc_lon)
+    natal_asc_idx = int(asc_lon / 30) % 12
+
+    navamsha_planets = {}
+    vargottama_list = []
+
+    for pname, pdata in planets.items():
+        nav_idx = _navamsha_sign(pdata['lon'])
+        is_varg = (pdata['sign_idx'] == nav_idx)
+        if is_varg:
+            vargottama_list.append(pname)
+        navamsha_planets[pname] = {
+            'nav_sign_idx': nav_idx,
+            'nav_sign_en': SIGNS_EN[nav_idx],
+            'nav_sign_hi': SIGNS_HI[nav_idx],
+            'natal_sign_idx': pdata['sign_idx'],
+            'natal_sign_en': pdata['sign_en'],
+            'is_vargottama': is_varg,
+            'deg': pdata['deg'],
+            'retro': pdata['retro'],
+        }
+
+    # Build house-to-planets mapping from Nav Lagna
+    nav_house_planets = {i: [] for i in range(1, 13)}
+    for pname, ndata in navamsha_planets.items():
+        h = (ndata['nav_sign_idx'] - nav_asc_idx) % 12 + 1
+        nav_house_planets[h].append(pname)
+
+    return {
+        'nav_asc_sign_idx': nav_asc_idx,
+        'nav_asc_sign_en': SIGNS_EN[nav_asc_idx],
+        'nav_asc_sign_hi': SIGNS_HI[nav_asc_idx],
+        'nav_asc_vargottama': (natal_asc_idx == nav_asc_idx),
+        'navamsha_planets': navamsha_planets,
+        'nav_house_planets': nav_house_planets,
+        'vargottama_planets': vargottama_list,
+    }
+
+
+def generate_navamsha_reading(chart, strength_data, lang="en"):
+    """Generate Navamsha reading as list of (heading, body_text) tuples."""
+    navamsha = chart.get('navamsha')
+    if not navamsha:
+        return []
+
+    readings = []
+    nav_asc_idx = navamsha['nav_asc_sign_idx']
+
+    # 1. Navamsha Lagna — Inner Nature
+    if lang == "hi":
+        lagna_text = NAVAMSHA_LAGNA_HI.get(nav_asc_idx, "")
+        if navamsha['nav_asc_vargottama']:
+            lagna_text += " लग्न वर्गोत्तम है — आपका बाहरी और आंतरिक स्वभाव एक ही राशि में है, जो आपके व्यक्तित्व को गहरा बल प्रदान करता है।"
+        readings.append(("नवांश लग्न — आंतरिक स्वभाव", lagna_text))
+    else:
+        lagna_text = NAVAMSHA_LAGNA_EN.get(nav_asc_idx, "")
+        if navamsha['nav_asc_vargottama']:
+            lagna_text += " Your Ascendant is Vargottama — the outer personality and inner soul are aligned in the same sign, giving exceptional strength to your character."
+        readings.append(("Navamsha Lagna — Inner Nature", lagna_text))
+
+    # 2. Vargottama Planets
+    varg_list = navamsha['vargottama_planets']
+    if varg_list:
+        if lang == "hi":
+            heading = "वर्गोत्तम ग्रह"
+            parts = []
+            for pname in varg_list:
+                txt = VARGOTTAMA_HI.get(pname, "")
+                if txt:
+                    parts.append(txt)
+            readings.append((heading, "\n\n".join(parts) if parts else "कोई वर्गोत्तम ग्रह नहीं।"))
+        else:
+            heading = "Vargottama Planets"
+            parts = []
+            for pname in varg_list:
+                txt = VARGOTTAMA_EN.get(pname, "")
+                if txt:
+                    parts.append(txt)
+            readings.append((heading, "\n\n".join(parts) if parts else "No vargottama planets."))
+    else:
+        if lang == "hi":
+            readings.append(("वर्गोत्तम ग्रह", "आपकी कुण्डली में कोई वर्गोत्तम ग्रह नहीं है। यह सामान्य है — अधिकांश कुण्डलियों में केवल एक या दो वर्गोत्तम ग्रह होते हैं।"))
+        else:
+            readings.append(("Vargottama Planets", "There are no vargottama planets in your chart. This is normal — most charts have only one or two vargottama planets, if any."))
+
+    # 3. 7th House — Marriage & Partnership
+    seventh_sign_idx = (nav_asc_idx + 6) % 12
+    if lang == "hi":
+        seventh_text = NAVAMSHA_7TH_HI.get(seventh_sign_idx, "")
+        readings.append(("7वाँ भाव — विवाह एवं साझेदारी", seventh_text))
+    else:
+        seventh_text = NAVAMSHA_7TH_EN.get(seventh_sign_idx, "")
+        readings.append(("7th House — Marriage & Partnership", seventh_text))
+
+    # 4. Dignity Changes — D-1 vs D-9
+    if strength_data:
+        order = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
+        nav_planets = navamsha['navamsha_planets']
+        dignity_parts = []
+        for pname in order:
+            if pname not in nav_planets:
+                continue
+            ndata = nav_planets[pname]
+            natal_idx = ndata['natal_sign_idx']
+            nav_idx = ndata['nav_sign_idx']
+            deg = ndata['deg']
+            d1_dignity, _ = _get_sign_dignity(pname, natal_idx, deg)
+            d9_dignity, _ = _get_sign_dignity(pname, nav_idx, deg)
+            if d1_dignity != d9_dignity:
+                if lang == "hi":
+                    d1_hi = DIGNITY_HI.get(d1_dignity, d1_dignity)
+                    d9_hi = DIGNITY_HI.get(d9_dignity, d9_dignity)
+                    p_hi = PLANET_HI_FULL.get(pname, pname)
+                    dignity_parts.append(f"{p_hi}: D-1 {d1_hi} → D-9 {d9_hi}")
+                else:
+                    dignity_parts.append(f"{pname}: D-1 {d1_dignity} → D-9 {d9_dignity}")
+
+        if dignity_parts:
+            if lang == "hi":
+                readings.append(("गरिमा परिवर्तन — D-1 बनाम D-9", "\n".join(dignity_parts)))
+            else:
+                readings.append(("Dignity Changes — D-1 vs D-9", "\n".join(dignity_parts)))
+
+    return readings
+
+
 # ─── Chart Drawing (Text + SVG) ───────────────────────────────────────────────
 
 def generate_chart(birth_data):
@@ -948,6 +1183,9 @@ def generate_chart(birth_data):
             pd_list = pratyantar_dasha(ad_lord, ad_start, ad_yrs)
             all_pratyantar[key] = pd_list
 
+    # 9. Navamsha (D-9) chart
+    navamsha = calculate_navamsha(planets, asc_lon)
+
     return {
         'birth_data': birth_data,
         'jd': jd,
@@ -961,6 +1199,7 @@ def generate_chart(birth_data):
         'pratyantar': all_pratyantar,
         'moon_rashi': planets['Moon']['sign_en'],
         'moon_rashi_hi': planets['Moon']['sign_hi'],
+        'navamsha': navamsha,
     }
 
 
@@ -3594,6 +3833,84 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
             '"आपका कर्म ही आपका सबसे बड़ा उपाय है। अपने कर्म बदलें, ग्रह स्वयं अनुकूल होंगे।"'
             '<br/>— शास्त्रीय वैदिक ज्ञान</div>')
 
+    # ── Hindi Navamsha (D-9) Pages ─────────────────────────────────
+    navamsha = chart.get('navamsha')
+    if navamsha:
+        html_parts.append('<div class="page-break"></div>')
+        html_parts.append("<h2>नवांश (D-9) — विभागीय चार्ट</h2>")
+        html_parts.append('<div class="brand">by AstroShuklz</div>')
+
+        nav_asc = navamsha['nav_asc_sign_idx']
+        nav_planets = navamsha['navamsha_planets']
+        nav_house_planets = navamsha['nav_house_planets']
+
+        BHAV_NAMES_HI_NAV = {
+            1: "तनु",    2: "धन",     3: "सहज",    4: "सुख",
+            5: "पुत्र",   6: "अरि",    7: "कलत्र",   8: "रन्ध्र",
+            9: "धर्म",  10: "कर्म",   11: "लाभ",   12: "व्यय",
+        }
+
+        html_parts.append('<table style="font-size:9.5pt;"><tr>'
+                           '<th>#</th><th>भवन</th><th>भाव</th>'
+                           '<th>राशि (D-9)</th><th>Zodiac</th>'
+                           '<th>ग्रह</th><th>D-1 राशि</th><th>वर्ग</th></tr>')
+
+        for rank in range(1, 13):
+            sign_idx = (nav_asc + rank - 1) % 12
+            house_num = rank
+            bhav_hi = BHAV_NAMES_HI_NAV.get(house_num, "")
+            rashi_hi = SIGNS_HI_TBL[sign_idx]
+            zodiac = SIGNS_EN[sign_idx]
+
+            plist = nav_house_planets.get(rank, [])
+            if plist:
+                planet_str = ", ".join(PLANET_HI_FULL.get(p, p) for p in plist)
+                d1_parts = []
+                has_varg = False
+                for pname in plist:
+                    ndata = nav_planets[pname]
+                    d1_parts.append(SIGNS_HI_TBL[ndata['natal_sign_idx']])
+                    if ndata['is_vargottama']:
+                        has_varg = True
+                d1_str = ", ".join(d1_parts)
+                varg_str = "\u2726" if has_varg else ""
+            else:
+                planet_str = "-"
+                d1_str = "-"
+                varg_str = ""
+
+            row_style = ""
+            if rank == 1:
+                row_style = ' style="background:#FFF3CD; font-weight:bold;"'
+            elif has_varg if plist else False:
+                row_style = ' style="background:#E8F5E9;"'
+
+            html_parts.append(f"<tr{row_style}><td>{rank}</td><td><b>{house_num}</b></td>"
+                               f"<td>{bhav_hi}</td><td>{rashi_hi}</td>"
+                               f"<td>{zodiac}</td>"
+                               f"<td>{planet_str}</td><td>{d1_str}</td>"
+                               f"<td>{varg_str}</td></tr>")
+        html_parts.append("</table>")
+
+        html_parts.append(
+            '<div style="font-size:8pt; color:#666; margin-top:5px;">'
+            '<b>नवांश (D-9)</b> वैदिक ज्योतिष में सबसे महत्वपूर्ण विभागीय चार्ट है। '
+            'यह आपके आंतरिक स्वभाव, आत्मा का उद्देश्य और विवाह भाग्य को दर्शाता है। '
+            '<b>वर्गोत्तम</b> (\u2726) ग्रह D-1 और D-9 दोनों में एक ही राशि में हैं।</div>')
+
+        # ── Hindi Navamsha Reading Page ────────────────────────
+        html_parts.append('<div class="page-break"></div>')
+        html_parts.append("<h2>नवांश पठन — आंतरिक स्वभाव एवं विवाह</h2>")
+        html_parts.append('<div class="brand">by AstroShuklz</div>')
+
+        nav_readings_hi = generate_navamsha_reading(chart, strength_data, lang="hi")
+        for heading, body in nav_readings_hi:
+            html_parts.append(f'<h3 style="color:#8B0000;">{heading}</h3>')
+            for para in body.split("\n\n"):
+                para = para.strip()
+                if para:
+                    html_parts.append(f'<div class="reading">{para.replace(chr(10), "<br/>")}</div>')
+
     # ── Hindi Dasha Tables ───────────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
 
@@ -4376,6 +4693,134 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         'will follow." — Classical Vedic Wisdom</i>',
         ParagraphStyle('KarmaQuote', parent=karma_intro,
             alignment=TA_CENTER, fontSize=9)))
+
+    # ── Navamsha (D-9) Table Page ─────────────────────────────
+    navamsha = chart.get('navamsha')
+    if navamsha:
+        story.append(PageBreak())
+        story.append(Paragraph("Navamsha (D-9) — Divisional Chart", section_style))
+        story.append(Paragraph("by AstroShuklz", brand_style))
+
+        nav_asc = navamsha['nav_asc_sign_idx']
+        nav_planets = navamsha['navamsha_planets']
+        nav_house_planets = navamsha['nav_house_planets']
+
+        nav_header = [
+            Paragraph('<b>#</b>', cell_center_bold),
+            Paragraph('<b>House</b>', cell_center_bold),
+            Paragraph('<b>Bhav</b>', cell_center_bold),
+            Paragraph('<b>Rashi (D-9)</b>', cell_center_bold),
+            Paragraph('<b>Zodiac</b>', cell_center_bold),
+            Paragraph('<b>Planet(s)</b>', cell_center_bold),
+            Paragraph('<b>D-1 Sign</b>', cell_center_bold),
+            Paragraph('<b>Varg</b>', cell_center_bold),
+        ]
+        nav_data = [nav_header]
+
+        VARG_GREEN = colors.HexColor("#E8F5E9")
+        varg_rows = []
+
+        for rank in range(1, 13):
+            sign_idx = (nav_asc + rank - 1) % 12
+            house_num = rank
+            bhav = BHAV_NAMES.get(house_num, "")
+            zodiac = SIGNS_EN[sign_idx]
+            rashi = SIGNS_HI_FULL[sign_idx]
+
+            plist = nav_house_planets.get(rank, [])
+            if plist:
+                planet_str = ", ".join(plist)
+                d1_parts = []
+                varg_parts = []
+                has_varg = False
+                for pname in plist:
+                    ndata = nav_planets[pname]
+                    d1_parts.append(ndata['natal_sign_en'])
+                    if ndata['is_vargottama']:
+                        varg_parts.append("\u2726")
+                        has_varg = True
+                    else:
+                        varg_parts.append("")
+                d1_str = ", ".join(d1_parts)
+                varg_str = " ".join(varg_parts).strip()
+                if has_varg:
+                    varg_rows.append(rank)
+            else:
+                planet_str = "-"
+                d1_str = "-"
+                varg_str = ""
+
+            row = [
+                Paragraph(str(rank), cell_center),
+                Paragraph(str(house_num), cell_center_bold),
+                Paragraph(bhav, cell_center),
+                Paragraph(rashi, cell_center),
+                Paragraph(zodiac, cell_center),
+                Paragraph(planet_str, cell_center),
+                Paragraph(d1_str, cell_center),
+                Paragraph(varg_str, cell_center),
+            ]
+            nav_data.append(row)
+
+        nav_col_w = [24, 36, 46, 70, 70, 90, 90, 36]
+        nav_table = Table(nav_data, colWidths=nav_col_w, repeatRows=1)
+
+        nav_style_rules = [
+            ('FONTNAME',   (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',   (0, 0), (-1, 0), 8.5),
+            ('FONTSIZE',   (0, 1), (-1, -1), 8.5),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#F5E6C8")),
+            ('TEXTCOLOR',  (0, 0), (-1, 0), MAROON),
+            ('ALIGN',      (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN',     (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID',       (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TOPPADDING',  (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+        ]
+
+        # Highlight Row 1 (Nav Lagna) with golden background
+        nav_style_rules.append(('BACKGROUND', (0, 1), (-1, 1), GOLD_BG))
+        nav_style_rules.append(('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'))
+
+        # Highlight Vargottama rows in light green
+        for vr in varg_rows:
+            nav_style_rules.append(('BACKGROUND', (0, vr), (-1, vr), VARG_GREEN))
+
+        nav_table.setStyle(TableStyle(nav_style_rules))
+        story.append(nav_table)
+
+        story.append(Spacer(1, 3 * mm))
+        story.append(Paragraph(
+            '<b>Navamsha (D-9)</b> is the most important divisional chart in Vedic astrology. '
+            'It reveals your inner nature, soul purpose, and marriage destiny. '
+            '<b>Vargottama</b> (\u2726) planets occupy the same sign in both D-1 and D-9, '
+            'indicating exceptional strength and confirmed significations.',
+            footnote_style))
+
+        # ── Navamsha Reading Page ─────────────────────────────
+        story.append(PageBreak())
+        story.append(Paragraph("Navamsha Reading — Inner Nature &amp; Marriage", section_style))
+        story.append(Paragraph("by AstroShuklz", brand_style))
+        story.append(Spacer(1, 3 * mm))
+
+        nav_reading_head = ParagraphStyle('NavReadHead', parent=styles['Normal'],
+            fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+            spaceBefore=5 * mm, spaceAfter=2 * mm)
+        nav_reading_body = ParagraphStyle('NavReadBody', parent=styles['Normal'],
+            fontName='Helvetica', fontSize=9.5, leading=14,
+            textColor=colors.HexColor("#333333"), spaceAfter=3 * mm)
+
+        nav_readings = generate_navamsha_reading(chart, strength_data, lang="en")
+        for heading, body in nav_readings:
+            story.append(Paragraph(heading, nav_reading_head))
+            # Handle newlines in body text
+            for para in body.split("\n\n"):
+                para = para.strip()
+                if para:
+                    story.append(Paragraph(para.replace("\n", "<br/>"), nav_reading_body))
 
     # ── Dasha tables ───────────────────────────────────────────
     story.append(PageBreak())
