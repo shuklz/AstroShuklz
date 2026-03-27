@@ -3673,7 +3673,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
         ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
         ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
         ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        # no alternate row coloring
         ('TOPPADDING',  (0,0), (-1,-1), 3),
         ('BOTTOMPADDING',(0,0), (-1,-1), 3),
     ]))
@@ -3701,7 +3701,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
         ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
         ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
         ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        # no alternate row coloring
         ('TOPPADDING',  (0,0), (-1,-1), 3),
         ('BOTTOMPADDING',(0,0), (-1,-1), 3),
     ]
@@ -3742,7 +3742,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
             ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
             ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
             ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+            # no alternate row coloring
             ('TOPPADDING',  (0,0), (-1,-1), 3),
             ('BOTTOMPADDING',(0,0), (-1,-1), 3),
         ]
@@ -3781,7 +3781,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
                     ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
                     ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
                     ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+                    # no alternate row coloring
                     ('TOPPADDING',  (0,0), (-1,-1), 3),
                     ('BOTTOMPADDING',(0,0), (-1,-1), 3),
                 ]
@@ -4437,10 +4437,15 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                 else:
                     status = "भविष्य"
 
-                cls = ' class="now"' if is_this_phase_current else ''
+                if is_this_phase_current:
+                    row_bg = 'background:#E8F5E9; font-weight:bold;'
+                elif phase_end and phase_end < today:
+                    row_bg = 'background:#FCE4E4;'
+                else:
+                    row_bg = 'background:#FFF9E6;'
                 cycle_label = str(period['cycle']) if p_idx == 0 else ''
                 html_parts.append(
-                    f'<tr{cls}><td>{cycle_label}</td>'
+                    f'<tr style="{row_bg}"><td>{cycle_label}</td>'
                     f'<td>{phase_name_hi.get(phase_name, phase_name)}</td>'
                     f'<td>{start_str} — {end_str}</td>'
                     f'<td>{dur_str}</td><td>{status}</td></tr>')
@@ -5498,9 +5503,9 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
         # Phase display: icon, intensity label, intensity color
         PHASE_DISPLAY = {
-            'Rising':  ('\u23f3 Rising',  'Medium',  '#FF8F00'),
-            'Peak':    ('\u26a0 Peak',    'High',    '#C62828'),
-            'Setting': ('\u263c Setting', 'Moderate', '#2E7D32'),
+            'Rising':  ('Rising',  'Medium',  '#FF8F00'),
+            'Peak':    ('Peak',    'High',    '#C62828'),
+            'Setting': ('Setting', 'Moderate', '#2E7D32'),
         }
 
         ss_header = ['Cycle', 'Phase', 'Intensity', 'Period', 'Duration', 'Status']
@@ -5567,11 +5572,13 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                 ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), PAST_BG))
             elif meta_status == "Future":
                 ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), FUTURE_BG))
-            # Color intensity column
+            # Color intensity and phase columns
             _, _, int_color = PHASE_DISPLAY.get(meta_phase, ('', '', '#333'))
             ss_style_rules.append(('TEXTCOLOR', (2, row_idx), (2, row_idx),
                                    colors.HexColor(int_color)))
             ss_style_rules.append(('FONTNAME', (2, row_idx), (2, row_idx), 'Helvetica-Bold'))
+            ss_style_rules.append(('TEXTCOLOR', (1, row_idx), (1, row_idx),
+                                   colors.HexColor(int_color)))
 
         ss_table.setStyle(TableStyle(ss_style_rules))
         story.append(ss_table)
@@ -5657,7 +5664,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
         ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
         ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+        # no alternate row coloring
         ('TOPPADDING',  (0,0), (-1,-1), 3),
         ('BOTTOMPADDING',(0,0), (-1,-1), 3),
     ]
@@ -5694,7 +5701,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
             ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
             ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+            # no alternate row coloring
             ('TOPPADDING',  (0,0), (-1,-1), 3),
             ('BOTTOMPADDING',(0,0), (-1,-1), 3),
         ]
@@ -5731,7 +5738,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                     ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
                     ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
                     ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
-                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, ROW_ALT]),
+                    # no alternate row coloring
                     ('TOPPADDING',  (0,0), (-1,-1), 3),
                     ('BOTTOMPADDING',(0,0), (-1,-1), 3),
                 ]
