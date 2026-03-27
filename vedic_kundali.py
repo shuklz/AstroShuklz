@@ -1074,11 +1074,106 @@ def generate_navamsha_reading(chart, strength_data, lang="en"):
         seventh_text = NAVAMSHA_7TH_EN.get(seventh_sign_idx, "")
         readings.append(("7th House — Marriage & Partnership", seventh_text))
 
-    # 4. Dignity Changes — D-1 vs D-9
+    # 4. Dignity Changes — D-1 vs D-9 (Enhanced table with Trend & Meaning)
+    # Dignity ranking for trend calculation (higher = stronger)
+    DIGNITY_RANK = {"Exalted": 6, "Mulatrikona": 5, "Own Sign": 4,
+                    "Friendly": 3, "Neutral": 2, "Enemy": 1, "Debilitated": 0}
+
+    # Trend and Meaning mappings based on dignity shift
+    def _get_trend_meaning(pname, d1_dig, d9_dig, lang_code):
+        r1 = DIGNITY_RANK.get(d1_dig, 2)
+        r9 = DIGNITY_RANK.get(d9_dig, 2)
+        diff = r9 - r1
+
+        if diff >= 3:
+            trend_en, trend_hi = "Improving", "सुधार"
+            arrow = "↑"
+        elif diff >= 1:
+            trend_en, trend_hi = "Improving", "सुधार"
+            arrow = "↑"
+        elif diff == 0:
+            trend_en, trend_hi = "Stable", "स्थिर"
+            arrow = "→"
+        elif diff >= -2:
+            trend_en, trend_hi = "Softening", "मंदन"
+            arrow = "↓"
+        else:
+            trend_en, trend_hi = "Challenging", "चुनौतीपूर्ण"
+            arrow = "↓"
+
+        # Override for specific strong shifts
+        if d9_dig == "Exalted" and d1_dig not in ("Exalted", "Mulatrikona"):
+            trend_en, trend_hi = "Strong", "प्रबल"
+            arrow = "↑"
+        if d9_dig == "Debilitated":
+            trend_en, trend_hi = "Challenging", "चुनौतीपूर्ण"
+            arrow = "↓"
+        if d9_dig == "Own Sign" and d1_dig in ("Neutral", "Enemy", "Debilitated"):
+            trend_en, trend_hi = "Strong", "प्रबल"
+            arrow = "↑"
+
+        # Per-planet meaning
+        PLANET_MEANING_EN = {
+            "Sun": {True: "Authority and confidence grow stronger over time",
+                    False: "Self-identity needs conscious development", None: "Sense of self remains consistent"},
+            "Moon": {True: "Emotional maturity grows strongly over time",
+                     False: "Emotional stability needs nurturing", None: "Mental peace remains steady"},
+            "Mars": {True: "Action power becomes refined and effective",
+                     False: "Energy needs proper channeling", None: "Drive and courage remain consistent"},
+            "Mercury": {True: "Communication improves with age",
+                        False: "Analytical skills need sharpening", None: "Intellect remains balanced"},
+            "Jupiter": {True: "Wisdom deepens significantly over time",
+                        False: "Wisdom present early, needs effort to sustain", None: "Spiritual growth remains steady"},
+            "Venus": {True: "Relationships and creativity flourish over time",
+                      False: "Strong attraction early, becomes more balanced", None: "Artistic sensibilities remain stable"},
+            "Saturn": {True: "Discipline and karmic rewards increase",
+                       False: "Discipline required; results come with effort", None: "Perseverance remains consistent"},
+            "Rahu": {True: "Material ambition increases significantly",
+                     False: "Worldly desires need grounding", None: "Ambitions remain focused"},
+            "Ketu": {True: "Spiritual depth intensifies over time",
+                     False: "Spiritual tendencies need conscious cultivation", None: "Spiritual tendencies remain steady"},
+        }
+        PLANET_MEANING_HI = {
+            "Sun": {True: "अधिकार और आत्मविश्वास समय के साथ मजबूत होता है",
+                    False: "आत्म-पहचान को सचेत विकास की आवश्यकता", None: "आत्म-भावना स्थिर रहती है"},
+            "Moon": {True: "भावनात्मक परिपक्वता समय के साथ बढ़ती है",
+                     False: "भावनात्मक स्थिरता को पोषण की आवश्यकता", None: "मानसिक शांति स्थिर रहती है"},
+            "Mars": {True: "कार्य शक्ति परिष्कृत और प्रभावी होती है",
+                     False: "ऊर्जा को उचित दिशा की आवश्यकता", None: "साहस और संकल्प स्थिर रहता है"},
+            "Mercury": {True: "संवाद कौशल उम्र के साथ सुधरता है",
+                        False: "विश्लेषणात्मक कौशल को तीक्ष्ण करने की आवश्यकता", None: "बुद्धि संतुलित रहती है"},
+            "Jupiter": {True: "ज्ञान समय के साथ गहरा होता है",
+                        False: "ज्ञान पहले से है, बनाए रखने के लिए प्रयास आवश्यक", None: "आध्यात्मिक विकास स्थिर रहता है"},
+            "Venus": {True: "संबंध और रचनात्मकता समय के साथ फलती-फूलती है",
+                      False: "प्रारंभिक आकर्षण मजबूत, बाद में संतुलित", None: "कलात्मक संवेदनशीलता स्थिर रहती है"},
+            "Saturn": {True: "अनुशासन और कार्मिक पुरस्कार बढ़ते हैं",
+                       False: "अनुशासन आवश्यक; परिणाम प्रयास से आते हैं", None: "दृढ़ता स्थिर रहती है"},
+            "Rahu": {True: "भौतिक महत्वाकांक्षा काफी बढ़ती है",
+                     False: "सांसारिक इच्छाओं को आधार की आवश्यकता", None: "महत्वाकांक्षाएं केंद्रित रहती हैं"},
+            "Ketu": {True: "आध्यात्मिक गहराई समय के साथ तीव्र होती है",
+                     False: "आध्यात्मिक प्रवृत्तियों को सचेत विकास की आवश्यकता", None: "आध्यात्मिक प्रवृत्तियाँ स्थिर रहती हैं"},
+        }
+
+        if diff > 0:
+            key = True
+        elif diff < 0:
+            key = False
+        else:
+            key = None
+
+        if lang_code == "hi":
+            meaning = PLANET_MEANING_HI.get(pname, {}).get(key, "")
+            trend = trend_hi
+        else:
+            meaning = PLANET_MEANING_EN.get(pname, {}).get(key, "")
+            trend = trend_en
+
+        return arrow, trend, meaning
+
     if strength_data:
         order = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
         nav_planets = navamsha['navamsha_planets']
-        dignity_parts = []
+        dignity_rows = []  # list of (planet, d1_dig, d9_dig, arrow, trend, meaning)
         for pname in order:
             if pname not in nav_planets:
                 continue
@@ -1088,20 +1183,25 @@ def generate_navamsha_reading(chart, strength_data, lang="en"):
             deg = ndata['deg']
             d1_dignity, _ = _get_sign_dignity(pname, natal_idx, deg)
             d9_dignity, _ = _get_sign_dignity(pname, nav_idx, deg)
-            if d1_dignity != d9_dignity:
-                if lang == "hi":
-                    d1_hi = DIGNITY_HI.get(d1_dignity, d1_dignity)
-                    d9_hi = DIGNITY_HI.get(d9_dignity, d9_dignity)
-                    p_hi = PLANET_HI_FULL.get(pname, pname)
-                    dignity_parts.append(f"{p_hi}: D-1 {d1_hi} → D-9 {d9_hi}")
-                else:
-                    dignity_parts.append(f"{pname}: D-1 {d1_dignity} → D-9 {d9_dignity}")
+            arrow, trend, meaning = _get_trend_meaning(pname, d1_dignity, d9_dignity, lang)
 
-        if dignity_parts:
             if lang == "hi":
-                readings.append(("गरिमा परिवर्तन — D-1 बनाम D-9", "\n".join(dignity_parts)))
+                p_label = PLANET_HI_FULL.get(pname, pname)
+                d1_label = DIGNITY_HI.get(d1_dignity, d1_dignity)
+                d9_label = DIGNITY_HI.get(d9_dignity, d9_dignity)
             else:
-                readings.append(("Dignity Changes — D-1 vs D-9", "\n".join(dignity_parts)))
+                p_label = pname
+                d1_label = d1_dignity
+                d9_label = d9_dignity
+
+            dignity_rows.append((p_label, d1_label, d9_label, arrow, trend, meaning))
+
+        if dignity_rows:
+            # Return as special "TABLE" type for rendering
+            if lang == "hi":
+                readings.append(("TABLE:गरिमा परिवर्तन — D-1 बनाम D-9", dignity_rows))
+            else:
+                readings.append(("TABLE:Dignity Changes — D-1 vs D-9", dignity_rows))
 
     return readings
 
@@ -3412,7 +3512,7 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
     table {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8pt; }}
     th {{ background: #8B0000; color: white; padding: 4px 6px; text-align: center; }}
     td {{ padding: 4px 6px; text-align: center; border: 0.5px solid #CCC; }}
-    tr:nth-child(even) {{ background: #FFF8E7; }}
+    /* no alternate row coloring */
     tr.now {{ background: #FFFACD; font-weight: bold; }}
     .reading {{ font-size: 9.5pt; line-height: 1.5; margin: 5px 0; }}
     .disclaimer {{ font-size: 7.5pt; color: #999; text-align: center; font-style: italic; margin-top: 20px; }}
@@ -3905,11 +4005,30 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
 
         nav_readings_hi = generate_navamsha_reading(chart, strength_data, lang="hi")
         for heading, body in nav_readings_hi:
-            html_parts.append(f'<h3 style="color:#8B0000;">{heading}</h3>')
-            for para in body.split("\n\n"):
-                para = para.strip()
-                if para:
-                    html_parts.append(f'<div class="reading">{para.replace(chr(10), "<br/>")}</div>')
+            if heading.startswith("TABLE:"):
+                table_title = heading[6:]
+                html_parts.append(f'<h3 style="color:#8B0000;">{table_title}</h3>')
+                html_parts.append('<table><tr><th>ग्रह</th><th>D-1</th><th>D-9</th>'
+                                  '<th></th><th>प्रवृत्ति</th><th>अर्थ</th></tr>')
+                for (p_label, d1_label, d9_label, arrow, trend, meaning) in body:
+                    if arrow == "↑":
+                        clr = "#2E7D32"
+                    elif arrow == "↓":
+                        clr = "#C62828"
+                    else:
+                        clr = "#1565C0"
+                    html_parts.append(
+                        f'<tr><td>{p_label}</td><td>{d1_label}</td><td>{d9_label}</td>'
+                        f'<td style="color:{clr}; font-size:14pt;">{arrow}</td>'
+                        f'<td style="color:{clr}; font-weight:bold;">{trend}</td>'
+                        f'<td style="text-align:left;">{meaning}</td></tr>')
+                html_parts.append('</table>')
+            else:
+                html_parts.append(f'<h3 style="color:#8B0000;">{heading}</h3>')
+                for para in body.split("\n\n"):
+                    para = para.strip()
+                    if para:
+                        html_parts.append(f'<div class="reading">{para.replace(chr(10), "<br/>")}</div>')
 
     # ── Hindi Dasha Tables ───────────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
@@ -4815,12 +4934,48 @@ def generate_pdf_to_buffer(chart, svg_content=None):
 
         nav_readings = generate_navamsha_reading(chart, strength_data, lang="en")
         for heading, body in nav_readings:
-            story.append(Paragraph(heading, nav_reading_head))
-            # Handle newlines in body text
-            for para in body.split("\n\n"):
-                para = para.strip()
-                if para:
-                    story.append(Paragraph(para.replace("\n", "<br/>"), nav_reading_body))
+            if heading.startswith("TABLE:"):
+                # Enhanced Dignity Changes table
+                table_title = heading[6:]
+                story.append(Paragraph(table_title, nav_reading_head))
+                story.append(Spacer(1, 2*mm))
+                dc_header = ['Planet', 'D-1', 'D-9', '', 'Trend', 'Meaning']
+                dc_data = [dc_header]
+                for (p_label, d1_label, d9_label, arrow, trend, meaning) in body:
+                    dc_data.append([p_label, d1_label, d9_label, arrow, trend, meaning])
+                dc_widths = [55, 65, 55, 15, 60, 220]
+                dc_table = Table(dc_data, colWidths=dc_widths)
+                dc_style_rules = [
+                    ('FONTNAME',    (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE',    (0,0), (-1,0), 8),
+                    ('FONTSIZE',    (0,1), (-1,-1), 8.5),
+                    ('FONTNAME',    (0,1), (-1,-1), 'Helvetica'),
+                    ('BACKGROUND',  (0,0), (-1,0), HEADER_BG),
+                    ('TEXTCOLOR',   (0,0), (-1,0), HEADER_FG),
+                    ('ALIGN',       (0,0), (4,-1), 'CENTER'),
+                    ('ALIGN',       (5,0), (5,-1), 'LEFT'),
+                    ('GRID',        (0,0), (-1,-1), 0.5, colors.white),
+                    ('TOPPADDING',  (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING',(0,0), (-1,-1), 4),
+                    ('VALIGN',      (0,0), (-1,-1), 'MIDDLE'),
+                ]
+                # Color-code trend arrows
+                for i, (p_label, d1_label, d9_label, arrow, trend, meaning) in enumerate(body, 1):
+                    if arrow == "↑":
+                        dc_style_rules.append(('TEXTCOLOR', (3,i), (4,i), colors.HexColor("#2E7D32")))
+                    elif arrow == "↓":
+                        dc_style_rules.append(('TEXTCOLOR', (3,i), (4,i), colors.HexColor("#C62828")))
+                    else:
+                        dc_style_rules.append(('TEXTCOLOR', (3,i), (4,i), colors.HexColor("#1565C0")))
+                dc_table.setStyle(TableStyle(dc_style_rules))
+                story.append(dc_table)
+            else:
+                story.append(Paragraph(heading, nav_reading_head))
+                # Handle newlines in body text
+                for para in body.split("\n\n"):
+                    para = para.strip()
+                    if para:
+                        story.append(Paragraph(para.replace("\n", "<br/>"), nav_reading_body))
 
     # ── Dasha tables ───────────────────────────────────────────
     story.append(PageBreak())
