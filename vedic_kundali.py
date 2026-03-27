@@ -3580,7 +3580,7 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
     import io
 
     # ── Register Devanagari font ─────────────────────────────────
@@ -3950,14 +3950,78 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                               "fonts", "NotoSansDevanagari.ttf")
     font_url = f"file://{font_path}"
 
+    # ── Build cover image with name overlay for Hindi section ────
+    from PIL import Image as PILImage, ImageDraw, ImageFont
+    import tempfile as _tempfile
+
+    cover_img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'coverImage.png')
+    hi_cover_tmp = None
+    if os.path.exists(cover_img_path):
+        _cimg = PILImage.open(cover_img_path).convert('RGBA')
+        _cdraw = ImageDraw.Draw(_cimg)
+        _name_text = bd['name']
+        _cw, _ch = _cimg.size
+
+        _cfont = None
+        _cfont_candidates = [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/System/Library/Fonts/SFNS.ttf",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansDevanagari.ttf"),
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        ]
+        for _fc in _cfont_candidates:
+            try:
+                _cfont = ImageFont.truetype(_fc, 36)
+                break
+            except Exception:
+                continue
+        if _cfont is None:
+            _cfont = ImageFont.load_default()
+
+        _bbox = _cdraw.textbbox((0, 0), _name_text, font=_cfont)
+        _tw = _bbox[2] - _bbox[0]
+        _tx = (_cw - _tw) // 2
+        _ty = int(_ch * 0.62)
+        _cdraw.text((_tx + 2, _ty + 2), _name_text, font=_cfont, fill=(0, 0, 0, 160))
+        _cdraw.text((_tx, _ty), _name_text, font=_cfont, fill=(255, 255, 255, 255))
+
+        hi_cover_tmp = _tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+        _cimg.save(hi_cover_tmp.name)
+        hi_cover_tmp.close()
+
+    hi_cover_url = f"file://{hi_cover_tmp.name}" if hi_cover_tmp else ""
+
     # ── Build HTML ────────────────────────────────────────────────
     css = f"""
     @font-face {{
         font-family: 'NotoHindi';
         src: url('{font_url}');
     }}
+    @page {{
+        size: A4;
+        margin: 40px;
+        @bottom-center {{
+            font-family: 'NotoHindi', sans-serif;
+            font-size: 7pt;
+            color: #999;
+            content: counter(page);
+        }}
+    }}
+    @page cover {{
+        margin: 0;
+        @bottom-center {{
+            content: none;
+        }}
+    }}
+    @page toc {{
+        @bottom-center {{
+            content: none;
+        }}
+    }}
     body {{ font-family: 'NotoHindi', 'Devanagari Sangam MN', 'Noto Sans Devanagari', sans-serif;
-           color: #333; margin: 40px; font-size: 10pt; }}
+           color: #333; margin: 0; padding: 0; font-size: 10pt; }}
     h1 {{ color: #8B0000; text-align: center; font-size: 20pt; margin-bottom: 2px; }}
     .brand {{ text-align: center; color: #B8860B; font-style: italic; font-size: 10pt; margin-bottom: 10px; }}
     .info {{ text-align: center; color: #555; font-size: 9pt; margin-bottom: 5px; }}
@@ -3972,11 +4036,75 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
     .disclaimer {{ font-size: 7.5pt; color: #999; text-align: center; font-style: italic; margin-top: 20px; }}
     .footer {{ font-size: 7pt; color: #AAA; text-align: center; margin-top: 10px; }}
     .page-break {{ page-break-before: always; }}
+    .cover-page {{
+        page: cover;
+        position: relative;
+        width: 210mm;
+        height: 297mm;
+        overflow: hidden;
+        page-break-after: always;
+    }}
+    .cover-page img {{
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }}
+    .toc-page {{
+        page: toc;
+        padding: 40px;
+        page-break-after: always;
+    }}
+    .toc-title {{
+        color: #8B0000;
+        text-align: center;
+        font-size: 22pt;
+        font-weight: bold;
+        margin-top: 60px;
+        margin-bottom: 30px;
+    }}
+    .toc-item {{
+        font-size: 11pt;
+        color: #333;
+        padding: 6px 0 6px 30px;
+    }}
+    .toc-num {{
+        color: #8B0000;
+        font-weight: bold;
+        margin-right: 8px;
+    }}
+    .content-section {{
+        padding: 40px;
+    }}
     """
 
     html_parts = [f"<html><head><style>{css}</style></head><body>"]
 
+    # ── Hindi Cover/Divider Page ───────────────────────────────
+    if hi_cover_url:
+        html_parts.append(f'''<div class="cover-page">
+            <img src="{hi_cover_url}" alt="cover" />
+        </div>''')
+
+    # ── Hindi Table of Contents ────────────────────────────────
+    hi_toc_items = [
+        ("१", "ग्रह स्थिति एवं व्याख्यात्मक टिप्पणियाँ"),
+        ("२", "भवन पठन — भाव विश्लेषण"),
+        ("३", "ग्रह शक्ति विश्लेषण"),
+        ("४", "वैदिक उपाय एवं कर्म उपाय"),
+        ("५", "नवांश (D-9) चार्ट एवं पठन"),
+        ("६", "साढ़ेसाती — विश्लेषण एवं उपाय"),
+        ("७", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
+        ("८", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
+    ]
+    html_parts.append('<div class="toc-page">')
+    html_parts.append('<div class="toc-title">विषय सूची</div>')
+    for num, label in hi_toc_items:
+        html_parts.append(f'<div class="toc-item"><span class="toc-num">{num}.</span> {label}</div>')
+    html_parts.append('</div>')
+
     # ── Hindi Page 1: Header + Planetary Positions ───────────────
+    html_parts.append('<div class="content-section">')
     html_parts.append("<h1>जन्म कुण्डली</h1>")
     html_parts.append('<div class="brand">by AstroShuklz</div>')
     html_parts.append(f'<div class="info" style="font-size:11pt; color:#444; font-weight:bold;">{bd["name"]}</div>')
@@ -4719,6 +4847,46 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                        'के लिए किसी योग्य '
                        'ज्योतिष से परामर्श करें।</div>')
     html_parts.append('<div class="footer">Lahiri Ayanamsha · Swiss Ephemeris · Generated by AstroShuklz</div>')
+
+    # ── Hindi Disclaimer Page ─────────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append('<h2>अस्वीकरण</h2>')
+    html_parts.append('<div class="brand">Disclaimer</div>')
+
+    hi_disc_paras = [
+        "इस रिपोर्ट में दिए गए विचार और व्याख्याएँ पारंपरिक ज्योतिष सिद्धांतों पर आधारित हैं "
+        "और केवल सामान्य मार्गदर्शन एवं आत्म-चिंतन के उद्देश्य से प्रस्तुत किए गए हैं।",
+
+        "ज्योतिष एक पूर्णतः सटीक विज्ञान नहीं है, इसलिए इसे घटनाओं या परिणामों की निश्चित भविष्यवाणी "
+        "के रूप में नहीं लिया जाना चाहिए। यहाँ दी गई जानकारी को अपने जीवन के पैटर्न, प्रवृत्तियों और "
+        "संभावित दिशाओं को समझने के एक साधन के रूप में देखें।",
+
+        "रिपोर्ट में दिए गए सभी सुझाव, उपाय या संकेत केवल सहायक प्रकृति के हैं। इन्हें किसी भी प्रकार "
+        "के वित्तीय, चिकित्सीय, कानूनी या व्यक्तिगत निर्णय के स्थान पर उपयोग नहीं करना चाहिए।",
+
+        "हमारा दृढ़ विश्वास है कि आपके <b>कर्म (karma)</b>, आपकी नीयत, अनुशासन और आपके निर्णय ही "
+        "आपके जीवन को सबसे अधिक प्रभावित करते हैं। कोई भी ग्रह स्थिति या समय अवधि आपके निरंतर "
+        "प्रयास, स्पष्ट सोच और सकारात्मक दृष्टिकोण से अधिक प्रभावशाली नहीं होती।",
+
+        "यदि आप ज्योतिषीय उपाय अपनाते हैं, तो उन्हें समझदारी और संतुलन के साथ अपनाएँ, न कि "
+        "अंधविश्वास के रूप में। वास्तविक परिवर्तन व्यवहार में सुधार, सही कर्म और सजग जीवन शैली "
+        "से आता है, केवल पारंपरिक उपायों या अनुष्ठानों से नहीं।",
+
+        "जीवन निरंतर परिवर्तनशील है — कोई भी परिस्थिति स्थायी नहीं होती, और कोई भी कठिनाई अजेय "
+        "नहीं होती। सही सोच, परिश्रम, धैर्य और ईमानदारी के साथ हर चुनौती को पार किया जा सकता है।",
+
+        "यह रिपोर्ट मार्गदर्शन, आत्म-चिंतन और विचारशील समझ के उद्देश्य से प्रस्तुत की गई है। "
+        "इसे एक वैकल्पिक दृष्टिकोण के रूप में भी देखा जा सकता है, न कि अंतिम सत्य के रूप में।",
+    ]
+    for p in hi_disc_paras:
+        html_parts.append(f'<div class="reading">{p}</div>')
+
+    html_parts.append(
+        '<div style="text-align:center; margin-top:15px; font-style:italic; '
+        'color:#8B0000; font-size:11pt;">'
+        '"सजग रहें। सही कर्म करें। अपना मार्ग स्वयं बनाएँ।"</div>')
+
+    html_parts.append('</div>')  # close content-section div
     html_parts.append("</body></html>")
 
     html_str = "\n".join(html_parts)
@@ -4736,12 +4904,14 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.units import mm
-    from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle,
-                                     Paragraph, Spacer, PageBreak)
+    from reportlab.platypus import (SimpleDocTemplate, BaseDocTemplate,
+                                     Table, TableStyle,
+                                     Paragraph, Spacer, PageBreak,
+                                     Frame, PageTemplate, NextPageTemplate)
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
     import io
 
     # ── Register Devanagari font (cross-platform) ────────────────
@@ -4778,11 +4948,38 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     ROW_ALT     = colors.HexColor("#FFF8E7")
     ROW_NOW     = colors.HexColor("#FFFACD")
 
-    # ── Document setup ───────────────────────────────────────────
+    # ── Document setup (BaseDocTemplate for cover + content templates) ──
     pdf_buffer = io.BytesIO()
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
-                            topMargin=15*mm, bottomMargin=15*mm,
-                            leftMargin=15*mm, rightMargin=15*mm)
+    page_w, page_h = A4
+
+    # Cover page template: full bleed, no margins
+    cover_frame = Frame(0, 0, page_w, page_h, id='cover_frame',
+                        leftPadding=0, rightPadding=0,
+                        topPadding=0, bottomPadding=0)
+    cover_template = PageTemplate(id='Cover', frames=[cover_frame])
+
+    # Content page template: normal margins with page numbering
+    content_frame = Frame(15*mm, 15*mm, page_w - 30*mm, page_h - 30*mm,
+                          id='content_frame')
+
+    def _add_page_number(canvas, doc):
+        """Add page number footer, skipping cover page."""
+        page_num = canvas.getPageNumber()
+        if page_num > 1:
+            canvas.saveState()
+            canvas.setFont('Helvetica', 7)
+            canvas.setFillColor(colors.HexColor("#999999"))
+            canvas.drawCentredString(page_w / 2, 12*mm, f"Page {page_num - 1}")
+            canvas.restoreState()
+
+    content_template = PageTemplate(id='Content', frames=[content_frame],
+                                    onPage=_add_page_number)
+
+    doc = BaseDocTemplate(pdf_buffer, pagesize=A4,
+                          topMargin=15*mm, bottomMargin=15*mm,
+                          leftMargin=15*mm, rightMargin=15*mm)
+    doc.addPageTemplates([cover_template, content_template])
+
     styles = getSampleStyleSheet()
     story = []
 
@@ -4804,6 +5001,108 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     asc_sign = chart['asc_sign']
     moon_sign = planets['Moon']['sign_idx']
     today = datetime.now()
+
+    # ── Cover Page (full-bleed image with name overlay) ────────
+    from reportlab.platypus import Image as RLImage
+    from PIL import Image as PILImage, ImageDraw, ImageFont
+    import tempfile
+
+    cover_img_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'coverImage.png')
+    if os.path.exists(cover_img_path):
+        img = PILImage.open(cover_img_path).convert('RGBA')
+        draw = ImageDraw.Draw(img)
+        name_text = bd['name']
+        img_w, img_h = img.size
+
+        # Try to load a nice font for the name overlay
+        # Prefer system fonts with good Latin support; fall back to bundled Devanagari
+        cover_font = None
+        cover_font_size = 36
+        font_candidates = [
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/System/Library/Fonts/SFNS.ttf",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "NotoSansDevanagari.ttf"),
+            # Linux system fonts
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        ]
+        for fc in font_candidates:
+            try:
+                cover_font = ImageFont.truetype(fc, cover_font_size)
+                break
+            except Exception:
+                continue
+        if cover_font is None:
+            cover_font = ImageFont.load_default()
+
+        # Measure text and center it at ~62% down
+        bbox = draw.textbbox((0, 0), name_text, font=cover_font)
+        text_w = bbox[2] - bbox[0]
+        text_x = (img_w - text_w) // 2
+        text_y = int(img_h * 0.62)
+
+        # Shadow effect (dark text offset slightly)
+        shadow_color = (0, 0, 0, 160)
+        draw.text((text_x + 2, text_y + 2), name_text, font=cover_font, fill=shadow_color)
+        # White text on top
+        draw.text((text_x, text_y), name_text, font=cover_font, fill=(255, 255, 255, 255))
+
+        # Save to temp file and add to story
+        tmp_cover = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+        img.save(tmp_cover.name)
+        tmp_cover.close()
+
+        cover_flowable = RLImage(tmp_cover.name, width=page_w, height=page_h)
+        story.append(cover_flowable)
+        story.append(NextPageTemplate('Content'))
+        story.append(PageBreak())
+
+    # ── Table of Contents ──────────────────────────────────────
+    toc_title_style = ParagraphStyle('TOCTitle', parent=styles['Title'],
+        fontName='Helvetica-Bold', fontSize=22, textColor=MAROON,
+        alignment=TA_CENTER, spaceAfter=12*mm, spaceBefore=20*mm)
+
+    toc_item_style = ParagraphStyle('TOCItem', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=11, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, spaceBefore=1*mm, spaceAfter=1*mm)
+
+    toc_num_style = ParagraphStyle('TOCNum', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=11, textColor=MAROON,
+        alignment=TA_LEFT, spaceBefore=3*mm, spaceAfter=3*mm)
+
+    story.append(Paragraph("Table of Contents", toc_title_style))
+    story.append(Spacer(1, 5*mm))
+
+    toc_items = [
+        ("1", "Planetary Position &amp; Explanatory Notes"),
+        ("2", "Bhava Reading \u2014 House Analysis"),
+        ("3", "Planet Strength Analysis"),
+        ("4", "Vedic Remedies &amp; Karma Remedy"),
+        ("5", "Navamsha (D-9) Chart &amp; Reading"),
+        ("6", "Sade Sati \u2014 Analysis &amp; Remedies"),
+        ("7", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
+        ("8", "Current Period Analysis &amp; Guidance"),
+    ]
+
+    # Build TOC as a clean table
+    toc_table_data = []
+    for num, label in toc_items:
+        toc_table_data.append([
+            Paragraph(f"<b>{num}.</b>", toc_num_style),
+            Paragraph(label, toc_item_style),
+        ])
+
+    toc_table = Table(toc_table_data, colWidths=[15*mm, 140*mm])
+    toc_table.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+    ]))
+    story.append(toc_table)
+    story.append(PageBreak())
 
     # ── Branding subtitle style ────────────────────────────────
     brand_style = ParagraphStyle('KBrand', parent=styles['Normal'],
@@ -6001,6 +6300,57 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         alignment=TA_CENTER)
     story.append(Paragraph("Lahiri Ayanamsha  ·  Swiss Ephemeris  ·  "
                            "Generated by AstroShuklz", footer_style))
+
+    # ── English Disclaimer Page ─────────────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Disclaimer", section_style))
+    story.append(Spacer(1, 4*mm))
+
+    disc_style = ParagraphStyle('Disclaimer', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, leading=14,
+        textColor=colors.HexColor("#555555"), spaceAfter=3*mm,
+        alignment=TA_JUSTIFY)
+    disc_bold = ParagraphStyle('DiscBold', parent=disc_style,
+        fontName='Helvetica-Bold', fontSize=9.5,
+        textColor=colors.HexColor("#333333"))
+
+    disc_paras = [
+        "The insights and interpretations provided in this report are based on traditional "
+        "principles of astrology and are intended for general guidance and reflective "
+        "understanding only.",
+
+        "Astrology is not an exact science and should not be treated as a definitive "
+        "prediction of events or outcomes. The information presented here is best understood "
+        "as a tool for self-awareness, helping you reflect on tendencies, patterns, and "
+        "possible directions in life.",
+
+        "All suggestions, including remedies, are supportive in nature and should not replace "
+        "practical judgment, professional advice, or personal responsibility in any area of "
+        "life \u2014 whether financial, medical, legal, or personal.",
+
+        "We strongly believe that your <b>actions (karma)</b>, intent, discipline, and decisions "
+        "play the most important role in shaping your life. No planetary position or period can "
+        "override consistent effort, clarity of purpose, and positive intent.",
+
+        "Astrological remedies, if followed, should be approached with understanding and balance, "
+        "not blind belief. True change comes from behavioural awareness, ethical action, and "
+        "conscious living, rather than ritual alone.",
+
+        "Life is dynamic \u2014 no phase is permanent, and no challenge is insurmountable. With the "
+        "right mindset, effort, and integrity, every situation can be navigated and improved.",
+
+        "This report is offered in the spirit of guidance, reflection, and thoughtful exploration, "
+        "and may also be enjoyed as an interpretive and insightful perspective on life\u2019s journey.",
+    ]
+    for p in disc_paras:
+        story.append(Paragraph(p, disc_style))
+
+    story.append(Spacer(1, 5*mm))
+    story.append(Paragraph(
+        '<i>"Use wisely. Act consciously. Shape your own destiny."</i>',
+        ParagraphStyle('DiscQuote', parent=disc_style,
+            alignment=TA_CENTER, fontName='Helvetica-Oblique',
+            textColor=MAROON, fontSize=10)))
 
     doc.build(story)
 
