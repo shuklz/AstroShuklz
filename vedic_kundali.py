@@ -4407,8 +4407,10 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         else:
             s_label = STRENGTH_HI["Weak"]
             s_color = "#CC0000"
+        # Highlight House 1 (Ascendant lord) in gold
+        row_bg = ' style="background:#FFF3CD; font-weight:bold;"' if h == 1 else ''
         html_parts.append(
-            f'<tr><td><b>{h}</b></td><td>{BHAV_SHORT_HI.get(h,"")}</td>'
+            f'<tr{row_bg}><td><b>{h}</b></td><td>{BHAV_SHORT_HI.get(h,"")}</td>'
             f'<td>{rashi_hi}</td><td><b>{ruler_hi}</b></td><td>{score}/100</td>'
             f'<td style="color:{s_color};"><b>{s_label}</b></td></tr>')
     html_parts.append('</table>')
@@ -5636,6 +5638,10 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     BHAV_SHORT = {1:"Tanu", 2:"Dhana", 3:"Sahaja", 4:"Sukha", 5:"Putra", 6:"Ari",
                   7:"Kalatra", 8:"Randhra", 9:"Dharma", 10:"Karma", 11:"Labha", 12:"Vyaya"}
 
+    # Find which house the Ascendant lord rules (House 1)
+    asc_lord = SIGN_RULERS.get(SIGNS_EN[asc_sign], "")
+    asc_lord_row = -1  # row index in table (1-based, 0 is header)
+
     for h in range(1, 13):
         sign_idx = (asc_sign + h - 1) % 12
         sign_name = SIGNS_EN[sign_idx]
@@ -5651,6 +5657,10 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             strength_label = "Weak"
             strength_color = "#CC0000"
 
+        # Track which row has the Ascendant lord (House 1 ruler)
+        if h == 1:
+            asc_lord_row = h  # row index in table data (1-based since 0=header)
+
         hr_row = [
             Paragraph(f'<b>{h}</b>', cell_center_bold),
             Paragraph(BHAV_SHORT.get(h, ""), cell_center),
@@ -5664,17 +5674,20 @@ def generate_pdf_to_buffer(chart, svg_content=None):
     hr_col_widths = [45, 55, 75, 65, 55, 70]
     hr_table = Table(hr_data, colWidths=hr_col_widths, repeatRows=1)
     hr_style_rules = [
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8B0000")),
+        ('BACKGROUND', (0, 0), (-1, 0), MAROON),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 8),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.white),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor("#FFF8F0"), colors.white]),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
         ('TOPPADDING', (0, 0), (-1, -1), 3),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]
+    # Highlight Ascendant lord row (House 1) in gold
+    if asc_lord_row > 0:
+        hr_style_rules.append(('BACKGROUND', (0, asc_lord_row), (-1, asc_lord_row), GOLD_BG))
+        hr_style_rules.append(('FONTNAME', (0, asc_lord_row), (-1, asc_lord_row), 'Helvetica-Bold'))
     hr_table.setStyle(TableStyle(hr_style_rules))
     story.append(hr_table)
     story.append(Spacer(1, 3*mm))
