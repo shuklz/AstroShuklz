@@ -1286,6 +1286,9 @@ def generate_chart(birth_data):
     # 9. Navamsha (D-9) chart
     navamsha = calculate_navamsha(planets, asc_lon)
 
+    # 10. Sade Sati
+    sade_sati = calculate_sade_sati(planets['Moon']['sign_idx'], birth_data['year'])
+
     return {
         'birth_data': birth_data,
         'jd': jd,
@@ -1300,6 +1303,7 @@ def generate_chart(birth_data):
         'moon_rashi': planets['Moon']['sign_en'],
         'moon_rashi_hi': planets['Moon']['sign_hi'],
         'navamsha': navamsha,
+        'sade_sati': sade_sati,
     }
 
 
@@ -2439,6 +2443,362 @@ def detect_sade_sati(natal_moon_sign_idx, transit_saturn_sign_idx):
     elif house == 2:
         return "setting"
     return None
+
+
+def _saturn_sign_at_date(year, month, day):
+    """Get Saturn's sidereal sign index (0-11) at a given date using Lahiri ayanamsha."""
+    swe.set_sid_mode(AYANAMSHA)
+    jd = swe.julday(year, month, day, 12.0)
+    pos, _ret = swe.calc_ut(jd, swe.SATURN, swe.FLG_SIDEREAL | swe.FLG_SPEED)
+    return int(pos[0] / 30) % 12
+
+
+def _refine_sign_boundary(year1, month1, day1, year2, month2, day2, target_sign):
+    """Binary-search for the exact date Saturn enters target_sign between two dates.
+    Returns (year, month, day) of the first day Saturn is in target_sign."""
+    from datetime import date
+    d1 = date(year1, month1, day1)
+    d2 = date(year2, month2, day2)
+    while (d2 - d1).days > 1:
+        mid = d1 + (d2 - d1) / 2
+        s = _saturn_sign_at_date(mid.year, mid.month, mid.day)
+        if s == target_sign:
+            d2 = mid
+        else:
+            d1 = mid
+    return d2.year, d2.month, d2.day
+
+
+def calculate_sade_sati(moon_sign_idx, birth_year):
+    """
+    Calculate all Sade Sati periods for the native.
+
+    Args:
+        moon_sign_idx: 0-based index of Moon's sign (0=Aries, 11=Pisces)
+        birth_year: year of birth
+
+    Returns:
+        list of dicts, each with:
+            'cycle': int (1, 2, 3...)
+            'start_date': datetime (when Saturn enters 12th from Moon)
+            'peak_start': datetime (when Saturn enters Moon sign)
+            'peak_end': datetime (when Saturn leaves Moon sign)
+            'end_date': datetime (when Saturn leaves 2nd from Moon)
+            'is_current': bool
+            'phase': str or None ('Rising', 'Peak', 'Setting', None)
+            'phases': list of (phase_name, start_datetime) tuples
+    """
+    sign_12th = (moon_sign_idx - 1) % 12   # 12th from Moon (Rising)
+    sign_moon = moon_sign_idx               # Moon sign itself (Peak)
+    sign_2nd  = (moon_sign_idx + 1) % 12    # 2nd from Moon (Setting)
+    sade_sati_signs = {sign_12th, sign_moon, sign_2nd}
+
+    today = datetime.now()
+    scan_start = birth_year - 5   # catch a cycle that may have started before birth
+    scan_end = birth_year + 95
+
+    # --- Pass 1: Scan at 15-day intervals to find raw in/out transitions ---
+    raw_segments = []  # list of (date, sign) tuples where Saturn is in a SS sign
+    prev_in_ss = False
+
+    from datetime import date as _date
+
+    d = _date(scan_start, 1, 1)
+    end_d = _date(min(scan_end, 2200), 12, 31)
+    step = timedelta(days=15)
+
+    while d <= end_d:
+        sat_sign = _saturn_sign_at_date(d.year, d.month, d.day)
+        in_ss = sat_sign in sade_sati_signs
+
+        if in_ss and not prev_in_ss:
+            # Sade Sati begins — record entry
+            raw_segments.append({'entry_date': d, 'entry_sign': sat_sign, 'transitions': [(d, sat_sign)]})
+        elif in_ss and prev_in_ss and raw_segments:
+            # Still in Sade Sati — track sign transitions
+            if sat_sign != raw_segments[-1]['transitions'][-1][1]:
+                raw_segments[-1]['transitions'].append((d, sat_sign))
+        elif not in_ss and prev_in_ss and raw_segments:
+            # Sade Sati ends
+            raw_segments[-1]['exit_date'] = d
+
+        prev_in_ss = in_ss
+        d += step
+
+    # Handle ongoing Sade Sati (no exit found)
+    if raw_segments and 'exit_date' not in raw_segments[-1]:
+        raw_segments[-1]['exit_date'] = None
+
+    # --- Pass 2: Merge segments that are close together (retrograde re-entries) ---
+    merged = []
+    for seg in raw_segments:
+        if merged and seg['exit_date'] is not None:
+            prev = merged[-1]
+            prev_exit = prev.get('exit_date')
+            if prev_exit is not None:
+                gap = (seg['entry_date'] - prev_exit).days
+                if gap < 270:  # less than 9 months gap = retrograde re-entry
+                    prev['exit_date'] = seg.get('exit_date')
+                    prev['transitions'].extend(seg['transitions'])
+                    continue
+        merged.append(seg)
+
+    # --- Pass 3: For each merged period, determine clean phase boundaries ---
+    # We want: first entry into sign_12th, first entry into sign_moon,
+    #          last exit from sign_moon, last exit from sign_2nd
+    periods = []
+    cycle_num = 0
+
+    for seg in merged:
+        transitions = seg['transitions']
+        entry_d = seg['entry_date']
+        exit_d = seg.get('exit_date')
+
+        # Classify transitions by phase, taking first/last occurrence of each sign
+        phase_dates = {}  # sign -> (first_entry_date, last_seen_date)
+        for t_date, t_sign in transitions:
+            if t_sign not in phase_dates:
+                phase_dates[t_sign] = [t_date, t_date]
+            else:
+                phase_dates[t_sign][1] = t_date
+
+        # Build phases list in order: Rising -> Peak -> Setting
+        phases = []
+        start_date = None
+        peak_start = None
+        peak_end = None
+        end_date = None
+
+        if sign_12th in phase_dates:
+            start_date = datetime(phase_dates[sign_12th][0].year,
+                                  phase_dates[sign_12th][0].month,
+                                  phase_dates[sign_12th][0].day)
+            phases.append(('Rising', start_date))
+
+        if sign_moon in phase_dates:
+            peak_start = datetime(phase_dates[sign_moon][0].year,
+                                  phase_dates[sign_moon][0].month,
+                                  phase_dates[sign_moon][0].day)
+            phases.append(('Peak', peak_start))
+            if sign_2nd in phase_dates:
+                peak_end = datetime(phase_dates[sign_2nd][0].year,
+                                    phase_dates[sign_2nd][0].month,
+                                    phase_dates[sign_2nd][0].day)
+            elif exit_d:
+                peak_end = datetime(exit_d.year, exit_d.month, exit_d.day)
+            else:
+                peak_end = None
+
+        if sign_2nd in phase_dates:
+            setting_start = datetime(phase_dates[sign_2nd][0].year,
+                                     phase_dates[sign_2nd][0].month,
+                                     phase_dates[sign_2nd][0].day)
+            phases.append(('Setting', setting_start))
+
+        # Overall start/end
+        if not start_date:
+            # Sade Sati might start directly at Peak (if person born mid-cycle)
+            if peak_start:
+                start_date = peak_start
+            elif phases:
+                start_date = phases[0][1]
+            else:
+                start_date = datetime(entry_d.year, entry_d.month, entry_d.day)
+
+        if exit_d:
+            end_date = datetime(exit_d.year, exit_d.month, exit_d.day)
+        else:
+            end_date = None  # ongoing
+
+        # Skip periods entirely before birth
+        if end_date and end_date.year < birth_year:
+            continue
+
+        cycle_num += 1
+
+        # Determine current status
+        is_current = False
+        current_phase = None
+        if end_date is None or (start_date <= today and (end_date is None or today < end_date)):
+            if start_date <= today:
+                is_current = True
+                # Determine which phase we're in
+                for i, (pname, pstart) in enumerate(phases):
+                    pend = phases[i+1][1] if i+1 < len(phases) else end_date
+                    if pend is None or today < pend:
+                        current_phase = pname
+                        break
+                if current_phase is None and phases:
+                    current_phase = phases[-1][0]
+
+        periods.append({
+            'cycle': cycle_num,
+            'start_date': start_date,
+            'peak_start': peak_start,
+            'peak_end': peak_end,
+            'end_date': end_date,
+            'is_current': is_current,
+            'phase': current_phase if is_current else None,
+            'phases': phases,
+        })
+
+    return periods
+
+
+# ─── Sade Sati Interpretation Constants ────────────────────────────────────
+
+SADE_SATI_PHASES_EN = {
+    "Rising": {
+        "title": "Rising Phase (Ascending) — Saturn in 12th from Moon",
+        "description": (
+            "The beginning of Sade Sati. Saturn transits the 12th house from your Moon sign, "
+            "affecting expenses, sleep, foreign travel, and spiritual matters. You may experience "
+            "increased expenses, sleep disturbances, feelings of isolation, or a need for solitude. "
+            "This phase often brings subconscious shifts and spiritual awakening."
+        ),
+        "effects": [
+            "Increased expenses or financial pressure",
+            "Sleep disturbances or vivid dreams",
+            "Feelings of isolation or detachment",
+            "Foreign travel or relocation possibilities",
+            "Beginning of inner transformation",
+        ],
+    },
+    "Peak": {
+        "title": "Peak Phase (Climax) — Saturn on Moon Sign",
+        "description": (
+            "The most intense phase of Sade Sati. Saturn directly transits your Moon sign, "
+            "creating maximum pressure on your emotional and mental state. This is a period of "
+            "deep karmic lessons. While challenging, it builds extraordinary resilience and maturity. "
+            "Your emotional strength is being tested and forged."
+        ),
+        "effects": [
+            "Emotional turbulence and mental stress",
+            "Health issues — especially related to mind/emotions",
+            "Career challenges or major professional shifts",
+            "Relationship tensions requiring patience",
+            "Deep personal transformation and maturity",
+        ],
+    },
+    "Setting": {
+        "title": "Setting Phase (Descending) — Saturn in 2nd from Moon",
+        "description": (
+            "The final phase of Sade Sati. Saturn transits the 2nd house from your Moon sign, "
+            "affecting finances, family, speech, and accumulated wealth. The intensity begins to ease. "
+            "Financial pressures may persist but you are now stronger. Family dynamics require attention."
+        ),
+        "effects": [
+            "Financial fluctuations — savings may be tested",
+            "Family responsibilities increase",
+            "Speech and communication need care",
+            "Health of family elders may need attention",
+            "Gradual easing of overall pressure",
+        ],
+    },
+}
+
+SADE_SATI_PHASES_HI = {
+    "Rising": {
+        "title": "आरंभिक चरण (उदय) — शनि चन्द्र से 12वें भाव में",
+        "description": (
+            "साढ़ेसाती का प्रारम्भ। शनि आपकी चन्द्र राशि से 12वें भाव में गोचर कर रहे हैं, "
+            "जिससे खर्च, नींद, विदेश यात्रा और आध्यात्मिक मामलों पर प्रभाव पड़ता है। "
+            "खर्चों में वृद्धि, नींद में बाधा, एकांत की भावना या विदेश यात्रा संभव है। "
+            "यह चरण आंतरिक परिवर्तन और आध्यात्मिक जागरण लाता है।"
+        ),
+        "effects": [
+            "खर्चों में वृद्धि या आर्थिक दबाव",
+            "नींद में बाधा या विचित्र स्वप्न",
+            "एकांत या वैराग्य की भावना",
+            "विदेश यात्रा या स्थानान्तरण की संभावना",
+            "आंतरिक परिवर्तन का प्रारम्भ",
+        ],
+    },
+    "Peak": {
+        "title": "चरम चरण (शीर्ष) — शनि चन्द्र राशि पर",
+        "description": (
+            "साढ़ेसाती का सबसे तीव्र चरण। शनि सीधे आपकी चन्द्र राशि पर गोचर कर रहे हैं, "
+            "जिससे भावनात्मक और मानसिक स्थिति पर अधिकतम दबाव पड़ता है। "
+            "यह गहन कार्मिक शिक्षा का समय है। चुनौतीपूर्ण होते हुए भी, "
+            "यह असाधारण सहनशीलता और परिपक्वता निर्मित करता है।"
+        ),
+        "effects": [
+            "भावनात्मक उथल-पुथल और मानसिक तनाव",
+            "स्वास्थ्य समस्याएँ — विशेषकर मन/भावनाओं से संबंधित",
+            "करियर में चुनौतियाँ या बड़े पेशेवर परिवर्तन",
+            "रिश्तों में तनाव — धैर्य आवश्यक",
+            "गहन व्यक्तिगत परिवर्तन और परिपक्वता",
+        ],
+    },
+    "Setting": {
+        "title": "अंतिम चरण (अस्त) — शनि चन्द्र से 2रे भाव में",
+        "description": (
+            "साढ़ेसाती का अंतिम चरण। शनि आपकी चन्द्र राशि से 2रे भाव में गोचर कर रहे हैं, "
+            "जिससे धन, परिवार, वाणी और संचित सम्पत्ति प्रभावित होती है। "
+            "तीव्रता कम होने लगती है। आर्थिक दबाव बना रह सकता है "
+            "पर अब आप पहले से मज़बूत हैं। पारिवारिक मामलों पर ध्यान दें।"
+        ),
+        "effects": [
+            "आर्थिक उतार-चढ़ाव — बचत की परीक्षा",
+            "पारिवारिक जिम्मेदारियों में वृद्धि",
+            "वाणी और संवाद में सावधानी आवश्यक",
+            "परिवार के बड़ों के स्वास्थ्य पर ध्यान दें",
+            "समग्र दबाव में क्रमिक कमी",
+        ],
+    },
+}
+
+SADE_SATI_REMEDIES_EN = {
+    "spiritual": [
+        "Recite Hanuman Chalisa on Saturdays",
+        "Light a sesame oil lamp on Saturday evenings",
+        "Donate black items (sesame, black cloth, iron) on Saturdays",
+        "Visit Shani temple on Saturdays",
+        "Chant 'Om Sham Shanaischaraya Namah' 108 times daily",
+    ],
+    "karma": [
+        "Serve the elderly and underprivileged — Saturn rewards service",
+        "Practice extreme discipline in daily routine",
+        "Accept delays with patience — do not take shortcuts",
+        "Be honest in all dealings — Saturn punishes dishonesty harshly",
+        "Take responsibility for your mistakes without blaming others",
+        "Reduce ego and practice humility",
+        "Maintain physical fitness — Saturn governs bones and joints",
+    ],
+    "practical": [
+        "Avoid major financial risks during Peak phase",
+        "Strengthen savings and reduce debt",
+        "Maintain regular health checkups",
+        "Keep relationships drama-free — practice patience",
+        "Use this period for serious study or skill-building",
+    ],
+}
+
+SADE_SATI_REMEDIES_HI = {
+    "spiritual": [
+        "शनिवार को हनुमान चालीसा का पाठ करें",
+        "शनिवार संध्या को तिल के तेल का दीपक जलाएँ",
+        "शनिवार को काली वस्तुओं (तिल, काला कपड़ा, लोहा) का दान करें",
+        "शनिवार को शनि मंदिर जाएँ",
+        "प्रतिदिन 'ॐ शं शनैश्चराय नमः' का 108 बार जाप करें",
+    ],
+    "karma": [
+        "बुजुर्गों और वंचितों की सेवा करें — शनि सेवा का पुरस्कार देते हैं",
+        "दैनिक दिनचर्या में कठोर अनुशासन रखें",
+        "विलम्ब को धैर्य से स्वीकारें — शॉर्टकट न अपनाएँ",
+        "सभी व्यवहारों में ईमानदार रहें — शनि बेईमानी को कठोर दण्ड देते हैं",
+        "अपनी गलतियों की ज़िम्मेदारी लें, दूसरों को दोष न दें",
+        "अहंकार कम करें और विनम्रता का अभ्यास करें",
+        "शारीरिक स्वस्थता बनाए रखें — शनि हड्डियों और जोड़ों के स्वामी हैं",
+    ],
+    "practical": [
+        "चरम चरण में बड़े आर्थिक जोखिमों से बचें",
+        "बचत मज़बूत करें और ऋण कम करें",
+        "नियमित स्वास्थ्य जाँच कराएँ",
+        "रिश्तों में शांति रखें — धैर्य का अभ्यास करें",
+        "इस काल का उपयोग गम्भीर अध्ययन या कौशल-निर्माण के लिए करें",
+    ],
+}
 
 
 # ─── Gochar (Transit) Interpretation Data ─────────────────────────────────────
@@ -4030,6 +4390,108 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                     if para:
                         html_parts.append(f'<div class="reading">{para.replace(chr(10), "<br/>")}</div>')
 
+    # ── Hindi Sade Sati Page ───────────────────────────────────────
+    sade_sati = chart.get('sade_sati', [])
+    if sade_sati:
+        html_parts.append('<div class="page-break"></div>')
+        html_parts.append("<h1>साढ़ेसाती — शनि का साढ़े सात वर्षीय गोचर</h1>")
+        html_parts.append('<div class="brand">by AstroShuklz</div>')
+
+        moon_sign_hi = SIGNS_HI_FULL[moon_sign]
+        html_parts.append(f'<h2>साढ़ेसाती क्या है?</h2>')
+        html_parts.append(
+            f'<div class="reading">साढ़ेसाती तब होती है जब शनि आपकी चन्द्र राशि '
+            f'(<b>{moon_sign_hi}</b>) से 12वें, 1ले और 2रे भाव से गोचर करते हैं। '
+            f'प्रत्येक चक्र लगभग 7.5 वर्ष का होता है और जीवनकाल में 2-3 बार आता है। '
+            f'यह कार्मिक शिक्षा, अनुशासन और अंततः आध्यात्मिक विकास लाती है।</div>')
+
+        # Cycles table
+        html_parts.append('<h2>आपके साढ़ेसाती चक्र</h2>')
+        html_parts.append('<table><tr><th>चक्र</th><th>चरण</th>'
+                          '<th>अवधि</th><th>काल</th><th>स्थिति</th></tr>')
+
+        phase_name_hi = {'Rising': 'उदय', 'Peak': 'चरम', 'Setting': 'अस्त'}
+        for period in sade_sati:
+            for p_idx, (phase_name, phase_start) in enumerate(period['phases']):
+                if p_idx + 1 < len(period['phases']):
+                    phase_end = period['phases'][p_idx + 1][1]
+                else:
+                    phase_end = period['end_date']
+
+                start_str = phase_start.strftime('%b %Y')
+                end_str = phase_end.strftime('%b %Y') if phase_end else "जारी"
+
+                if phase_end:
+                    dur_days = (phase_end - phase_start).days
+                    dur_years = dur_days / 365.25
+                    dur_str = f"{dur_years:.1f} वर्ष"
+                else:
+                    dur_str = "—"
+
+                is_this_phase_current = (period['is_current'] and
+                                         period['phase'] == phase_name)
+                if is_this_phase_current:
+                    status = "वर्तमान ◄"
+                elif phase_end and phase_end < today:
+                    status = "बीता"
+                else:
+                    status = "भविष्य"
+
+                cls = ' class="now"' if is_this_phase_current else ''
+                cycle_label = str(period['cycle']) if p_idx == 0 else ''
+                html_parts.append(
+                    f'<tr{cls}><td>{cycle_label}</td>'
+                    f'<td>{phase_name_hi.get(phase_name, phase_name)}</td>'
+                    f'<td>{start_str} — {end_str}</td>'
+                    f'<td>{dur_str}</td><td>{status}</td></tr>')
+        html_parts.append('</table>')
+
+        # Current status
+        html_parts.append('<h2>वर्तमान स्थिति</h2>')
+        current_period = None
+        for p in sade_sati:
+            if p['is_current']:
+                current_period = p
+                break
+
+        if current_period:
+            phase = current_period['phase']
+            phase_info = SADE_SATI_PHASES_HI.get(phase, {})
+            html_parts.append(
+                f'<div class="reading"><b>आप वर्तमान में साढ़ेसाती में हैं — '
+                f'{phase_info.get("title", phase)}</b></div>')
+            html_parts.append(f'<div class="reading">{phase_info.get("description", "")}</div>')
+            html_parts.append('<div class="reading"><b>प्रमुख प्रभाव:</b></div>')
+            for effect in phase_info.get('effects', []):
+                html_parts.append(f'<div class="reading">\u2022 {effect}</div>')
+        else:
+            future = [p for p in sade_sati if p['start_date'] > today]
+            past = [p for p in sade_sati if p['end_date'] and p['end_date'] <= today]
+            if future:
+                nxt = future[0]
+                html_parts.append(
+                    f'<div class="reading">आप वर्तमान में साढ़ेसाती में <b>नहीं</b> हैं। '
+                    f'आपकी अगली साढ़ेसाती लगभग <b>{nxt["start_date"].strftime("%B %Y")}</b> '
+                    f'में प्रारम्भ होगी।</div>')
+            elif past:
+                last = past[-1]
+                html_parts.append(
+                    f'<div class="reading">आप वर्तमान में साढ़ेसाती में <b>नहीं</b> हैं। '
+                    f'आपकी अंतिम साढ़ेसाती लगभग <b>{last["end_date"].strftime("%B %Y")}</b> '
+                    f'में समाप्त हुई।</div>')
+
+        # Remedies
+        html_parts.append('<h2>साढ़ेसाती उपाय</h2>')
+        html_parts.append('<h3 style="color:#8B0000;">आध्यात्मिक उपाय</h3>')
+        for r in SADE_SATI_REMEDIES_HI['spiritual']:
+            html_parts.append(f'<div class="reading">\u2022 {r}</div>')
+        html_parts.append('<h3 style="color:#8B0000;">कर्म सुधार</h3>')
+        for r in SADE_SATI_REMEDIES_HI['karma']:
+            html_parts.append(f'<div class="reading">\u2022 {r}</div>')
+        html_parts.append('<h3 style="color:#8B0000;">व्यावहारिक सलाह</h3>')
+        for r in SADE_SATI_REMEDIES_HI['practical']:
+            html_parts.append(f'<div class="reading">\u2022 {r}</div>')
+
     # ── Hindi Dasha Tables ───────────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
 
@@ -4976,6 +5438,164 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                     para = para.strip()
                     if para:
                         story.append(Paragraph(para.replace("\n", "<br/>"), nav_reading_body))
+
+    # ── Sade Sati Page ───────────────────────────────────────────
+    sade_sati = chart.get('sade_sati', [])
+    if sade_sati:
+        story.append(PageBreak())
+        story.append(Paragraph("Sade Sati — Saturn&#39;s 7.5-Year Transit", section_style))
+        story.append(Paragraph("by AstroShuklz", brand_style))
+        story.append(Spacer(1, 3 * mm))
+
+        moon_sign_en = chart['moon_rashi']
+        ss_intro_style = ParagraphStyle('SSIntro', parent=styles['Normal'],
+            fontName='Helvetica', fontSize=9.5, leading=14,
+            textColor=colors.HexColor("#333333"), spaceAfter=4 * mm)
+        ss_body_style = ParagraphStyle('SSBody', parent=styles['Normal'],
+            fontName='Helvetica', fontSize=9, leading=13,
+            textColor=colors.HexColor("#333333"), spaceAfter=2 * mm)
+        ss_effect_style = ParagraphStyle('SSEffect', parent=styles['Normal'],
+            fontName='Helvetica', fontSize=8.5, leading=12,
+            textColor=colors.HexColor("#444444"), leftIndent=10,
+            spaceAfter=1 * mm)
+
+        # Section 1: What is Sade Sati?
+        story.append(Paragraph("What is Sade Sati?", section_style))
+        story.append(Paragraph(
+            f"Sade Sati occurs when Saturn transits through the 12th, 1st, and 2nd houses "
+            f"from your Moon sign (<b>{moon_sign_en}</b>). Each cycle lasts approximately "
+            f"7.5 years and occurs 2-3 times in a lifetime. It brings karmic lessons, "
+            f"discipline, and ultimately spiritual growth.",
+            ss_intro_style))
+
+        # Section 2: Your Sade Sati Cycles (table)
+        story.append(Paragraph("Your Sade Sati Cycles", section_style))
+
+        ss_header = ['Cycle', 'Phase', 'Period', 'Duration', 'Status']
+        ss_data = [ss_header]
+        GOLD_BG = colors.HexColor("#FFF3CD")
+
+        for period in sade_sati:
+            for phase_name, phase_start in period['phases']:
+                # Determine phase end
+                phase_idx = [p[0] for p in period['phases']].index(phase_name)
+                # Find next phase start or period end
+                if phase_idx + 1 < len(period['phases']):
+                    phase_end = period['phases'][phase_idx + 1][1]
+                else:
+                    phase_end = period['end_date']
+
+                # Period string
+                start_str = phase_start.strftime('%b %Y')
+                end_str = phase_end.strftime('%b %Y') if phase_end else "Ongoing"
+
+                # Duration
+                if phase_end:
+                    dur_days = (phase_end - phase_start).days
+                    dur_years = dur_days / 365.25
+                    dur_str = f"{dur_years:.1f}y"
+                else:
+                    dur_str = "—"
+
+                # Status
+                is_this_phase_current = (period['is_current'] and
+                                         period['phase'] == phase_name)
+                if is_this_phase_current:
+                    status = "Current"
+                elif phase_end and phase_end < today:
+                    status = "Past"
+                else:
+                    status = "Future"
+
+                cycle_label = f"{period['cycle']}"
+                if period['phases'][0][0] == phase_name:
+                    cycle_label = f"{period['cycle']}"
+                else:
+                    cycle_label = ""
+
+                ss_data.append([cycle_label, phase_name,
+                               f"{start_str} — {end_str}",
+                               dur_str, status])
+
+        ss_col_widths = [40, 55, 150, 50, 55]
+        ss_table = Table(ss_data, colWidths=ss_col_widths)
+        ss_style_rules = [
+            ('FONTNAME',    (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE',    (0, 0), (-1, 0), 8),
+            ('FONTSIZE',    (0, 1), (-1, -1), 8),
+            ('FONTNAME',    (0, 1), (-1, -1), 'Helvetica'),
+            ('BACKGROUND',  (0, 0), (-1, 0), HEADER_BG),
+            ('TEXTCOLOR',   (0, 0), (-1, 0), HEADER_FG),
+            ('ALIGN',       (0, 0), (-1, -1), 'CENTER'),
+            ('GRID',        (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+            ('TOPPADDING',  (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, ROW_ALT]),
+        ]
+        # Highlight current phase row in gold
+        for row_idx in range(1, len(ss_data)):
+            if ss_data[row_idx][4] == "Current":
+                ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), GOLD_BG))
+                ss_style_rules.append(('FONTNAME', (0, row_idx), (-1, row_idx), 'Helvetica-Bold'))
+                ss_data[row_idx][4] = "Current \u25c4"
+        ss_table.setStyle(TableStyle(ss_style_rules))
+        story.append(ss_table)
+        story.append(Spacer(1, 4 * mm))
+
+        # Section 3: Current Status
+        story.append(Paragraph("Current Status", section_style))
+        current_period = None
+        for p in sade_sati:
+            if p['is_current']:
+                current_period = p
+                break
+
+        if current_period:
+            phase = current_period['phase']
+            phase_info = SADE_SATI_PHASES_EN.get(phase, {})
+            story.append(Paragraph(
+                f"<b>You are currently in Sade Sati — {phase_info.get('title', phase)} Phase</b>",
+                ss_body_style))
+            story.append(Paragraph(phase_info.get('description', ''), ss_body_style))
+            story.append(Paragraph("<b>Key Effects:</b>", ss_body_style))
+            for effect in phase_info.get('effects', []):
+                story.append(Paragraph(f"\u2022 {effect}", ss_effect_style))
+        else:
+            # Find next or most recent
+            future = [p for p in sade_sati if p['start_date'] > today]
+            past = [p for p in sade_sati if p['end_date'] and p['end_date'] <= today]
+            if future:
+                nxt = future[0]
+                story.append(Paragraph(
+                    f"You are <b>not</b> currently in Sade Sati. "
+                    f"Your next Sade Sati begins approximately <b>{nxt['start_date'].strftime('%B %Y')}</b>.",
+                    ss_body_style))
+            elif past:
+                last = past[-1]
+                story.append(Paragraph(
+                    f"You are <b>not</b> currently in Sade Sati. "
+                    f"Your most recent Sade Sati ended approximately <b>{last['end_date'].strftime('%B %Y')}</b>.",
+                    ss_body_style))
+        story.append(Spacer(1, 3 * mm))
+
+        # Section 4: Remedies
+        story.append(Paragraph("Sade Sati Remedies", section_style))
+
+        remedy_head_style = ParagraphStyle('SSRemedyHead', parent=styles['Normal'],
+            fontName='Helvetica-Bold', fontSize=9, textColor=MAROON,
+            spaceBefore=3 * mm, spaceAfter=1 * mm)
+
+        story.append(Paragraph("Spiritual Remedies", remedy_head_style))
+        for r in SADE_SATI_REMEDIES_EN['spiritual']:
+            story.append(Paragraph(f"\u2022 {r}", ss_effect_style))
+
+        story.append(Paragraph("Karma Correction", remedy_head_style))
+        for r in SADE_SATI_REMEDIES_EN['karma']:
+            story.append(Paragraph(f"\u2022 {r}", ss_effect_style))
+
+        story.append(Paragraph("Practical Advice", remedy_head_style))
+        for r in SADE_SATI_REMEDIES_EN['practical']:
+            story.append(Paragraph(f"\u2022 {r}", ss_effect_style))
 
     # ── Dasha tables ───────────────────────────────────────────
     story.append(PageBreak())
