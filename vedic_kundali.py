@@ -4587,7 +4587,7 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
 
             row_style = ""
             has_varg_check = has_varg if plist else False
-            if rank == 1 and (navamsha.get('nav_asc_vargottama') or plist):
+            if rank == 1 and navamsha.get('nav_asc_vargottama'):
                 row_style = ' style="background:#FFF3CD; font-weight:bold;"'
             elif has_varg_check:
                 row_style = ' style="background:#E8F5E9;"'
@@ -5851,9 +5851,8 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             ('RIGHTPADDING', (0, 0), (-1, -1), 3),
         ]
 
-        # Highlight Row 1 (Nav Lagna) only if it has planets or Lagna is Vargottama
-        nav_lagna_has_planets = bool(nav_house_planets.get(1, []))
-        if navamsha.get('nav_asc_vargottama') or nav_lagna_has_planets:
+        # Highlight Row 1 (Nav Lagna) ONLY if Lagna itself is Vargottama
+        if navamsha.get('nav_asc_vargottama'):
             nav_style_rules.append(('BACKGROUND', (0, 1), (-1, 1), GOLD_BG))
             nav_style_rules.append(('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'))
 
