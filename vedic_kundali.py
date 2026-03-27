@@ -5459,45 +5459,74 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             textColor=colors.HexColor("#444444"), leftIndent=10,
             spaceAfter=1 * mm)
 
-        # Section 1: What is Sade Sati?
+        # Section 1: What is Sade Sati? (with Saturn strength context)
         story.append(Paragraph("What is Sade Sati?", section_style))
+
+        # Get Saturn strength for personalized context
+        saturn_score = 0
+        saturn_overall = "Moderate"
+        if strength_data and 'Saturn' in strength_data:
+            saturn_score = strength_data['Saturn'].get('score', 0)
+            saturn_overall = strength_data['Saturn'].get('overall', 'Moderate')
+
+        if saturn_score >= 70:
+            saturn_context = (
+                f"In your chart, <b>Saturn is strong ({saturn_score}/100)</b> — "
+                f"Sade Sati will bring growth through discipline rather than hardship. "
+                f"A strong Saturn means you handle Saturn's lessons with resilience and maturity.")
+        elif saturn_score >= 40:
+            saturn_context = (
+                f"In your chart, <b>Saturn is moderately placed ({saturn_score}/100)</b> — "
+                f"Sade Sati will bring a mix of challenges and growth. Discipline and patience "
+                f"will be your greatest allies during these periods.")
+        else:
+            saturn_context = (
+                f"In your chart, <b>Saturn is weak ({saturn_score}/100)</b> — "
+                f"Sade Sati periods may feel more intense. Extra attention to health, finances, "
+                f"and relationships is advised. The remedies below are especially important for you.")
+
         story.append(Paragraph(
             f"Sade Sati occurs when Saturn transits through the 12th, 1st, and 2nd houses "
             f"from your Moon sign (<b>{moon_sign_en}</b>). Each cycle lasts approximately "
             f"7.5 years and occurs 2-3 times in a lifetime. It brings karmic lessons, "
             f"discipline, and ultimately spiritual growth.",
             ss_intro_style))
+        story.append(Paragraph(saturn_context, ss_intro_style))
 
         # Section 2: Your Sade Sati Cycles (table)
         story.append(Paragraph("Your Sade Sati Cycles", section_style))
 
-        ss_header = ['Cycle', 'Phase', 'Period', 'Duration', 'Status']
+        # Phase display: icon, intensity label, intensity color
+        PHASE_DISPLAY = {
+            'Rising':  ('\u23f3 Rising',  'Medium',  '#FF8F00'),
+            'Peak':    ('\u26a0 Peak',    'High',    '#C62828'),
+            'Setting': ('\u263c Setting', 'Moderate', '#2E7D32'),
+        }
+
+        ss_header = ['Cycle', 'Phase', 'Intensity', 'Period', 'Duration', 'Status']
         ss_data = [ss_header]
-        GOLD_BG = colors.HexColor("#FFF3CD")
+        ss_row_meta = []
+        PAST_BG = colors.HexColor("#FCE4E4")
+        FUTURE_BG = colors.HexColor("#FFF9E6")
+        CURRENT_BG = colors.HexColor("#E8F5E9")
 
         for period in sade_sati:
             for phase_name, phase_start in period['phases']:
-                # Determine phase end
                 phase_idx = [p[0] for p in period['phases']].index(phase_name)
-                # Find next phase start or period end
                 if phase_idx + 1 < len(period['phases']):
                     phase_end = period['phases'][phase_idx + 1][1]
                 else:
                     phase_end = period['end_date']
 
-                # Period string
                 start_str = phase_start.strftime('%b %Y')
                 end_str = phase_end.strftime('%b %Y') if phase_end else "Ongoing"
 
-                # Duration
                 if phase_end:
-                    dur_days = (phase_end - phase_start).days
-                    dur_years = dur_days / 365.25
+                    dur_years = (phase_end - phase_start).days / 365.25
                     dur_str = f"{dur_years:.1f}y"
                 else:
-                    dur_str = "—"
+                    dur_str = "\u2014"
 
-                # Status
                 is_this_phase_current = (period['is_current'] and
                                          period['phase'] == phase_name)
                 if is_this_phase_current:
@@ -5507,17 +5536,14 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                 else:
                     status = "Future"
 
-                cycle_label = f"{period['cycle']}"
-                if period['phases'][0][0] == phase_name:
-                    cycle_label = f"{period['cycle']}"
-                else:
-                    cycle_label = ""
+                cycle_label = f"{period['cycle']}" if period['phases'][0][0] == phase_name else ""
+                phase_disp, intensity, _ = PHASE_DISPLAY.get(phase_name, (phase_name, '', '#333'))
 
-                ss_data.append([cycle_label, phase_name,
-                               f"{start_str} — {end_str}",
-                               dur_str, status])
+                ss_data.append([cycle_label, phase_disp, intensity,
+                               f"{start_str} \u2014 {end_str}", dur_str, status])
+                ss_row_meta.append((status, phase_name))
 
-        ss_col_widths = [40, 55, 150, 50, 55]
+        ss_col_widths = [35, 65, 55, 140, 40, 50]
         ss_table = Table(ss_data, colWidths=ss_col_widths)
         ss_style_rules = [
             ('FONTNAME',    (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -5530,14 +5556,23 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             ('GRID',        (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
             ('TOPPADDING',  (0, 0), (-1, -1), 3),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, ROW_ALT]),
+            ('VALIGN',      (0, 0), (-1, -1), 'MIDDLE'),
         ]
-        # Highlight current phase row in gold
-        for row_idx in range(1, len(ss_data)):
-            if ss_data[row_idx][4] == "Current":
-                ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), GOLD_BG))
+        for row_idx, (meta_status, meta_phase) in enumerate(ss_row_meta, 1):
+            if meta_status == "Current":
+                ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), CURRENT_BG))
                 ss_style_rules.append(('FONTNAME', (0, row_idx), (-1, row_idx), 'Helvetica-Bold'))
-                ss_data[row_idx][4] = "Current \u25c4"
+                ss_data[row_idx][5] = "Current \u25c4"
+            elif meta_status == "Past":
+                ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), PAST_BG))
+            elif meta_status == "Future":
+                ss_style_rules.append(('BACKGROUND', (0, row_idx), (-1, row_idx), FUTURE_BG))
+            # Color intensity column
+            _, _, int_color = PHASE_DISPLAY.get(meta_phase, ('', '', '#333'))
+            ss_style_rules.append(('TEXTCOLOR', (2, row_idx), (2, row_idx),
+                                   colors.HexColor(int_color)))
+            ss_style_rules.append(('FONTNAME', (2, row_idx), (2, row_idx), 'Helvetica-Bold'))
+
         ss_table.setStyle(TableStyle(ss_style_rules))
         story.append(ss_table)
         story.append(Spacer(1, 4 * mm))
