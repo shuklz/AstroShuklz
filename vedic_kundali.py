@@ -967,6 +967,25 @@ def pratyantar_dasha(antar_lord, antar_start, antar_duration_years):
     return sub_periods
 
 
+def sookshma_dasha(pratyantar_lord, pratyantar_start, pratyantar_duration_years):
+    """
+    Calculate Sookshma Dasha micro-periods (4th level) within a Pratyantar Dasha.
+    Returns list of (lord, start_date, end_date, years).
+    """
+    start_idx = DASHA_SEQUENCE.index(pratyantar_lord)
+    sub_periods = []
+    current = pratyantar_start
+    for i in range(9):
+        idx = (start_idx + i) % 9
+        sub_lord = DASHA_SEQUENCE[idx]
+        yrs = pratyantar_duration_years * DASHA_YEARS[sub_lord] / DASHA_TOTAL_YEARS
+        days = yrs * 365.25
+        end = current + timedelta(days=days)
+        sub_periods.append((sub_lord, current, end, yrs))
+        current = end
+    return sub_periods
+
+
 # ─── Navamsha (D-9) Calculation ──────────────────────────────────────────────
 
 def _navamsha_sign(lon):
@@ -3793,6 +3812,81 @@ def generate_pdf(chart, output_path="kundali_report.pdf", svg_path=None):
                 pdtable.setStyle(TableStyle(pd_style))
                 story.append(pdtable)
 
+                # ── Sookshma Dasha (micro-periods) ────────────────────
+                # Compute for current and upcoming pratyantars (next ~3 years)
+                cutoff = today + timedelta(days=3*365.25)
+                pd_list = chart['pratyantar'][key]
+                sookshma_groups = []
+                for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+                    if pd_end < today and not (pd_start <= today < pd_end):
+                        continue  # skip past pratyantars
+                    if pd_start > cutoff:
+                        break  # beyond 3-year window
+                    sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                    sookshma_groups.append((pd_lord, pd_start, pd_end, pd_yrs, sk_list))
+
+                if sookshma_groups:
+                    story.append(Paragraph(
+                        f"Vimshottari Dasha — Sookshma "
+                        f"(within {current_maha}–{current_antar})",
+                        section_style))
+
+                    sk_data = []
+                    sk_header = ['Lord', 'Start', 'End', 'Duration', '']
+                    sk_data.append(sk_header)
+                    group_header_rows = []
+                    for pd_lord, pd_start, pd_end, pd_yrs, sk_list in sookshma_groups:
+                        pd_days = pd_yrs * 365.25
+                        pd_dur = f"{pd_yrs*12:.1f}m" if pd_days >= 30 else f"{pd_days:.0f}d"
+                        group_header_rows.append(len(sk_data))
+                        sk_data.append([
+                            f"Pratyantar: {pd_lord}",
+                            pd_start.strftime('%d %b %Y'),
+                            pd_end.strftime('%d %b %Y'),
+                            pd_dur, ''])
+                        for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                            is_now = sk_start <= today < sk_end
+                            marker = "\u25c4 NOW" if is_now else ""
+                            sk_days = sk_yrs * 365.25
+                            dur_str = f"{sk_yrs*12:.1f}m" if sk_days >= 30 else f"{sk_days:.0f}d"
+                            sk_data.append([f"  {sk_lord}",
+                                            sk_start.strftime('%d %b %Y'),
+                                            sk_end.strftime('%d %b %Y'),
+                                            dur_str, marker])
+
+                    sktable = Table(sk_data, colWidths=[90, 90, 90, 55, 50])
+                    sk_style = [
+                        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('FONTSIZE',   (0,0), (-1,-1), 7.5),
+                        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+                        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+                        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+                        ('ALIGN',      (0,1), (0,-1), 'LEFT'),
+                        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+                        ('TOPPADDING',  (0,0), (-1,-1), 2),
+                        ('BOTTOMPADDING',(0,0), (-1,-1), 2),
+                    ]
+                    # Style group header rows
+                    for r in group_header_rows:
+                        sk_style.append(('BACKGROUND', (0, r), (-1, r),
+                                         colors.HexColor("#E8E0D0")))
+                        sk_style.append(('FONTNAME', (0, r), (-1, r),
+                                         'Helvetica-Bold'))
+                        sk_style.append(('FONTSIZE', (0, r), (-1, r), 7.5))
+                    # Highlight current sookshma
+                    row_idx = 1
+                    for pd_lord, pd_start, pd_end, pd_yrs, sk_list in sookshma_groups:
+                        row_idx += 1  # skip group header
+                        for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                            if sk_start <= today < sk_end:
+                                sk_style.append(('BACKGROUND', (0, row_idx),
+                                                 (-1, row_idx), ROW_NOW))
+                                sk_style.append(('FONTNAME', (0, row_idx),
+                                                 (-1, row_idx), 'Helvetica-Bold'))
+                            row_idx += 1
+                    sktable.setStyle(TableStyle(sk_style))
+                    story.append(sktable)
+
     # ── Page 3: General Reading / Dasha Insights ───────────────
     story.append(PageBreak())
     story.append(Paragraph("Dasha Reading &amp; General Insights", title_style))
@@ -4559,6 +4653,49 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                                        f"<td>{pd_end.strftime('%d %b %Y')}</td>"
                                        f"<td>{dur}</td><td>{marker}</td></tr>")
                 html_parts.append("</table>")
+
+                # ── Sookshma Dasha (Hindi) ────────────────────────
+                cutoff = today + timedelta(days=3*365.25)
+                pd_list = chart['pratyantar'][key]
+                sookshma_groups = []
+                for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+                    if pd_end < today and not (pd_start <= today < pd_end):
+                        continue
+                    if pd_start > cutoff:
+                        break
+                    sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                    sookshma_groups.append((pd_lord, pd_start, pd_end, pd_yrs, sk_list))
+
+                if sookshma_groups:
+                    html_parts.append(
+                        f"<h2>विंशोत्तरी दशा — सूक्ष्म "
+                        f"({maha_hi}–{antar_hi})</h2>")
+                    html_parts.append(
+                        "<table><tr><th>स्वामी</th><th>आरंभ</th>"
+                        "<th>अंत</th><th>अवधि</th><th></th></tr>")
+                    for pd_lord, pd_start, pd_end, pd_yrs, sk_list in sookshma_groups:
+                        pd_days = pd_yrs * 365.25
+                        pd_dur = f"{pd_yrs*12:.1f}म" if pd_days >= 30 else f"{pd_days:.0f}द"
+                        pd_hi = PLANET_HI_FULL.get(pd_lord, pd_lord)
+                        html_parts.append(
+                            f'<tr style="background:#E8E0D0;font-weight:bold;">'
+                            f'<td>प्रत्यंतर: {pd_hi}</td>'
+                            f'<td>{pd_start.strftime("%d %b %Y")}</td>'
+                            f'<td>{pd_end.strftime("%d %b %Y")}</td>'
+                            f'<td>{pd_dur}</td><td></td></tr>')
+                        for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                            is_now = sk_start <= today < sk_end
+                            cls = ' class="now"' if is_now else ""
+                            marker = "◄ अभी" if is_now else ""
+                            sk_days = sk_yrs * 365.25
+                            dur = f"{sk_yrs*12:.1f}म" if sk_days >= 30 else f"{sk_days:.0f}द"
+                            sk_hi = PLANET_HI_FULL.get(sk_lord, sk_lord)
+                            html_parts.append(
+                                f"<tr{cls}><td>&nbsp;&nbsp;{sk_hi}</td>"
+                                f"<td>{sk_start.strftime('%d %b %Y')}</td>"
+                                f"<td>{sk_end.strftime('%d %b %Y')}</td>"
+                                f"<td>{dur}</td><td>{marker}</td></tr>")
+                    html_parts.append("</table>")
 
     # ── Hindi Page 3: Predictions ────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
@@ -5749,6 +5886,78 @@ def generate_pdf_to_buffer(chart, svg_content=None):
                         pd_style.append(('FONTNAME', (0, i), (-1, i), 'Helvetica-Bold'))
                 pdtable.setStyle(TableStyle(pd_style))
                 story.append(pdtable)
+
+                # ── Sookshma Dasha (micro-periods) ────────────────────
+                cutoff = today + timedelta(days=3*365.25)
+                pd_list = chart['pratyantar'][key]
+                sookshma_groups = []
+                for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+                    if pd_end < today and not (pd_start <= today < pd_end):
+                        continue
+                    if pd_start > cutoff:
+                        break
+                    sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                    sookshma_groups.append((pd_lord, pd_start, pd_end, pd_yrs, sk_list))
+
+                if sookshma_groups:
+                    story.append(Paragraph(
+                        f"Vimshottari Dasha — Sookshma "
+                        f"(within {current_maha}–{current_antar})",
+                        section_style))
+
+                    sk_data = []
+                    sk_header = ['Lord', 'Start', 'End', 'Duration', '']
+                    sk_data.append(sk_header)
+                    group_header_rows = []
+                    for pd_lord, pd_start, pd_end, pd_yrs, sk_list in sookshma_groups:
+                        pd_days = pd_yrs * 365.25
+                        pd_dur = f"{pd_yrs*12:.1f}m" if pd_days >= 30 else f"{pd_days:.0f}d"
+                        group_header_rows.append(len(sk_data))
+                        sk_data.append([
+                            f"Pratyantar: {pd_lord}",
+                            pd_start.strftime('%d %b %Y'),
+                            pd_end.strftime('%d %b %Y'),
+                            pd_dur, ''])
+                        for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                            is_now = sk_start <= today < sk_end
+                            marker = "\u25c4 NOW" if is_now else ""
+                            sk_days = sk_yrs * 365.25
+                            dur_str = f"{sk_yrs*12:.1f}m" if sk_days >= 30 else f"{sk_days:.0f}d"
+                            sk_data.append([f"  {sk_lord}",
+                                            sk_start.strftime('%d %b %Y'),
+                                            sk_end.strftime('%d %b %Y'),
+                                            dur_str, marker])
+
+                    sktable = Table(sk_data, colWidths=[90, 90, 90, 55, 50])
+                    sk_style = [
+                        ('FONTNAME',   (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('FONTSIZE',   (0,0), (-1,-1), 7.5),
+                        ('BACKGROUND', (0,0), (-1,0), HEADER_BG),
+                        ('TEXTCOLOR',  (0,0), (-1,0), HEADER_FG),
+                        ('ALIGN',      (0,0), (-1,-1), 'CENTER'),
+                        ('ALIGN',      (0,1), (0,-1), 'LEFT'),
+                        ('GRID',       (0,0), (-1,-1), 0.5, colors.HexColor("#CCCCCC")),
+                        ('TOPPADDING',  (0,0), (-1,-1), 2),
+                        ('BOTTOMPADDING',(0,0), (-1,-1), 2),
+                    ]
+                    for r in group_header_rows:
+                        sk_style.append(('BACKGROUND', (0, r), (-1, r),
+                                         colors.HexColor("#E8E0D0")))
+                        sk_style.append(('FONTNAME', (0, r), (-1, r),
+                                         'Helvetica-Bold'))
+                        sk_style.append(('FONTSIZE', (0, r), (-1, r), 7.5))
+                    row_idx = 1
+                    for pd_lord, pd_start, pd_end, pd_yrs, sk_list in sookshma_groups:
+                        row_idx += 1  # skip group header
+                        for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                            if sk_start <= today < sk_end:
+                                sk_style.append(('BACKGROUND', (0, row_idx),
+                                                 (-1, row_idx), ROW_NOW))
+                                sk_style.append(('FONTNAME', (0, row_idx),
+                                                 (-1, row_idx), 'Helvetica-Bold'))
+                            row_idx += 1
+                    sktable.setStyle(TableStyle(sk_style))
+                    story.append(sktable)
 
     # ── Page 3: Prediction / Dasha Reading ──────────────────────
     story.append(PageBreak())
