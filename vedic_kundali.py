@@ -5454,6 +5454,7 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                     f'<div class="reading">'
                     f'<b>मंत्र:</b> {mantra} | <b>दिन:</b> {day}<br/>'
                     f'<b>दान:</b> {charity}<br/>'
+                    f'<b>रत्न:</b> {gem} (वैकल्पिक — ज्योतिषी से परामर्श करें)<br/>'
                     f'<b>सुझाव:</b> {tip}</div>')
 
     # ── Hindi Karma Remedy Page ──────────────────────────────
@@ -7186,6 +7187,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             story.append(Paragraph(
                 f"<b>Mantra:</b> {mantra} | <b>Day:</b> {day}<br/>"
                 f"<b>Charity:</b> {charity}<br/>"
+                f"<b>Gemstone:</b> {gem} (optional — consult astrologer)<br/>"
                 f"<b>Tip:</b> {tip}",
                 tier_style))
 
