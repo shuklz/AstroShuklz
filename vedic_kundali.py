@@ -4212,13 +4212,31 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
     .brand {{ text-align: center; color: #B8860B; font-style: italic; font-size: 10pt; margin-bottom: 10px; }}
     .info {{ text-align: center; color: #555; font-size: 9pt; margin-bottom: 5px; }}
     h2 {{ color: #8B0000; text-align: center; font-size: 12pt; margin-top: 15px; margin-bottom: 8px; }}
-    h3 {{ color: #8B0000; font-size: 10pt; margin-top: 12px; margin-bottom: 4px; }}
+    h3 {{ color: #8B0000; font-size: 10pt; margin-top: 12px; margin-bottom: 4px;
+          border-bottom: 1px solid #8B0000; padding-bottom: 3px; }}
     table {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8pt; }}
     th {{ background: #8B0000; color: white; padding: 4px 6px; text-align: center; }}
     td {{ padding: 4px 6px; text-align: center; border: 0.5px solid #CCC; }}
     /* no alternate row coloring */
     tr.now {{ background: #FFFACD; font-weight: bold; }}
     .reading {{ font-size: 9.5pt; line-height: 1.5; margin: 5px 0; }}
+    .transit-grid {{ margin: 8px 0; }}
+    .transit-item {{
+        padding: 8px 12px;
+        margin: 6px 0;
+        border-radius: 4px;
+        font-size: 9pt;
+        line-height: 1.5;
+    }}
+    .transit-item.benefic {{
+        background: #F0FFF4;
+        border-left: 4px solid #38A169;
+    }}
+    .transit-item.malefic {{
+        background: #FFF5F5;
+        border-left: 4px solid #E53E3E;
+    }}
+    .effect-text {{ color: #666; }}
     .disclaimer {{ font-size: 7.5pt; color: #999; text-align: center; font-style: italic; margin-top: 20px; }}
     .footer {{ font-size: 7pt; color: #AAA; text-align: center; margin-top: 10px; }}
     .page-break {{ page-break-before: always; }}
@@ -6782,14 +6800,106 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         fontName='Helvetica-Oblique', fontSize=10, textColor=colors.HexColor("#B8860B"),
         alignment=TA_CENTER, spaceAfter=6*mm)
     forecast_heading_style = ParagraphStyle('ForecastHead', parent=styles['Normal'],
-        fontName='Helvetica-Bold', fontSize=10.5, textColor=MAROON,
-        spaceBefore=4*mm, spaceAfter=1.5*mm)
+        fontName='Helvetica-Bold', fontSize=12, textColor=MAROON,
+        spaceBefore=5*mm, spaceAfter=0.5*mm)
     forecast_body_style = ParagraphStyle('ForecastBody', parent=styles['Normal'],
         fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
         alignment=TA_LEFT, leading=13, spaceAfter=2*mm)
     forecast_stale_style = ParagraphStyle('ForecastStale', parent=styles['Normal'],
         fontName='Helvetica-Oblique', fontSize=8, textColor=colors.HexColor("#777"),
         alignment=TA_CENTER, spaceBefore=6*mm, spaceAfter=2*mm)
+    # Transit card paragraph styles
+    fc_transit_title = ParagraphStyle('FCTransitTitle', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=9, textColor=colors.HexColor("#333"),
+        leading=13)
+    fc_transit_effect = ParagraphStyle('FCTransitEffect', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=8.5, textColor=colors.HexColor("#666"),
+        leading=12)
+
+    # Heading divider line
+    from reportlab.platypus import HRFlowable
+
+    def _render_forecast_section(section, story_list):
+        """Render a forecast section with visual styling matching the web format."""
+        heading = section['heading']
+        content = section['content']
+
+        # Section heading with maroon underline
+        if heading:
+            story_list.append(Paragraph(heading, forecast_heading_style))
+            story_list.append(HRFlowable(
+                width="100%", thickness=1, color=MAROON,
+                spaceBefore=0.5*mm, spaceAfter=2*mm))
+
+        # Check if this is a transit section (contains transit-item divs)
+        if 'transit-item' in content:
+            # Extract intro text before transit-grid
+            intro_match = _re.search(r'^(.*?)<div class="transit-grid">', content, _re.DOTALL)
+            if intro_match:
+                intro_rl = _html_to_rl(intro_match.group(1))
+                if intro_rl:
+                    story_list.append(Paragraph(intro_rl, forecast_body_style))
+
+            # Extract individual transit items
+            items = _re.findall(
+                r'<div class="transit-item\s+(benefic|malefic)">(.*?)</div>',
+                content, _re.DOTALL)
+            for item_type, item_html in items:
+                # Parse title line and effect text
+                title_match = _re.search(
+                    r'<strong>(.*?)</strong>\s*(.*?)(?:<br\s*/?>|$)', item_html, _re.DOTALL)
+                effect_match = _re.search(
+                    r'<span class="effect-text">(.*?)</span>', item_html, _re.DOTALL)
+                if title_match:
+                    planet_name = title_match.group(1).strip()
+                    rest_of_line = _re.sub(r'</?em>', '', title_match.group(2)).strip()
+                    title_text = f"<b>{planet_name}</b> {rest_of_line}"
+                    effect_text = effect_match.group(1).strip() if effect_match else ""
+
+                    if item_type == "benefic":
+                        bg_color = colors.HexColor("#F0FFF4")
+                        border_color = colors.HexColor("#38A169")
+                    else:
+                        bg_color = colors.HexColor("#FFF5F5")
+                        border_color = colors.HexColor("#E53E3E")
+
+                    # Build a table that mimics a card with left border
+                    card_content = []
+                    card_content.append(Paragraph(title_text, fc_transit_title))
+                    if effect_text:
+                        card_content.append(Paragraph(effect_text, fc_transit_effect))
+
+                    # Outer table: [border_stripe | content]
+                    inner_table = Table(
+                        [[c] for c in card_content],
+                        colWidths=[155*mm])
+                    inner_table.setStyle(TableStyle([
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ]))
+
+                    card_table = Table(
+                        [[' ', inner_table]],
+                        colWidths=[3, 160*mm])
+                    card_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (0, 0), border_color),
+                        ('BACKGROUND', (1, 0), (1, 0), bg_color),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('LEFTPADDING', (0, 0), (0, 0), 0),
+                        ('LEFTPADDING', (1, 0), (1, 0), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                        ('ROUNDEDCORNERS', [2, 2, 2, 2]),
+                    ]))
+                    story_list.append(Spacer(1, 1.5*mm))
+                    story_list.append(card_table)
+        else:
+            # Regular content — render as paragraphs
+            content_rl = _html_to_rl(content)
+            if content_rl:
+                story_list.append(Paragraph(content_rl, forecast_body_style))
 
     for period_key, period_label in [("week", "Weekly"), ("month", "Monthly"), ("year", "Yearly")]:
         reading_data = generate_personalized_reading(bd, period=period_key, lang="en")
@@ -6797,11 +6907,7 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         story.append(Paragraph(reading_data['title'], forecast_title_style))
         story.append(Paragraph("by AstroShuklz", forecast_subtitle_style))
         for section in reading_data['sections']:
-            if section['heading']:
-                story.append(Paragraph(section['heading'], forecast_heading_style))
-            content_rl = _html_to_rl(section['content'])
-            if content_rl:
-                story.append(Paragraph(content_rl, forecast_body_style))
+            _render_forecast_section(section, story)
         story.append(Paragraph(
             "This reading reflects planetary positions at the time of PDF generation. "
             "For the latest current reading, visit <b>astroshuklz.com</b> or "
