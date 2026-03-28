@@ -2448,6 +2448,56 @@ def _dasha_reading_hi(chart, today):
             f"इस सूक्ष्म काल में "
             f"{_p_positive} देखें।")
 
+    # Sookshma
+    if current_prat:
+        key = (current_maha, current_antar)
+        pd_list = chart.get('pratyantar', {}).get(key, [])
+        for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+            if pd_start <= today < pd_end:
+                sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                current_sk = None
+                next_sk = None
+                for si, (sk_lord, sk_start, sk_end, sk_yrs) in enumerate(sk_list):
+                    if sk_start <= today < sk_end:
+                        current_sk = (sk_lord, sk_start, sk_end, sk_yrs)
+                        if si + 1 < len(sk_list):
+                            next_sk = sk_list[si + 1]
+                        break
+                if current_sk:
+                    sk_lord, sk_start, sk_end, sk_yrs = current_sk
+                    sk_hi = PLANET_HI_FULL.get(sk_lord, sk_lord)
+                    sk_info = DASHA_READING_HI.get(sk_lord, {})
+                    sk_days = (sk_end - today).days
+                    sk_hours = (sk_end - today).total_seconds() / 3600
+                    blocks.append(f"## {sk_hi} सूक्ष्म — सबसे सूक्ष्म वर्तमान प्रभाव")
+                    if sk_days > 0:
+                        duration_text = f"<b>{sk_days} दिन</b>"
+                    else:
+                        duration_text = f"<b>{sk_hours:.0f} घंटे</b>"
+                    _sk_themes = sk_info.get('themes', 'तात्कालिक गतिविधियों')
+                    _sk_nature = sk_info.get('nature', 'सूक्ष्म')
+                    prat_hi = PLANET_HI_FULL.get(current_prat, current_prat)
+                    antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
+                    blocks.append(
+                        f"समय के सबसे सूक्ष्म स्तर पर, <b>{sk_hi} सूक्ष्म</b> "
+                        f"({sk_end.strftime('%d %B %Y')} तक, लगभग "
+                        f"{duration_text} शेष) आपके दैनिक अनुभव में "
+                        f"{sk_hi} की बहुत महीन ऊर्जा जोड़ती है। "
+                        f"यह सूक्ष्म काल आपकी {_sk_themes} को "
+                        f"{_sk_nature} रंग देता है।")
+                    blocks.append(
+                        f"चार-स्तरीय दशा श्रृंखला <b>{maha_hi} → {antar_hi} → "
+                        f"{prat_hi} → {sk_hi}</b> ग्रहीय प्रभावों का एक अनूठा मिश्रण "
+                        f"बनाती है जो आपके वर्तमान क्षण को आकार दे रहा है — व्यापक "
+                        f"जीवन-अध्याय ({maha_hi}) से लेकर दिन-प्रतिदिन की बनावट ({sk_hi}) तक।")
+                    if next_sk:
+                        next_sk_hi = PLANET_HI_FULL.get(next_sk[0], next_sk[0])
+                        blocks.append(
+                            f"अगला सूक्ष्म परिवर्तन <b>{next_sk_hi}</b> में "
+                            f"<b>{next_sk[1].strftime('%d %B %Y')}</b> के आसपास होगा, "
+                            f"जो आपकी तात्कालिक ऊर्जा और ध्यान में सूक्ष्म बदलाव लाएगा।")
+                break
+
     # Looking ahead
     blocks.append("## आगे देखें — आने वाले परिवर्तन")
     if next_antar_data:
@@ -2480,8 +2530,44 @@ def _dasha_reading_hi(chart, today):
             f"प्रमुख शक्तियाँ: {_nm_positive}।")
 
     # Guidance
-    blocks.append(f"## वर्तमान काल के लिए मार्गदर्शन")
+    blocks.append("## वर्तमान काल के लिए मार्गदर्शन")
     blocks.append(maha_info.get('advice', 'संतुलित और सचेत रहें।'))
+
+    # Summary
+    blocks.append("## सारांश — आज आपका ब्रह्मांडीय खाका")
+    summary_parts = [f"आपका जीवन वर्तमान में <b>{maha_hi} महादशा</b> द्वारा निर्देशित है"]
+    if current_antar:
+        antar_hi = PLANET_HI_FULL.get(current_antar, current_antar)
+        summary_parts.append(f"<b>{antar_hi} अंतर्दशा</b> द्वारा परिष्कृत")
+    if current_prat:
+        prat_hi = PLANET_HI_FULL.get(current_prat, current_prat)
+        summary_parts.append(f"<b>{prat_hi} प्रत्यंतर</b> द्वारा सूक्ष्म स्तर पर आकारित")
+    current_sk_lord = None
+    if current_prat:
+        key = (current_maha, current_antar)
+        pd_list = chart.get('pratyantar', {}).get(key, [])
+        for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+            if pd_start <= today < pd_end:
+                sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                    if sk_start <= today < sk_end:
+                        current_sk_lord = sk_lord
+                        break
+                break
+    if current_sk_lord:
+        sk_hi = PLANET_HI_FULL.get(current_sk_lord, current_sk_lord)
+        summary_parts.append(f"और सबसे सूक्ष्म स्तर पर <b>{sk_hi} सूक्ष्म</b> द्वारा रंगित")
+    blocks.append(", ".join(summary_parts) + "।")
+    blocks.append(
+        "विंशोत्तरी दशा प्रणाली की प्रत्येक परत — वर्षों तक फैली व्यापक महादशा से, "
+        "महीनों तक चलने वाली अंतर्दशा और प्रत्यंतर से होते हुए, दिनों तक चलने वाली सूक्ष्म "
+        "तक — आपकी कार्मिक यात्रा के प्रकटीकरण में बारीकी और विशिष्टता जोड़ती है। "
+        "इन परतों को समझना आपको ब्रह्मांडीय लय के अनुरूप अपने कार्यों को संरेखित करने में सहायता करता है।")
+    blocks.append(
+        "याद रखें: ग्रह प्रवृत्तियों का संकेत देते हैं, निश्चितताओं का नहीं। आपकी जागरूकता, "
+        "चयन और प्रयास आपके भाग्य को आकार देने में सबसे शक्तिशाली बल बने रहते हैं। "
+        "इस पठन को एक दिशासूचक की भाँति उपयोग करें, न कि नक्शे की भाँति — "
+        "यह आपके चिंतन का मार्गदर्शन करे, आपकी महत्वाकांक्षा को सीमित न करे।")
 
     return blocks
 
@@ -4196,7 +4282,10 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         ("६", "साढ़ेसाती — विश्लेषण एवं उपाय"),
         ("७", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
         ("८", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
-        ("९", "अस्वीकरण"),
+        ("९", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
+        ("१०", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
+        ("११", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
+        ("१२", "अस्वीकरण"),
     ]
     html_parts.append('<div class="toc-page">')
     html_parts.append('<div class="toc-title">विषय सूची</div>')
@@ -5032,6 +5121,83 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
                        'के लिए किसी योग्य '
                        'ज्योतिष से परामर्श करें।</div>')
     html_parts.append('<div class="footer">Lahiri Ayanamsha · Swiss Ephemeris · Generated by AstroShuklz</div>')
+
+    person_name_hi = bd.get('name', 'आप')
+
+    # ── Hindi Weekly Forecast Page ──────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append('<h1 style="text-align:center; color:#8B0000; margin-top:40px;">साप्ताहिक भविष्यवाणी</h1>')
+    html_parts.append('<div class="brand">व्यक्तिगत वैदिक भविष्यवाणी — हर सप्ताह अपडेट</div>')
+    html_parts.append(
+        f'<div class="reading">आपकी कुण्डली ब्रह्मांडीय खाका प्रकट करती है — '
+        f'लेकिन ग्रह कभी स्थिर नहीं रहते। <b>{person_name_hi}</b> के लिए '
+        f'<b>साप्ताहिक भविष्यवाणी</b> आपकी जन्म कुण्डली को वास्तविक समय के ग्रह गोचर '
+        f'और आपके सक्रिय दशा कालों के साथ मिलाकर आने वाले सप्ताह के लिए '
+        f'कार्यान्वयन योग्य मार्गदर्शन प्रदान करती है।</div>')
+    html_parts.append('<div class="reading"><b>हर सप्ताह आपको मिलता है:</b></div>')
+    weekly_bullets_hi = [
+        "<b>दशा पल्स</b> — आपके प्रत्यंतर एवं सूक्ष्म काल आने वाले 7 दिनों को कैसे प्रभावित करते हैं",
+        "<b>गोचर स्पॉटलाइट</b> — चंद्र राशि से आपके भावों में प्रमुख ग्रह संचार",
+        "<b>अनुकूल एवं चुनौतीपूर्ण दिन</b> — जिससे आप बैठकें, यात्रा और निर्णय योजित कर सकें",
+        "<b>साढ़ेसाती निगरानी</b> — यदि आपकी चंद्र राशि पर लागू हो तो शनि गोचर सूचना",
+        "<b>कार्यान्वयन योग्य सुझाव</b> — आपकी कुण्डली के अनुसार विशिष्ट मार्गदर्शन",
+    ]
+    for b in weekly_bullets_hi:
+        html_parts.append(f'<div class="reading" style="margin-left:20px;">• {b}</div>')
+    html_parts.append('<div style="text-align:center; margin-top:20px; font-weight:bold; color:#8B0000; font-size:12pt;">अपनी साप्ताहिक भविष्यवाणी प्राप्त करें</div>')
+    html_parts.append('<div style="text-align:center; color:#1a0dab; font-size:10pt;">astroshuklz.com/forecast</div>')
+    html_parts.append('<div style="text-align:center; margin-top:15px; font-style:italic; color:#777; font-size:8.5pt;">'
+                       'विंशोत्तरी दशा, गोचर विश्लेषण एवं लाहिरी अयनांश पर आधारित — हिंदी एवं अंग्रेज़ी में उपलब्ध।</div>')
+
+    # ── Hindi Monthly Forecast Page ─────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append('<h1 style="text-align:center; color:#8B0000; margin-top:40px;">मासिक भविष्यवाणी</h1>')
+    html_parts.append('<div class="brand">आने वाले माह के लिए गहन अंतर्दृष्टि</div>')
+    html_parts.append(
+        f'<div class="reading">एक माह इतना लंबा होता है कि ग्रह गोचर आपके जीवन-परिदृश्य को '
+        f'नया रूप दे सकते हैं। <b>{person_name_hi}</b> के लिए <b>मासिक भविष्यवाणी</b> '
+        f'एक विस्तृत दृष्टिकोण अपनाती है — यह विश्लेषण करती है कि आपकी अंतर्दशा, '
+        f'धीमी गति के ग्रह और भाव गोचर कैसे मिलकर आने वाले 30 दिनों को आकार देते हैं।</div>')
+    html_parts.append('<div class="reading"><b>हर माह आपको मिलता है:</b></div>')
+    monthly_bullets_hi = [
+        "<b>अंतर्दशा फोकस</b> — आपके माह को आकार देने वाली प्रमुख उप-काल ऊर्जा",
+        "<b>पूर्ण गोचर मानचित्र</b> — सूर्य से केतु तक, चंद्र राशि से विश्लेषित",
+        "<b>करियर एवं वित्त दृष्टिकोण</b> — भाव 2, 6, 10, 11 का गोचर विश्लेषण",
+        "<b>संबंध एवं स्वास्थ्य</b> — भाव 5, 7, 8 की गोचर अंतर्दृष्टि",
+        "<b>वक्री ग्रह सूचना</b> — कौन से ग्रह वक्री हैं और आपके लिए इसका क्या अर्थ है",
+        "<b>मासिक मार्गदर्शन</b> — लाभ उठाने योग्य शक्तियाँ और ध्यान रखने योग्य सावधानियाँ",
+    ]
+    for b in monthly_bullets_hi:
+        html_parts.append(f'<div class="reading" style="margin-left:20px;">• {b}</div>')
+    html_parts.append('<div style="text-align:center; margin-top:20px; font-weight:bold; color:#8B0000; font-size:12pt;">अपनी मासिक भविष्यवाणी प्राप्त करें</div>')
+    html_parts.append('<div style="text-align:center; color:#1a0dab; font-size:10pt;">astroshuklz.com/forecast</div>')
+    html_parts.append('<div style="text-align:center; margin-top:15px; font-style:italic; color:#777; font-size:8.5pt;">'
+                       'प्रत्येक भविष्यवाणी आपकी जन्म कुण्डली से विशिष्ट रूप से उत्पन्न — हिंदी एवं अंग्रेज़ी में उपलब्ध।</div>')
+
+    # ── Hindi Yearly Forecast Page ──────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append('<h1 style="text-align:center; color:#8B0000; margin-top:40px;">वार्षिक भविष्यवाणी</h1>')
+    html_parts.append('<div class="brand">आपका वार्षिक वैदिक मार्गदर्शन</div>')
+    html_parts.append(
+        f'<div class="reading"><b>{person_name_hi}</b> के लिए <b>वार्षिक भविष्यवाणी</b> '
+        f'सबसे व्यापक दृष्टिकोण है — एक संपूर्ण विश्लेषण कि महादशा विषय, बृहस्पति, शनि, '
+        f'राहु एवं केतु के प्रमुख ग्रह गोचर, और आपकी कुण्डली का वादा पूरे वर्ष में कैसे '
+        f'प्रकट होता है।</div>')
+    html_parts.append('<div class="reading"><b>वार्षिक भविष्यवाणी में शामिल है:</b></div>')
+    yearly_bullets_hi = [
+        "<b>महादशा विषय</b> — व्यापक कार्मिक अध्याय और इसकी शेष दिशा",
+        "<b>बृहस्पति एवं शनि गोचर</b> — दो महान कालनिर्धारक और उनके भाव प्रभाव",
+        "<b>राहु-केतु अक्ष</b> — आपके भावों में नोडल गोचर — इच्छाएँ बनाम नियति",
+        "<b>वर्ष की शक्तियाँ</b> — अधिकतम अवसर और विकास के काल",
+        "<b>वर्ष की चुनौतियाँ</b> — धैर्य, योजना और उपायों की आवश्यकता वाले चरण",
+        "<b>वार्षिक मार्गदर्शन</b> — करियर, संबंध, स्वास्थ्य एवं आध्यात्मिक विकास हेतु रणनीतिक सलाह",
+    ]
+    for b in yearly_bullets_hi:
+        html_parts.append(f'<div class="reading" style="margin-left:20px;">• {b}</div>')
+    html_parts.append('<div style="text-align:center; margin-top:20px; font-weight:bold; color:#8B0000; font-size:12pt;">अपनी वार्षिक भविष्यवाणी प्राप्त करें</div>')
+    html_parts.append('<div style="text-align:center; color:#1a0dab; font-size:10pt;">astroshuklz.com/forecast</div>')
+    html_parts.append('<div style="text-align:center; margin-top:15px; font-style:italic; color:#777; font-size:8.5pt;">'
+                       'शास्त्रीय वैदिक ज्योतिष पर आधारित व्यक्तिगत वार्षिक मार्गदर्शन — हिंदी एवं अंग्रेज़ी में उपलब्ध।</div>')
 
     # ── Hindi Disclaimer Page ─────────────────────────────────
     html_parts.append('<div class="page-break"></div>')
