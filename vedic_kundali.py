@@ -282,6 +282,269 @@ DRISHTI_EFFECT = {
     "Sun":     ("Authority / ego / heat", "अधिकार / अहंकार / ताप"),
 }
 
+# ── Rahu-Ketu Axis (Karma Axis) ────────────────────────────────────────────
+# Per-house interpretation for Rahu (desire/obsession) and Ketu (detachment/past life)
+RAHU_IN_HOUSE = {
+    1: {
+        "theme_en": "Self-image &amp; identity obsession",
+        "theme_hi": "आत्म-छवि और पहचान का जुनून",
+        "detail_en": "Intense drive to reinvent yourself, stand out, and be recognised. "
+                     "May struggle with identity, constantly seeking validation.",
+        "detail_hi": "खुद को नया रूप देने, अलग दिखने और पहचान पाने की तीव्र इच्छा। "
+                     "पहचान के संघर्ष और मान्यता की निरंतर खोज।",
+    },
+    2: {
+        "theme_en": "Wealth &amp; material accumulation",
+        "theme_hi": "धन और भौतिक संचय",
+        "detail_en": "Strong desire to build wealth, possessions, and family security. "
+                     "May become overly attached to material comfort and speech can be manipulative.",
+        "detail_hi": "धन, संपत्ति और पारिवारिक सुरक्षा बनाने की प्रबल इच्छा। "
+                     "भौतिक सुख से अत्यधिक लगाव और वाणी में चतुराई।",
+    },
+    3: {
+        "theme_en": "Communication &amp; bold initiatives",
+        "theme_hi": "संवाद और साहसिक पहल",
+        "detail_en": "Driven to express, write, and communicate powerfully. "
+                     "Courage in unconventional pursuits. Media or technology affinity.",
+        "detail_hi": "शक्तिशाली अभिव्यक्ति, लेखन और संवाद की ओर प्रेरित। "
+                     "अपरंपरागत कार्यों में साहस। मीडिया या प्रौद्योगिकी से लगाव।",
+    },
+    4: {
+        "theme_en": "Home, comfort &amp; emotional security",
+        "theme_hi": "गृह, सुख और भावनात्मक सुरक्षा",
+        "detail_en": "Obsessive pursuit of domestic happiness, property, and emotional roots. "
+                     "May feel a void in inner peace despite external comfort.",
+        "detail_hi": "घरेलू सुख, संपत्ति और भावनात्मक जड़ों की जुनूनी खोज। "
+                     "बाहरी सुख के बावजूद आंतरिक शांति में कमी।",
+    },
+    5: {
+        "theme_en": "Creativity, children &amp; romance",
+        "theme_hi": "रचनात्मकता, संतान और प्रेम",
+        "detail_en": "Intense desire for creative expression, romantic fulfilment, and progeny. "
+                     "Unconventional approach to love and speculative ventures.",
+        "detail_hi": "रचनात्मक अभिव्यक्ति, प्रेम पूर्ति और संतान की तीव्र इच्छा। "
+                     "प्रेम और सट्टा कार्यों में अपरंपरागत दृष्टिकोण।",
+    },
+    6: {
+        "theme_en": "Competition, enemies &amp; service",
+        "theme_hi": "प्रतिस्पर्धा, शत्रु और सेवा",
+        "detail_en": "Driven to overcome obstacles, defeat enemies, and serve. "
+                     "Thrives in competitive environments. Health consciousness or anxiety.",
+        "detail_hi": "बाधाओं पर विजय, शत्रुओं को पराजित करने और सेवा की ओर प्रेरित। "
+                     "प्रतिस्पर्धी वातावरण में उन्नति। स्वास्थ्य जागरूकता या चिंता।",
+    },
+    7: {
+        "theme_en": "Partnerships &amp; relationships",
+        "theme_hi": "साझेदारी और संबंध",
+        "detail_en": "Intense focus on marriage, business partnerships, and public dealings. "
+                     "May attract unconventional or foreign partners.",
+        "detail_hi": "विवाह, व्यापारिक साझेदारी और सार्वजनिक व्यवहार पर गहन ध्यान। "
+                     "अपरंपरागत या विदेशी साथी का आकर्षण।",
+    },
+    8: {
+        "theme_en": "Transformation &amp; hidden knowledge",
+        "theme_hi": "रूपांतरण और गुप्त ज्ञान",
+        "detail_en": "Fascination with mysteries, occult, psychology, and transformation. "
+                     "May experience sudden upheavals that force deep inner change.",
+        "detail_hi": "रहस्यों, तंत्र, मनोविज्ञान और रूपांतरण से आकर्षण। "
+                     "अचानक उथल-पुथल जो गहरे आंतरिक परिवर्तन को बाध्य करे।",
+    },
+    9: {
+        "theme_en": "Higher learning &amp; unconventional beliefs",
+        "theme_hi": "उच्च शिक्षा और अपरंपरागत विश्वास",
+        "detail_en": "Driven towards philosophy, foreign cultures, and non-traditional spiritual paths. "
+                     "May challenge orthodox beliefs and seek truth independently.",
+        "detail_hi": "दर्शन, विदेशी संस्कृतियों और गैर-पारंपरिक आध्यात्मिक मार्गों की ओर प्रेरित। "
+                     "रूढ़िवादी मान्यताओं को चुनौती और स्वतंत्र रूप से सत्य की खोज।",
+    },
+    10: {
+        "theme_en": "Career ambition &amp; public status",
+        "theme_hi": "करियर महत्वाकांक्षा और सार्वजनिक पद",
+        "detail_en": "Powerful drive for professional success, fame, and worldly achievement. "
+                     "May pursue unconventional career paths or rise through unusual means.",
+        "detail_hi": "पेशेवर सफलता, प्रसिद्धि और सांसारिक उपलब्धि की शक्तिशाली इच्छा। "
+                     "अपरंपरागत करियर मार्ग या असामान्य साधनों से उन्नति।",
+    },
+    11: {
+        "theme_en": "Gains, networks &amp; large aspirations",
+        "theme_hi": "लाभ, नेटवर्क और बड़ी आकांक्षाएँ",
+        "detail_en": "Obsession with achieving grand goals, expanding social networks, and financial gains. "
+                     "Attracts unusual friendships and group associations.",
+        "detail_hi": "बड़े लक्ष्य प्राप्ति, सामाजिक नेटवर्क विस्तार और आर्थिक लाभ का जुनून। "
+                     "असामान्य मित्रता और समूह संगठनों का आकर्षण।",
+    },
+    12: {
+        "theme_en": "Foreign lands, spirituality &amp; hidden realms",
+        "theme_hi": "विदेश, आध्यात्मिकता और गुप्त क्षेत्र",
+        "detail_en": "Drawn to foreign lands, spiritual retreats, and the unseen world. "
+                     "May find fulfilment through isolation, meditation, or overseas settlement.",
+        "detail_hi": "विदेशी भूमि, आध्यात्मिक एकांत और अदृश्य जगत की ओर आकर्षित। "
+                     "एकांत, ध्यान या विदेश बसने से पूर्ति।",
+    },
+}
+KETU_IN_HOUSE = {
+    1: {
+        "theme_en": "Detachment from self-image",
+        "theme_hi": "आत्म-छवि से वैराग्य",
+        "detail_en": "Past-life mastery of self-identity. Naturally spiritual and detached from ego. "
+                     "May appear aloof or disinterested in personal appearance.",
+        "detail_hi": "पिछले जन्म में आत्म-पहचान में निपुणता। स्वाभाविक रूप से आध्यात्मिक और अहंकार से विरक्त। "
+                     "व्यक्तिगत रूप-रंग में उदासीन प्रतीत हो सकते हैं।",
+    },
+    2: {
+        "theme_en": "Detachment from wealth &amp; family",
+        "theme_hi": "धन और परिवार से वैराग्य",
+        "detail_en": "Innate wisdom about material impermanence. Less attachment to accumulated wealth. "
+                     "Speech may be cryptic or spiritually inclined.",
+        "detail_hi": "भौतिक अस्थायित्व का सहज ज्ञान। संचित धन से कम लगाव। "
+                     "वाणी गूढ़ या आध्यात्मिक प्रवृत्ति की हो सकती है।",
+    },
+    3: {
+        "theme_en": "Detachment from ego-driven effort",
+        "theme_hi": "अहंकार-प्रेरित प्रयास से वैराग्य",
+        "detail_en": "Past-life courage and communication skills come naturally. "
+                     "Less drive for self-promotion but natural talent in writing or expression.",
+        "detail_hi": "पिछले जन्म का साहस और संवाद कौशल स्वाभाविक रूप से आते हैं। "
+                     "आत्म-प्रचार की कम इच्छा लेकिन लेखन में प्राकृतिक प्रतिभा।",
+    },
+    4: {
+        "theme_en": "Detachment from home &amp; emotional comfort",
+        "theme_hi": "गृह और भावनात्मक सुख से वैराग्य",
+        "detail_en": "May feel disconnected from homeland, mother, or domestic life. "
+                     "Inner restlessness despite external stability. Nomadic tendencies.",
+        "detail_hi": "मातृभूमि, माता या घरेलू जीवन से विरक्ति। "
+                     "बाहरी स्थिरता के बावजूद आंतरिक बेचैनी। भ्रमणशील प्रवृत्ति।",
+    },
+    5: {
+        "theme_en": "Detachment from romance &amp; speculation",
+        "theme_hi": "प्रेम और सट्टे से वैराग्य",
+        "detail_en": "Past-life creative and intellectual gifts carried forward. "
+                     "May feel disenchanted with romance or have an unconventional parenting style.",
+        "detail_hi": "पिछले जन्म की रचनात्मक और बौद्धिक प्रतिभाएँ आगे लाई गई हैं। "
+                     "प्रेम से मोहभंग या अपरंपरागत पालन-पोषण शैली।",
+    },
+    6: {
+        "theme_en": "Detachment from conflict &amp; competition",
+        "theme_hi": "संघर्ष और प्रतिस्पर्धा से वैराग्य",
+        "detail_en": "Natural ability to overcome obstacles without aggressive effort. "
+                     "May be indifferent to enemies. Spiritual approach to health.",
+        "detail_hi": "आक्रामक प्रयास के बिना बाधाओं पर विजय की स्वाभाविक क्षमता। "
+                     "शत्रुओं के प्रति उदासीनता। स्वास्थ्य का आध्यात्मिक दृष्टिकोण।",
+    },
+    7: {
+        "theme_en": "Detachment from partnerships",
+        "theme_hi": "साझेदारी से वैराग्य",
+        "detail_en": "Past-life relationship wisdom. May feel ambivalent about marriage or partnerships. "
+                     "Spiritual approach to relationships rather than material expectations.",
+        "detail_hi": "पिछले जन्म का संबंध ज्ञान। विवाह या साझेदारी के प्रति द्विधा। "
+                     "भौतिक अपेक्षाओं की बजाय संबंधों का आध्यात्मिक दृष्टिकोण।",
+    },
+    8: {
+        "theme_en": "Detachment from fear &amp; the unknown",
+        "theme_hi": "भय और अज्ञात से वैराग्य",
+        "detail_en": "Natural comfort with transformation, death, and the occult. "
+                     "Past-life depth of experience. May be fearless about life\u2019s uncertainties.",
+        "detail_hi": "रूपांतरण, मृत्यु और तंत्र के साथ स्वाभाविक सहजता। "
+                     "पिछले जन्म के अनुभव की गहराई। जीवन की अनिश्चितताओं से निडर।",
+    },
+    9: {
+        "theme_en": "Detachment from orthodox beliefs",
+        "theme_hi": "रूढ़िवादी मान्यताओं से वैराग्य",
+        "detail_en": "Past-life spiritual wisdom already attained. May reject organised religion. "
+                     "Innate philosophical depth without formal study.",
+        "detail_hi": "पिछले जन्म में आध्यात्मिक ज्ञान पहले से प्राप्त। संगठित धर्म को अस्वीकार कर सकते हैं। "
+                     "औपचारिक अध्ययन के बिना सहज दार्शनिक गहराई।",
+    },
+    10: {
+        "theme_en": "Detachment from worldly status",
+        "theme_hi": "सांसारिक पद से वैराग्य",
+        "detail_en": "Past-life career achievements carried forward as innate skills. "
+                     "May feel indifferent to promotions, titles, or public recognition.",
+        "detail_hi": "पिछले जन्म की करियर उपलब्धियाँ सहज कौशल के रूप में। "
+                     "पदोन्नति, उपाधि या सार्वजनिक मान्यता के प्रति उदासीनता।",
+    },
+    11: {
+        "theme_en": "Detachment from material gains",
+        "theme_hi": "भौतिक लाभ से वैराग्य",
+        "detail_en": "Less interested in networking for personal gain. Past-life social mastery. "
+                     "Finds large groups overwhelming. Quality over quantity in friendships.",
+        "detail_hi": "व्यक्तिगत लाभ के लिए नेटवर्किंग में कम रुचि। पिछले जन्म की सामाजिक निपुणता। "
+                     "बड़े समूह भारी लगते हैं। मित्रता में गुणवत्ता को प्राथमिकता।",
+    },
+    12: {
+        "theme_en": "Detachment from the material world",
+        "theme_hi": "भौतिक संसार से वैराग्य",
+        "detail_en": "Deep past-life spiritual attainment. Naturally drawn to moksha and liberation. "
+                     "May feel like a soul completing its earthly journey.",
+        "detail_hi": "पिछले जन्म की गहन आध्यात्मिक उपलब्धि। स्वाभाविक रूप से मोक्ष और मुक्ति की ओर। "
+                     "ऐसा अनुभव जैसे आत्मा अपनी सांसारिक यात्रा पूरी कर रही है।",
+    },
+}
+RAHU_KETU_KARMA = {
+    (1, 7):  ("Self vs Partnership", "स्वयं बनाम साझेदारी",
+              "Learning to balance self-assertion with cooperation and compromise.",
+              "आत्म-दावे को सहयोग और समझौते के साथ संतुलित करना सीखना।"),
+    (2, 8):  ("Material security vs Transformation", "भौतिक सुरक्षा बनाम रूपांतरण",
+              "Moving from comfort-seeking to embracing life\u2019s deeper transformations.",
+              "सुख-खोज से जीवन के गहरे रूपांतरणों को अपनाने की ओर बढ़ना।"),
+    (3, 9):  ("Personal will vs Higher wisdom", "व्यक्तिगत इच्छा बनाम उच्च ज्ञान",
+              "Evolving from ego-driven action to dharma-aligned purpose.",
+              "अहंकार-प्रेरित कार्य से धर्म-संरेखित उद्देश्य की ओर विकास।"),
+    (4, 10): ("Inner peace vs Career ambition", "आंतरिक शांति बनाम करियर महत्वाकांक्षा",
+              "Balancing emotional roots and domestic harmony with professional achievement.",
+              "भावनात्मक जड़ों और घरेलू सामंजस्य को पेशेवर उपलब्धि के साथ संतुलित करना।"),
+    (5, 11): ("Creative joy vs Collective goals", "रचनात्मक आनंद बनाम सामूहिक लक्ष्य",
+              "Moving from personal pleasure to contributing to larger community aspirations.",
+              "व्यक्तिगत आनंद से बड़ी सामुदायिक आकांक्षाओं में योगदान की ओर।"),
+    (6, 12): ("Service vs Surrender", "सेवा बनाम समर्पण",
+              "Learning to release control and trust the universe after a life of struggle and service.",
+              "संघर्ष और सेवा के जीवन के बाद नियंत्रण छोड़ना और ब्रह्मांड पर विश्वास करना सीखना।"),
+}
+
+
+def analyse_rahu_ketu_axis(chart):
+    """
+    Analyse the Rahu-Ketu axis in the chart.
+    Returns dict with house positions, themes, karma lesson, and advice.
+    """
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+
+    rahu_house = (planets['Rahu']['sign_idx'] - asc_sign) % 12 + 1
+    ketu_house = (planets['Ketu']['sign_idx'] - asc_sign) % 12 + 1
+
+    rahu_sign_en = planets['Rahu']['sign_en']
+    ketu_sign_en = planets['Ketu']['sign_en']
+    rahu_sign_hi = planets['Rahu']['sign_hi']
+    ketu_sign_hi = planets['Ketu']['sign_hi']
+
+    rahu_data = RAHU_IN_HOUSE.get(rahu_house, {})
+    ketu_data = KETU_IN_HOUSE.get(ketu_house, {})
+
+    # Karma axis: use the smaller house pair as key
+    axis_key = (min(rahu_house, ketu_house), max(rahu_house, ketu_house))
+    karma = RAHU_KETU_KARMA.get(axis_key, (
+        f"House {rahu_house} vs House {ketu_house}",
+        f"भाव {rahu_house} बनाम भाव {ketu_house}",
+        "Integrating the lessons of both houses through conscious awareness.",
+        "सचेत जागरूकता से दोनों भावों की शिक्षाओं को एकीकृत करना।"))
+
+    return {
+        'rahu_house': rahu_house, 'ketu_house': ketu_house,
+        'rahu_sign_en': rahu_sign_en, 'ketu_sign_en': ketu_sign_en,
+        'rahu_sign_hi': rahu_sign_hi, 'ketu_sign_hi': ketu_sign_hi,
+        'rahu_theme_en': rahu_data.get('theme_en', ''),
+        'rahu_theme_hi': rahu_data.get('theme_hi', ''),
+        'rahu_detail_en': rahu_data.get('detail_en', ''),
+        'rahu_detail_hi': rahu_data.get('detail_hi', ''),
+        'ketu_theme_en': ketu_data.get('theme_en', ''),
+        'ketu_theme_hi': ketu_data.get('theme_hi', ''),
+        'ketu_detail_en': ketu_data.get('detail_en', ''),
+        'ketu_detail_hi': ketu_data.get('detail_hi', ''),
+        'karma_en': karma[0], 'karma_hi': karma[1],
+        'karma_lesson_en': karma[2], 'karma_lesson_hi': karma[3],
+    }
+
 
 def calculate_graha_drishti(chart):
     """
@@ -4540,16 +4803,17 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         ("२", "भवन पठन — भाव विश्लेषण"),
         ("३", "ग्रह शक्ति विश्लेषण"),
         ("४", "ग्रह दृष्टि — ग्रहीय पहलू"),
-        ("५", "परिवर्तन योग — ग्रह विनिमय"),
-        ("६", "वैदिक उपाय एवं कर्म उपाय"),
-        ("७", "नवांश (D-9) चार्ट एवं पठन"),
-        ("८", "साढ़ेसाती — विश्लेषण एवं उपाय"),
-        ("९", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
-        ("१०", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
-        ("११", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
-        ("१२", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
-        ("१३", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
-        ("१४", "अस्वीकरण"),
+        ("५", "राहु-केतु अक्ष — कर्म एवं जीवन दिशा"),
+        ("६", "परिवर्तन योग — ग्रह विनिमय"),
+        ("७", "वैदिक उपाय एवं कर्म उपाय"),
+        ("८", "नवांश (D-9) चार्ट एवं पठन"),
+        ("९", "साढ़ेसाती — विश्लेषण एवं उपाय"),
+        ("१०", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
+        ("११", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
+        ("१२", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
+        ("१३", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
+        ("१४", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
+        ("१५", "अस्वीकरण"),
     ]
     html_parts.append('<div class="toc-page">')
     html_parts.append('<div class="toc-title">विषय सूची</div>')
@@ -4971,6 +5235,69 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         html_parts.append(
             '<div class="reading" style="font-style:italic; color:#666;">'
             'इस कुण्डली में ग्रहों के बीच कोई सीधी दृष्टि नहीं पाई गई।</div>')
+
+    # ── Hindi Rahu-Ketu Axis Page ────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h2>राहु-केतु अक्ष — कर्म एवं जीवन दिशा</h2>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+    html_parts.append(
+        '<div class="reading">'
+        'राहु और केतु <b>छाया ग्रह (Chaya Grahas)</b> हैं — भौतिक पिंड नहीं बल्कि '
+        'गणितीय बिंदु जहाँ सूर्य और चंद्रमा की कक्षाएँ प्रतिच्छेद करती हैं। '
+        'ये हमेशा एक-दूसरे से ठीक 180° विपरीत होते हैं, एक अक्ष बनाते हैं '
+        'जो आपके जीवन की <b>कार्मिक दिशा</b> को दर्शाता है।</div>')
+    html_parts.append(
+        '<div class="reading">'
+        '<b>राहु</b> = आप कहाँ जा रहे हैं — आपकी इच्छाएँ, जुनून और सांसारिक महत्वाकांक्षाएँ।<br>'
+        '<b>केतु</b> = आप कहाँ से आ रहे हैं — आपकी पिछले जन्म की निपुणता, वैराग्य और आध्यात्मिक गुण।<br>'
+        'जीवन यात्रा <b>केतु → राहु</b> की ओर बहती है।</div>')
+
+    hi_rk = analyse_rahu_ketu_axis(chart)
+
+    html_parts.append(
+        f'<div style="text-align:center; margin:10px 0; font-weight:bold; '
+        f'color:#8B0000; font-size:12pt;">'
+        f'राहु-केतु अक्ष: {hi_rk["rahu_house"]}वाँ भाव – {hi_rk["ketu_house"]}वाँ भाव</div>')
+
+    # Rahu
+    html_parts.append(
+        f'<h3>▶ राहु {hi_rk["rahu_house"]}वें भाव में ({hi_rk["rahu_sign_hi"]}) '
+        f'— {hi_rk["rahu_theme_hi"]}</h3>')
+    html_parts.append(f'<div class="reading">{hi_rk["rahu_detail_hi"]}</div>')
+
+    # Ketu
+    html_parts.append(
+        f'<h3>◀ केतु {hi_rk["ketu_house"]}वें भाव में ({hi_rk["ketu_sign_hi"]}) '
+        f'— {hi_rk["ketu_theme_hi"]}</h3>')
+    html_parts.append(f'<div class="reading">{hi_rk["ketu_detail_hi"]}</div>')
+
+    # Karma lesson
+    html_parts.append('<h3>कर्म शिक्षा एवं जीवन दिशा</h3>')
+    html_parts.append(f'<div class="reading"><b>अक्ष विषय:</b> {hi_rk["karma_hi"]}</div>')
+    html_parts.append(
+        f'<div style="background:#FFFDE7; border:1px solid #DAA520; border-radius:4px; '
+        f'padding:8px; margin:6px 0; font-style:italic; color:#2E4057; font-size:9.5pt;">'
+        f'{hi_rk["karma_lesson_hi"]}</div>')
+
+    # Actionable guidance
+    rahu_theme_hi = HOUSE_THEMES.get(hi_rk['rahu_house'], ("", ""))[1]
+    ketu_theme_hi = HOUSE_THEMES.get(hi_rk['ketu_house'], ("", ""))[1]
+    html_parts.append('<h3>कार्यान्वयन योग्य मार्गदर्शन</h3>')
+    html_parts.append(
+        f'<div class="reading">'
+        f'• <b>राहु की दिशा अपनाएँ:</b> {rahu_theme_hi} में सचेत रूप से विकास करें '
+        f'— यह आपकी आत्मा का विकासवादी मार्ग है।<br>'
+        f'• <b>केतु के गुणों का सम्मान करें:</b> {ketu_theme_hi} में अपनी स्वाभाविक '
+        f'शक्तियों को न छोड़ें — ये पिछले जन्म की संपत्ति हैं।<br>'
+        f'• <b>अक्ष को संतुलित करें:</b> मुख्य शिक्षा एकीकरण है — '
+        f'न अत्यधिक लगाव (राहु) न पूर्ण वैराग्य (केतु), '
+        f'बल्कि सचेत गति।</div>')
+
+    html_parts.append(
+        f'<div style="text-align:center; font-weight:bold; color:#8B0000; '
+        f'font-size:9pt; margin-top:8px;">'
+        f'<b>राहु</b> = आप कहाँ जा रहे हैं ({rahu_theme_hi}) &nbsp;|&nbsp; '
+        f'<b>केतु</b> = आप कहाँ से आ रहे हैं ({ketu_theme_hi})</div>')
 
     # ── Hindi Parivartana Yoga Page ───────────────────────────
     html_parts.append('<div class="page-break"></div>')
@@ -5815,16 +6142,17 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ("2", "Bhava Reading \u2014 House Analysis"),
         ("3", "Planet Strength Analysis"),
         ("4", "Graha Drishti \u2014 Planetary Aspects"),
-        ("5", "Parivartana Yoga \u2014 Planetary Exchange"),
-        ("6", "Vedic Remedies &amp; Karma Remedy"),
-        ("7", "Navamsha (D-9) Chart &amp; Reading"),
-        ("8", "Sade Sati \u2014 Analysis &amp; Remedies"),
-        ("9", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
-        ("10", "Current Period Analysis &amp; Guidance"),
-        ("11", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("12", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("13", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("14", "Disclaimer"),
+        ("5", "Rahu-Ketu Axis \u2014 Karma &amp; Life Direction"),
+        ("6", "Parivartana Yoga \u2014 Planetary Exchange"),
+        ("7", "Vedic Remedies &amp; Karma Remedy"),
+        ("8", "Navamsha (D-9) Chart &amp; Reading"),
+        ("9", "Sade Sati \u2014 Analysis &amp; Remedies"),
+        ("10", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
+        ("11", "Current Period Analysis &amp; Guidance"),
+        ("12", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("13", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("14", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("15", "Disclaimer"),
     ]
 
     # Build TOC as a clean table
@@ -6551,6 +6879,103 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         story.append(Paragraph(
             '<i>No direct planetary aspects were found between planets in this chart.</i>',
             gd_intro))
+
+    # ── Rahu-Ketu Axis — Karma & Life Direction ─────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Rahu-Ketu Axis \u2014 Karma &amp; Life Direction", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 2*mm))
+
+    rk_intro = ParagraphStyle('RKIntro', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        alignment=TA_JUSTIFY, leading=13, spaceAfter=3*mm)
+    rk_box_title = ParagraphStyle('RKBoxTitle', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=11, textColor=MAROON,
+        alignment=TA_CENTER, spaceBefore=4*mm, spaceAfter=1*mm)
+    rk_sub_head = ParagraphStyle('RKSubHead', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+        spaceBefore=4*mm, spaceAfter=1*mm)
+    rk_body = ParagraphStyle('RKBody', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        leading=13, spaceAfter=2*mm)
+    rk_theme = ParagraphStyle('RKTheme', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=9.5, textColor=colors.HexColor("#333"),
+        spaceBefore=1*mm, spaceAfter=1*mm)
+    rk_insight = ParagraphStyle('RKInsight', parent=styles['Normal'],
+        fontName='Helvetica-Oblique', fontSize=9.5,
+        textColor=colors.HexColor("#2E4057"),
+        borderColor=colors.HexColor("#DAA520"), borderWidth=1,
+        borderPadding=6, backColor=colors.HexColor("#FFFDE7"),
+        spaceBefore=3*mm, spaceAfter=3*mm, alignment=TA_LEFT, leading=14)
+
+    story.append(Paragraph(
+        "Rahu and Ketu are <b>shadow planets (Chaya Grahas)</b> \u2014 not physical bodies "
+        "but mathematical points where the Sun and Moon\u2019s orbital paths intersect. "
+        "They are always exactly 180\u00b0 opposite each other, forming an axis that "
+        "represents the <b>karmic direction</b> of your life.",
+        rk_intro))
+    story.append(Paragraph(
+        "<b>Rahu</b> = Where you are going \u2014 your desires, obsessions, and worldly ambitions.<br/>"
+        "<b>Ketu</b> = Where you are coming from \u2014 your past-life mastery, detachment, and spiritual gifts.<br/>"
+        "The life journey flows from <b>Ketu \u2192 Rahu</b>: evolving from what you\u2019ve "
+        "already mastered towards new karmic territory.",
+        rk_intro))
+
+    rk = analyse_rahu_ketu_axis(chart)
+
+    # Axis display box
+    story.append(Paragraph(
+        f"Rahu\u2013Ketu Axis: "
+        f"{rk['rahu_house']}{_ordinal(rk['rahu_house'])} House \u2013 "
+        f"{rk['ketu_house']}{_ordinal(rk['ketu_house'])} House",
+        rk_box_title))
+
+    # Rahu section
+    story.append(Paragraph(
+        f"\u25b6 Rahu in {rk['rahu_house']}{_ordinal(rk['rahu_house'])} House "
+        f"({rk['rahu_sign_en']}) \u2014 {rk['rahu_theme_en']}",
+        rk_sub_head))
+    story.append(Paragraph(rk['rahu_detail_en'], rk_body))
+
+    # Ketu section
+    story.append(Paragraph(
+        f"\u25c0 Ketu in {rk['ketu_house']}{_ordinal(rk['ketu_house'])} House "
+        f"({rk['ketu_sign_en']}) \u2014 {rk['ketu_theme_en']}",
+        rk_sub_head))
+    story.append(Paragraph(rk['ketu_detail_en'], rk_body))
+
+    # Karma lesson
+    story.append(Paragraph("Karma Lesson &amp; Life Direction", rk_sub_head))
+    story.append(Paragraph(
+        f"<b>Axis Theme:</b> {rk['karma_en']}", rk_body))
+    story.append(Paragraph(rk['karma_lesson_en'], rk_insight))
+
+    # Action / advice
+    story.append(Paragraph("Actionable Guidance", rk_sub_head))
+    rahu_theme_short = HOUSE_THEMES.get(rk['rahu_house'], ("", ""))[0]
+    ketu_theme_short = HOUSE_THEMES.get(rk['ketu_house'], ("", ""))[0]
+    story.append(Paragraph(
+        f"\u2022 <b>Embrace Rahu\u2019s direction:</b> Consciously pursue growth in "
+        f"{rahu_theme_short.lower()} \u2014 this is your soul\u2019s evolutionary path.",
+        rk_body))
+    story.append(Paragraph(
+        f"\u2022 <b>Honour Ketu\u2019s gifts:</b> Don\u2019t abandon your natural strengths in "
+        f"{ketu_theme_short.lower()} \u2014 these are past-life assets that anchor you.",
+        rk_body))
+    story.append(Paragraph(
+        "\u2022 <b>Balance the axis:</b> The key lesson is integration \u2014 "
+        "neither excessive attachment (Rahu) nor complete detachment (Ketu), "
+        "but conscious movement from mastered terrain to new growth.",
+        rk_body))
+
+    # One-line summary
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph(
+        f"<b>Rahu</b> = where you are going ({rahu_theme_short}) &nbsp;&nbsp;|&nbsp;&nbsp; "
+        f"<b>Ketu</b> = where you are coming from ({ketu_theme_short})",
+        ParagraphStyle('RKSummary', parent=rk_body,
+            fontName='Helvetica-Bold', fontSize=9, alignment=TA_CENTER,
+            textColor=MAROON, spaceBefore=2*mm)))
 
     # ── Parivartana Yoga — Planetary Exchange ─────────────────
     story.append(PageBreak())
