@@ -486,6 +486,8 @@ def calculate_planet_strength(chart):
                 retro_pts = 5
 
         # 6. Aspects received (-15 to +15)
+        #    Uses differentiated Graha Drishti scores per planet
+        #    (aligned with the Graha Drishti section)
         aspect_pts = 0
         for other in order:
             if other == pname:
@@ -493,14 +495,11 @@ def calculate_planet_strength(chart):
             o_house = planet_houses[other]
             # Universal 7th aspect
             aspected_houses = [(o_house + 6) % 12 + 1]  # 7th from other
-            # Special aspects
-            for offset in SPECIAL_ASPECTS.get(other, []):
+            # Special aspects (including Rahu/Ketu 5th & 9th)
+            for offset in DRISHTI_SPECIAL.get(other, []):
                 aspected_houses.append((o_house + offset - 1) % 12 + 1)
             if house in aspected_houses:
-                if other in NATURAL_BENEFICS:
-                    aspect_pts += 5
-                else:
-                    aspect_pts -= 5
+                aspect_pts += DRISHTI_SCORES.get(other, 0)
         aspect_pts = max(-15, min(15, aspect_pts))
 
         # 7. Conjunctions (-8 to +8)
@@ -4962,6 +4961,12 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
             '<b>दृष्टि अंक:</b> '
             'बृहस्पति +6 | शुक्र +4 | बुध +3 | चंद्र +2 | '
             'सूर्य \u22122 | केतु \u22124 | शनि \u22125 | राहु \u22125 | मंगल \u22126</div>')
+        html_parts.append(
+            '<div style="font-size:8pt; color:#666; margin-top:4px;">'
+            '<b>नोट:</b> ये ग्रह दृष्टि अंक ग्रह शक्ति विश्लेषण (खंड ३) में पूर्णतः '
+            'परिलक्षित हैं। प्रत्येक ग्रह का समग्र बल अंक उसे प्राप्त दृष्टि अंकों '
+            'को शामिल करता है — शुभ दृष्टियाँ अंक बढ़ाती हैं जबकि अशुभ दृष्टियाँ '
+            'घटाती हैं, ऊपर दिखाए गए विभेदित मानों का उपयोग करते हुए (\u221215 से +15 तक सीमित)।</div>')
     else:
         html_parts.append(
             '<div class="reading" style="font-style:italic; color:#666;">'
@@ -6533,6 +6538,14 @@ def generate_pdf_to_buffer(chart, svg_content=None):
             "<b>Aspect Scores:</b> "
             "Jupiter +6 | Venus +4 | Mercury +3 | Moon +2 | "
             "Sun \u22122 | Ketu \u22124 | Saturn \u22125 | Rahu \u22125 | Mars \u22126",
+            footnote_style))
+        story.append(Spacer(1, 2*mm))
+        story.append(Paragraph(
+            "<b>Note:</b> These Graha Drishti scores are fully reflected in the "
+            "Planet Strength Analysis (Section 3). Each planet\u2019s overall strength "
+            "score incorporates the aspect points it receives \u2014 benefic aspects "
+            "boost the score while malefic aspects reduce it, using the exact "
+            "differentiated values shown above (clamped to \u221215 to +15).",
             footnote_style))
     else:
         story.append(Paragraph(
