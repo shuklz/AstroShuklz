@@ -546,6 +546,184 @@ def analyse_rahu_ketu_axis(chart):
     }
 
 
+# ── Manglik (Kuja Dosha) Analysis ──────────────────────────────────────────
+_MANGLIK_HOUSES = {1, 2, 4, 7, 8, 12}
+
+# Per-house effect of Mars for Manglik context
+_MANGLIK_HOUSE_EFFECT = {
+    1: ("Aggressive personality; may dominate partner",
+        "आक्रामक व्यक्तित्व; साथी पर हावी हो सकते हैं"),
+    2: ("Sharp speech; family conflicts possible",
+        "तीखी वाणी; पारिवारिक विवाद संभव"),
+    4: ("Domestic unrest; emotional turbulence at home",
+        "घरेलू अशांति; घर में भावनात्मक उथल-पुथल"),
+    7: ("Strongest Manglik effect; marital friction and power struggles",
+        "सबसे प्रबल मांगलिक प्रभाव; वैवाहिक घर्षण और सत्ता संघर्ष"),
+    8: ("Health concerns for spouse; sudden upheavals in marriage",
+        "जीवनसाथी के स्वास्थ्य की चिंता; विवाह में अचानक उथल-पुथल"),
+    12: ("Bedroom dissatisfaction; emotional disconnection",
+         "शयनकक्ष असंतोष; भावनात्मक विलगाव"),
+}
+
+
+def analyse_manglik(chart, strength_data=None):
+    """
+    Comprehensive Manglik (Kuja Dosha) analysis.
+    Checks Mars placement from Lagna, Moon, and Venus.
+    Evaluates cancellation conditions.
+    Returns dict with status, sources, cancellations, intensity, and advice.
+    """
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+    moon_sign = planets['Moon']['sign_idx']
+    venus_sign = planets['Venus']['sign_idx']
+    mars_sign = planets['Mars']['sign_idx']
+
+    # Mars house from three references
+    mars_from_lagna = (mars_sign - asc_sign) % 12 + 1
+    mars_from_moon = (mars_sign - moon_sign) % 12 + 1
+    mars_from_venus = (mars_sign - venus_sign) % 12 + 1
+
+    from_lagna = mars_from_lagna in _MANGLIK_HOUSES
+    from_moon = mars_from_moon in _MANGLIK_HOUSES
+    from_venus = mars_from_venus in _MANGLIK_HOUSES
+
+    sources = []
+    if from_lagna:
+        sources.append(("Lagna", "लग्न", mars_from_lagna))
+    if from_moon:
+        sources.append(("Moon", "चंद्र", mars_from_moon))
+    if from_venus:
+        sources.append(("Venus", "शुक्र", mars_from_venus))
+
+    is_manglik = len(sources) > 0
+
+    # ── Cancellation conditions ──
+    cancellations = []
+    mars_dignity = ""
+    if strength_data:
+        mars_dignity = strength_data.get('Mars', {}).get('dignity', '')
+
+    # 1. Mars in own sign (Aries=0 or Scorpio=7)
+    if mars_sign in OWN_SIGNS.get("Mars", []):
+        cancellations.append(("Mars in own sign (Aries/Scorpio) — controls its energy",
+                              "मंगल स्वराशि में (मेष/वृश्चिक) — अपनी ऊर्जा पर नियंत्रण"))
+    # 2. Mars exalted (Capricorn=9)
+    if mars_sign == EXALTATION.get("Mars"):
+        cancellations.append(("Mars exalted in Capricorn — disciplined and constructive",
+                              "मंगल मकर में उच्च — अनुशासित और रचनात्मक"))
+    # 3. Mars in friendly sign
+    if mars_dignity == "Friendly":
+        cancellations.append(("Mars in friendly sign — softened aggression",
+                              "मंगल मित्र राशि में — आक्रामकता में कमी"))
+    # 4. Jupiter aspects Mars (5th, 7th, or 9th from Jupiter)
+    jupiter_house = (planets['Jupiter']['sign_idx'] - asc_sign) % 12 + 1
+    jupiter_aspected = set()
+    jupiter_aspected.add((jupiter_house + 6) % 12 + 1)  # 7th
+    for offset in DRISHTI_SPECIAL.get("Jupiter", []):
+        jupiter_aspected.add((jupiter_house + offset - 1) % 12 + 1)
+    if mars_from_lagna in jupiter_aspected:
+        cancellations.append(("Jupiter aspects Mars — powerful neutraliser; wisdom tempers aggression",
+                              "बृहस्पति की दृष्टि मंगल पर — शक्तिशाली निष्प्रभावक; ज्ञान आक्रामकता को शांत करता है"))
+    # 5. Mars conjunct benefic (Jupiter or Venus in same sign)
+    if planets['Jupiter']['sign_idx'] == mars_sign:
+        cancellations.append(("Mars conjunct Jupiter — spiritual wisdom balances martial energy",
+                              "मंगल-बृहस्पति युति — आध्यात्मिक ज्ञान मंगल ऊर्जा को संतुलित करता है"))
+    if planets['Venus']['sign_idx'] == mars_sign:
+        cancellations.append(("Mars conjunct Venus — love softens aggression",
+                              "मंगल-शुक्र युति — प्रेम आक्रामकता को शांत करता है"))
+
+    # ── Intensity assessment ──
+    if not is_manglik:
+        intensity_en = "Not Manglik"
+        intensity_hi = "मांगलिक नहीं"
+        level = 0
+    else:
+        active_sources = len(sources) - min(len(cancellations), len(sources))
+        if active_sources <= 0 or len(cancellations) >= 2:
+            intensity_en = "Cancelled / Negligible"
+            intensity_hi = "निरस्त / नगण्य"
+            level = 0
+        elif len(sources) == 1 and len(cancellations) >= 1:
+            intensity_en = "Mild"
+            intensity_hi = "हल्का"
+            level = 1
+        elif len(sources) == 1:
+            intensity_en = "Mild"
+            intensity_hi = "हल्का"
+            level = 1
+        elif len(sources) == 2 and len(cancellations) >= 1:
+            intensity_en = "Moderate"
+            intensity_hi = "मध्यम"
+            level = 2
+        elif len(sources) == 2:
+            intensity_en = "Moderate"
+            intensity_hi = "मध्यम"
+            level = 2
+        else:  # all 3 sources
+            if len(cancellations) >= 2:
+                intensity_en = "Moderate (with cancellations)"
+                intensity_hi = "मध्यम (निरस्तीकरण सहित)"
+                level = 2
+            elif len(cancellations) >= 1:
+                intensity_en = "Strong (partially cancelled)"
+                intensity_hi = "प्रबल (आंशिक रूप से निरस्त)"
+                level = 3
+            else:
+                intensity_en = "Strong"
+                intensity_hi = "प्रबल"
+                level = 3
+
+    # ── House-specific effects ──
+    effects = []
+    for src_en, src_hi, h in sources:
+        eff = _MANGLIK_HOUSE_EFFECT.get(h, ("General Manglik influence", "सामान्य मांगलिक प्रभाव"))
+        effects.append((src_en, src_hi, h, eff[0], eff[1]))
+
+    # ── Assessment & advice ──
+    if not is_manglik:
+        assessment_en = ("Mars is not placed in any Manglik house from Lagna, Moon, or Venus. "
+                         "No Kuja Dosha is present in this chart.")
+        assessment_hi = ("मंगल लग्न, चंद्र या शुक्र से किसी भी मांगलिक भाव में नहीं है। "
+                         "इस कुण्डली में कोई कुज दोष नहीं है।")
+    elif level <= 1:
+        assessment_en = ("Mild Manglik influence detected. This is very common and generally does not "
+                         "cause significant marital difficulties. Awareness and mutual respect in "
+                         "relationships are sufficient. No special remedies needed.")
+        assessment_hi = ("हल्का मांगलिक प्रभाव। यह बहुत सामान्य है और आमतौर पर महत्वपूर्ण "
+                         "वैवाहिक कठिनाइयाँ नहीं देता। संबंधों में जागरूकता और पारस्परिक सम्मान पर्याप्त है।")
+    elif level == 2:
+        assessment_en = ("Moderate Manglik influence — manageable with awareness. Channel Mars energy "
+                         "into physical activity, sports, or ambitious projects. Practice patience "
+                         "in relationships. Matching with a Manglik partner can balance the energy.")
+        assessment_hi = ("मध्यम मांगलिक प्रभाव — जागरूकता से प्रबंधनीय। मंगल ऊर्जा को शारीरिक "
+                         "गतिविधि, खेल या महत्वाकांक्षी परियोजनाओं में लगाएँ। संबंधों में धैर्य रखें। "
+                         "मांगलिक साथी से मिलान ऊर्जा को संतुलित कर सकता है।")
+    else:
+        assessment_en = ("Strong Manglik influence present. This indicates intense Mars energy in "
+                         "relationship areas. Recommended: Hanuman Chalisa, physical discipline, "
+                         "and conscious anger management. Manglik matching is traditionally advised. "
+                         "Remember: many successful marriages exist with strong Manglik charts.")
+        assessment_hi = ("प्रबल मांगलिक प्रभाव। यह संबंध क्षेत्रों में तीव्र मंगल ऊर्जा दर्शाता है। "
+                         "अनुशंसित: हनुमान चालीसा, शारीरिक अनुशासन और सचेत क्रोध प्रबंधन। "
+                         "मांगलिक मिलान पारंपरिक रूप से सलाह दी जाती है। "
+                         "याद रखें: प्रबल मांगलिक कुण्डलियों के साथ भी कई सफल विवाह हैं।")
+
+    return {
+        'is_manglik': is_manglik,
+        'sources': sources,
+        'effects': effects,
+        'cancellations': cancellations,
+        'intensity_en': intensity_en, 'intensity_hi': intensity_hi,
+        'level': level,
+        'assessment_en': assessment_en, 'assessment_hi': assessment_hi,
+        'mars_from_lagna': mars_from_lagna,
+        'mars_from_moon': mars_from_moon,
+        'mars_from_venus': mars_from_venus,
+        'from_lagna': from_lagna, 'from_moon': from_moon, 'from_venus': from_venus,
+    }
+
+
 def calculate_graha_drishti(chart):
     """
     Calculate all planetary aspects (Graha Drishti) in the chart.
@@ -4804,16 +4982,17 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         ("३", "ग्रह शक्ति विश्लेषण"),
         ("४", "ग्रह दृष्टि — ग्रहीय पहलू"),
         ("५", "राहु-केतु अक्ष — कर्म एवं जीवन दिशा"),
-        ("६", "परिवर्तन योग — ग्रह विनिमय"),
-        ("७", "वैदिक उपाय एवं कर्म उपाय"),
-        ("८", "नवांश (D-9) चार्ट एवं पठन"),
-        ("९", "साढ़ेसाती — विश्लेषण एवं उपाय"),
-        ("१०", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
-        ("११", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
-        ("१२", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
-        ("१३", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
-        ("१४", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
-        ("१५", "अस्वीकरण"),
+        ("६", "मांगलिक (कुज दोष) विश्लेषण"),
+        ("७", "परिवर्तन योग — ग्रह विनिमय"),
+        ("८", "वैदिक उपाय एवं कर्म उपाय"),
+        ("९", "नवांश (D-9) चार्ट एवं पठन"),
+        ("१०", "साढ़ेसाती — विश्लेषण एवं उपाय"),
+        ("११", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
+        ("१२", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
+        ("१३", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
+        ("१४", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
+        ("१५", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
+        ("१६", "अस्वीकरण"),
     ]
     html_parts.append('<div class="toc-page">')
     html_parts.append('<div class="toc-title">विषय सूची</div>')
@@ -5298,6 +5477,80 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         f'font-size:9pt; margin-top:8px;">'
         f'<b>राहु</b> = आप कहाँ जा रहे हैं ({rahu_theme_hi}) &nbsp;|&nbsp; '
         f'<b>केतु</b> = आप कहाँ से आ रहे हैं ({ketu_theme_hi})</div>')
+
+    # ── Hindi Manglik (Kuja Dosha) Page ──────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h2>मांगलिक (कुज दोष) विश्लेषण</h2>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+    html_parts.append(
+        '<div class="reading">'
+        'व्यक्ति को <b>मांगलिक</b> कहा जाता है जब मंगल 1, 2, 4, 7, 8 या 12वें भाव में होता है। '
+        'इन संबंध-संवेदनशील भावों में मंगल की आक्रामक ऊर्जा विवाह में तीव्रता ला सकती है। '
+        'विश्लेषण तीन संदर्भों से मंगल की जाँच करता है: <b>लग्न, चंद्र राशि और शुक्र</b>।</div>')
+
+    hi_manglik = analyse_manglik(chart, strength_data)
+
+    # Status
+    if hi_manglik['level'] == 0 and not hi_manglik['is_manglik']:
+        hi_mk_color = "#006400"
+    elif hi_manglik['level'] <= 1:
+        hi_mk_color = "#006400"
+    elif hi_manglik['level'] == 2:
+        hi_mk_color = "#B8860B"
+    else:
+        hi_mk_color = "#CC0000"
+    html_parts.append(
+        f'<div style="text-align:center; font-weight:bold; font-size:13pt; '
+        f'color:{hi_mk_color}; margin:8px 0;">'
+        f'मांगलिक स्थिति: {hi_manglik["intensity_hi"]}</div>')
+
+    # Source table
+    html_parts.append('<h3>तीन संदर्भों से मंगल स्थान</h3>')
+    html_parts.append('<table style="font-size:9pt; margin-top:6px;">')
+    html_parts.append(
+        '<tr style="background:#8B0000; color:white;">'
+        '<th>संदर्भ</th><th>मंगल भाव</th><th>मांगलिक?</th><th>प्रभाव</th></tr>')
+    for label_hi, house, is_m in [("लग्न", hi_manglik['mars_from_lagna'], hi_manglik['from_lagna']),
+                                   ("चंद्र राशि", hi_manglik['mars_from_moon'], hi_manglik['from_moon']),
+                                   ("शुक्र", hi_manglik['mars_from_venus'], hi_manglik['from_venus'])]:
+        yn_hi = "हाँ" if is_m else "नहीं"
+        yn_color = "#CC0000" if is_m else "#006400"
+        bg = "#FFF5F5" if is_m else "#F0FFF4"
+        eff_hi = _MANGLIK_HOUSE_EFFECT.get(house, ("", ""))[1] if is_m else "—"
+        html_parts.append(
+            f'<tr style="background:{bg};">'
+            f'<td><b>{label_hi}</b></td>'
+            f'<td>{house}वाँ</td>'
+            f'<td style="color:{yn_color}; font-weight:bold;">{yn_hi}</td>'
+            f'<td style="text-align:left;">{eff_hi}</td></tr>')
+    html_parts.append('</table>')
+
+    # Cancellations
+    if hi_manglik['cancellations']:
+        html_parts.append('<h3>निरस्तीकरण कारक</h3>')
+        for canc_en, canc_hi in hi_manglik['cancellations']:
+            html_parts.append(f'<div class="reading">✔ {canc_hi}</div>')
+
+    # Assessment
+    html_parts.append('<h3>मूल्यांकन</h3>')
+    html_parts.append(
+        f'<div style="background:#FFFDE7; border:1px solid #DAA520; border-radius:4px; '
+        f'padding:8px; margin:6px 0; font-style:italic; color:#2E4057; font-size:9.5pt;">'
+        f'{hi_manglik["assessment_hi"]}</div>')
+
+    # Modern perspective
+    html_parts.append('<h3>आधुनिक दृष्टिकोण</h3>')
+    html_parts.append(
+        '<div class="reading">'
+        'मांगलिक <b>अभिशाप नहीं</b> है — यह केवल संबंधों में <b>तीव्रता</b> का संकेतक है। '
+        'मंगल जुनून, ड्राइव और ऊर्जा लाता है। संबंध भावों में यह दृढ़ता या अधीरता '
+        'के रूप में प्रकट हो सकता है। जागरूकता, संवाद और पारस्परिक सम्मान से '
+        'मांगलिक व्यक्ति मजबूत, गतिशील साझेदारी बनाते हैं।</div>')
+    html_parts.append(
+        '<div style="text-align:center; font-weight:bold; color:#8B0000; '
+        'font-size:9pt; margin-top:8px;">'
+        '<b>पुरानी सोच:</b> मांगलिक = खतरा &nbsp;|&nbsp; '
+        '<b>सही सोच:</b> मांगलिक = रचनात्मक रूप से संचालित की जाने वाली तीव्रता</div>')
 
     # ── Hindi Parivartana Yoga Page ───────────────────────────
     html_parts.append('<div class="page-break"></div>')
@@ -6144,16 +6397,17 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ("3", "Planet Strength Analysis"),
         ("4", "Graha Drishti \u2014 Planetary Aspects"),
         ("5", "Rahu-Ketu Axis \u2014 Karma &amp; Life Direction"),
-        ("6", "Parivartana Yoga \u2014 Planetary Exchange"),
-        ("7", "Vedic Remedies &amp; Karma Remedy"),
-        ("8", "Navamsha (D-9) Chart &amp; Reading"),
-        ("9", "Sade Sati \u2014 Analysis &amp; Remedies"),
-        ("10", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
-        ("11", "Current Period Analysis &amp; Guidance"),
-        ("12", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("13", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("14", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("15", "Disclaimer"),
+        ("6", "Manglik (Kuja Dosha) Analysis"),
+        ("7", "Parivartana Yoga \u2014 Planetary Exchange"),
+        ("8", "Vedic Remedies &amp; Karma Remedy"),
+        ("9", "Navamsha (D-9) Chart &amp; Reading"),
+        ("10", "Sade Sati \u2014 Analysis &amp; Remedies"),
+        ("11", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
+        ("12", "Current Period Analysis &amp; Guidance"),
+        ("13", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("14", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("15", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("16", "Disclaimer"),
     ]
 
     # Build TOC as a clean table
@@ -6975,6 +7229,134 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         f"<b>Rahu</b> = where you are going ({rahu_theme_short}) &nbsp;&nbsp;|&nbsp;&nbsp; "
         f"<b>Ketu</b> = where you are coming from ({ketu_theme_short})",
         ParagraphStyle('RKSummary', parent=rk_body,
+            fontName='Helvetica-Bold', fontSize=9, alignment=TA_CENTER,
+            textColor=MAROON, spaceBefore=2*mm)))
+
+    # ── Manglik (Kuja Dosha) Analysis ────────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Manglik (Kuja Dosha) Analysis", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 2*mm))
+
+    mk_intro = ParagraphStyle('MKIntro', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        alignment=TA_JUSTIFY, leading=13, spaceAfter=3*mm)
+    mk_sub_head = ParagraphStyle('MKSubHead', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+        spaceBefore=4*mm, spaceAfter=1.5*mm)
+    mk_body = ParagraphStyle('MKBody', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        leading=13, spaceAfter=2*mm)
+    mk_status_style = ParagraphStyle('MKStatus', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=12, alignment=TA_CENTER,
+        spaceBefore=3*mm, spaceAfter=3*mm)
+    mk_cell = ParagraphStyle('MKCell', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=8, alignment=TA_CENTER)
+    mk_cell_bold = ParagraphStyle('MKCellBold', parent=mk_cell,
+        fontName='Helvetica-Bold')
+    mk_hdr = ParagraphStyle('MKHdr', parent=mk_cell,
+        fontName='Helvetica-Bold', textColor=colors.white, fontSize=8.5)
+
+    story.append(Paragraph(
+        "A person is called <b>Manglik</b> when Mars is placed in the 1st, 2nd, 4th, 7th, "
+        "8th, or 12th house. Mars\u2019 aggressive and independent energy in these relationship-"
+        "sensitive houses can create intensity in marriage and partnerships. "
+        "The analysis checks Mars from <b>three references</b>: Lagna (Ascendant), "
+        "Moon sign, and Venus \u2014 for a comprehensive assessment.",
+        mk_intro))
+
+    manglik = analyse_manglik(chart, strength_data)
+
+    # Status display
+    if manglik['level'] == 0 and not manglik['is_manglik']:
+        status_color = colors.HexColor("#006400")
+        status_text = "Not Manglik"
+    elif manglik['level'] <= 1:
+        status_color = colors.HexColor("#006400")
+        status_text = f"Manglik Status: {manglik['intensity_en']}"
+    elif manglik['level'] == 2:
+        status_color = colors.HexColor("#B8860B")
+        status_text = f"Manglik Status: {manglik['intensity_en']}"
+    else:
+        status_color = colors.HexColor("#CC0000")
+        status_text = f"Manglik Status: {manglik['intensity_en']}"
+
+    story.append(Paragraph(status_text,
+        ParagraphStyle('MKStatusVal', parent=mk_status_style,
+            textColor=status_color)))
+
+    # Source table
+    story.append(Paragraph("Mars Placement from Three References", mk_sub_head))
+    src_header = [
+        Paragraph('<b>Reference</b>', mk_hdr),
+        Paragraph('<b>Mars in House</b>', mk_hdr),
+        Paragraph('<b>Manglik?</b>', mk_hdr),
+        Paragraph('<b>Effect</b>', mk_hdr),
+    ]
+    src_data = [src_header]
+    for label, house, is_m in [("Lagna (Ascendant)", manglik['mars_from_lagna'], manglik['from_lagna']),
+                                ("Moon Sign", manglik['mars_from_moon'], manglik['from_moon']),
+                                ("Venus", manglik['mars_from_venus'], manglik['from_venus'])]:
+        yn = "Yes" if is_m else "No"
+        yn_color = "#CC0000" if is_m else "#006400"
+        eff = _MANGLIK_HOUSE_EFFECT.get(house, ("", ""))[0] if is_m else "\u2014"
+        yn_para = ParagraphStyle('MKYn', parent=mk_cell,
+            fontName='Helvetica-Bold', textColor=colors.HexColor(yn_color))
+        eff_para = ParagraphStyle('MKEff', parent=mk_cell, fontSize=7.5, alignment=TA_LEFT)
+        src_data.append([
+            Paragraph(f"<b>{label}</b>", mk_cell_bold),
+            Paragraph(f"{house}{_ordinal(house)}", mk_cell),
+            Paragraph(yn, yn_para),
+            Paragraph(eff, eff_para),
+        ])
+
+    src_table = Table(src_data, colWidths=[85, 65, 55, 170], repeatRows=1)
+    src_style = [
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8B0000")),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    ]
+    for ri in range(1, 4):
+        is_m = [manglik['from_lagna'], manglik['from_moon'], manglik['from_venus']][ri - 1]
+        bg = "#FFF5F5" if is_m else "#F0FFF4"
+        src_style.append(('BACKGROUND', (0, ri), (-1, ri), colors.HexColor(bg)))
+    src_table.setStyle(TableStyle(src_style))
+    story.append(src_table)
+
+    # Cancellations
+    if manglik['cancellations']:
+        story.append(Paragraph("Cancellation Factors", mk_sub_head))
+        for canc_en, canc_hi in manglik['cancellations']:
+            story.append(Paragraph(f"\u2714 {canc_en}", mk_body))
+
+    # Assessment
+    story.append(Paragraph("Assessment", mk_sub_head))
+    story.append(Paragraph(manglik['assessment_en'],
+        ParagraphStyle('MKAssess', parent=mk_body,
+            fontName='Helvetica-Oblique', fontSize=9.5,
+            textColor=colors.HexColor("#2E4057"),
+            borderColor=colors.HexColor("#DAA520"), borderWidth=1,
+            borderPadding=6, backColor=colors.HexColor("#FFFDE7"),
+            spaceBefore=2*mm, spaceAfter=3*mm, leading=14)))
+
+    # Modern perspective
+    story.append(Paragraph("Modern Perspective", mk_sub_head))
+    story.append(Paragraph(
+        "Manglik is <b>not a curse</b> \u2014 it is simply an indicator of <b>intensity</b> "
+        "in relationships. Mars brings passion, drive, and energy. In relationship houses, "
+        "this can manifest as assertiveness or impatience. With awareness, communication, "
+        "and mutual respect, Manglik individuals build strong, dynamic partnerships. "
+        "Many successful marriages exist with Manglik charts.",
+        mk_body))
+    story.append(Paragraph(
+        "<b>Old view:</b> Manglik = danger &nbsp;&nbsp;|&nbsp;&nbsp; "
+        "<b>Correct view:</b> Manglik = intensity to be channelled constructively",
+        ParagraphStyle('MKModern', parent=mk_body,
             fontName='Helvetica-Bold', fontSize=9, alignment=TA_CENTER,
             textColor=MAROON, spaceBefore=2*mm)))
 
