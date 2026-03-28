@@ -2134,6 +2134,50 @@ def _dasha_reading(chart, today):
             f"Watch for {prat_info.get('positive', 'positive developments')} "
             f"during this micro-period.")
 
+    # ── Current Sookshma influence ──
+    if current_prat:
+        key = (current_maha, current_antar)
+        pd_list = chart.get('pratyantar', {}).get(key, [])
+        for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+            if pd_start <= today < pd_end:
+                sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                current_sk = None
+                next_sk = None
+                for si, (sk_lord, sk_start, sk_end, sk_yrs) in enumerate(sk_list):
+                    if sk_start <= today < sk_end:
+                        current_sk = (sk_lord, sk_start, sk_end, sk_yrs)
+                        if si + 1 < len(sk_list):
+                            next_sk = sk_list[si + 1]
+                        break
+                if current_sk:
+                    sk_lord, sk_start, sk_end, sk_yrs = current_sk
+                    sk_info = DASHA_READING.get(sk_lord, {})
+                    sk_days = (sk_end - today).days
+                    sk_hours = (sk_end - today).total_seconds() / 3600
+                    blocks.append(f"## {sk_lord} Sookshma — The Finest Current Influence")
+                    if sk_days > 0:
+                        duration_text = f"<b>{sk_days} days</b>"
+                    else:
+                        duration_text = f"<b>{sk_hours:.0f} hours</b>"
+                    blocks.append(
+                        f"At the subtlest level of timing, the <b>{sk_lord} Sookshma</b> "
+                        f"(active until {sk_end.strftime('%d %B %Y')}, approximately "
+                        f"{duration_text} remaining) adds a very fine layer of {sk_lord}'s "
+                        f"energy to your daily experience. "
+                        f"This micro-period colours your {sk_info.get('themes', 'immediate activities')} "
+                        f"with {sk_info.get('nature', 'subtle')} undertones.")
+                    blocks.append(
+                        f"The four-level dasha chain <b>{current_maha} → {current_antar} → "
+                        f"{current_prat} → {sk_lord}</b> creates a unique blend of planetary "
+                        f"influences shaping your present moment — from the broad life-chapter "
+                        f"({current_maha}) down to the day-to-day texture ({sk_lord}).")
+                    if next_sk:
+                        blocks.append(
+                            f"The next Sookshma shift to <b>{next_sk[0]}</b> around "
+                            f"<b>{next_sk[1].strftime('%d %B %Y')}</b> will bring a subtle "
+                            f"change in your immediate energy and focus.")
+                break
+
     # ── Upcoming Transitions ──
     blocks.append("## Looking Ahead — Upcoming Transitions")
 
@@ -2164,8 +2208,41 @@ def _dasha_reading(chart, today):
             f"Key strengths will include {nm_info.get('positive', 'various opportunities')}.")
 
     # ── Guidance ──
-    blocks.append(f"## Guidance for the Current Period")
+    blocks.append("## Guidance for the Current Period")
     blocks.append(maha_info.get('advice', 'Stay balanced and mindful.'))
+
+    # ── Overall Summary ──
+    blocks.append("## Summary — Your Cosmic Blueprint Today")
+    summary_parts = [f"Your life is currently guided by the <b>{current_maha} Mahadasha</b>"]
+    if current_antar:
+        summary_parts.append(f"refined through the <b>{current_antar} Antardasha</b>")
+    if current_prat:
+        summary_parts.append(f"shaped at the micro-level by the <b>{current_prat} Pratyantar</b>")
+    # Find current Sookshma for summary
+    current_sk_lord = None
+    if current_prat:
+        key = (current_maha, current_antar)
+        pd_list = chart.get('pratyantar', {}).get(key, [])
+        for pd_lord, pd_start, pd_end, pd_yrs in pd_list:
+            if pd_start <= today < pd_end:
+                sk_list = sookshma_dasha(pd_lord, pd_start, pd_yrs)
+                for sk_lord, sk_start, sk_end, sk_yrs in sk_list:
+                    if sk_start <= today < sk_end:
+                        current_sk_lord = sk_lord
+                        break
+                break
+    if current_sk_lord:
+        summary_parts.append(f"and textured at the subtlest level by the <b>{current_sk_lord} Sookshma</b>")
+    blocks.append(", ".join(summary_parts) + ".")
+    blocks.append(
+        "Each layer of the Vimshottari Dasha system — from the broad Mahadasha spanning years, "
+        "through the Antardasha and Pratyantar lasting months, down to the Sookshma lasting just "
+        "days — adds nuance and specificity to the unfolding of your karmic journey. "
+        "Understanding these layers helps you align your actions with the cosmic rhythm.")
+    blocks.append(
+        "Remember: the planets indicate tendencies, not certainties. Your awareness, choices, "
+        "and effort remain the most powerful forces in shaping your destiny. Use this reading "
+        "as a compass, not a map — let it guide your reflection, not limit your ambition.")
 
     return blocks
 
@@ -5213,7 +5290,10 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ("6", "Sade Sati \u2014 Analysis &amp; Remedies"),
         ("7", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
         ("8", "Current Period Analysis &amp; Guidance"),
-        ("9", "Disclaimer"),
+        ("9", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("10", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("11", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("12", "Disclaimer"),
     ]
 
     # Build TOC as a clean table
@@ -6560,6 +6640,114 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         alignment=TA_CENTER)
     story.append(Paragraph("Lahiri Ayanamsha  ·  Swiss Ephemeris  ·  "
                            "Generated by AstroShuklz", footer_style))
+
+    # ── Forecast Promo Pages ──────────────────────────────────────
+    # Shared styles for forecast promo pages
+    promo_title_style = ParagraphStyle('PromoTitle', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=20, textColor=MAROON,
+        alignment=TA_CENTER, spaceAfter=3*mm, spaceBefore=15*mm)
+    promo_subtitle_style = ParagraphStyle('PromoSub', parent=styles['Normal'],
+        fontName='Helvetica-Oblique', fontSize=12, textColor=colors.HexColor("#B8860B"),
+        alignment=TA_CENTER, spaceAfter=8*mm)
+    promo_body_style = ParagraphStyle('PromoBody', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=10, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, leading=16, spaceAfter=3*mm)
+    promo_bullet_style = ParagraphStyle('PromoBullet', parent=promo_body_style,
+        leftIndent=15*mm, firstLineIndent=-5*mm, spaceBefore=1*mm, spaceAfter=1*mm)
+    promo_cta_style = ParagraphStyle('PromoCTA', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=12, textColor=MAROON,
+        alignment=TA_CENTER, spaceBefore=8*mm, spaceAfter=3*mm)
+    promo_url_style = ParagraphStyle('PromoURL', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=10, textColor=colors.HexColor("#1a0dab"),
+        alignment=TA_CENTER, spaceAfter=2*mm)
+    promo_note_style = ParagraphStyle('PromoNote', parent=styles['Normal'],
+        fontName='Helvetica-Oblique', fontSize=8.5, textColor=colors.HexColor("#777"),
+        alignment=TA_CENTER, spaceBefore=5*mm)
+
+    person_name = bd.get('name', 'you')
+
+    # ── Weekly Forecast Page ──
+    story.append(PageBreak())
+    story.append(Paragraph("Weekly Forecast", promo_title_style))
+    story.append(Paragraph("Personalised Vedic Predictions — Updated Every Week", promo_subtitle_style))
+    story.append(Paragraph(
+        f"Your Kundali reveals the blueprint — but the planets never stand still. "
+        f"A <b>Weekly Forecast</b> for <b>{person_name}</b> combines your natal chart "
+        f"with real-time planetary transits (Gochar) and your active Dasha periods "
+        f"to deliver actionable guidance for the week ahead.", promo_body_style))
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph("<b>What you receive each week:</b>", promo_body_style))
+    weekly_bullets = [
+        "\u2022  <b>Dasha Pulse</b> — How your Pratyantar &amp; Sookshma periods colour the coming 7 days",
+        "\u2022  <b>Transit Spotlight</b> — Key planetary movements through your houses from Moon sign",
+        "\u2022  <b>Favourable &amp; Challenging Days</b> — So you can plan meetings, travel, and decisions",
+        "\u2022  <b>Sade Sati Watch</b> — Saturn transit alerts if applicable to your Moon sign",
+        "\u2022  <b>Actionable Tips</b> — Specific guidance tailored to your chart for the week",
+    ]
+    for b in weekly_bullets:
+        story.append(Paragraph(b, promo_bullet_style))
+    story.append(Paragraph("Get Your Weekly Forecast", promo_cta_style))
+    story.append(Paragraph("astroshuklz.com/forecast", promo_url_style))
+    story.append(Paragraph(
+        "Generated from your exact birth chart using Vimshottari Dasha, "
+        "Gochar analysis, and Lahiri Ayanamsha — in English &amp; Hindi.",
+        promo_note_style))
+
+    # ── Monthly Forecast Page ──
+    story.append(PageBreak())
+    story.append(Paragraph("Monthly Forecast", promo_title_style))
+    story.append(Paragraph("Deeper Insights for the Month Ahead", promo_subtitle_style))
+    story.append(Paragraph(
+        f"A month is long enough for planetary transits to reshape your landscape. "
+        f"The <b>Monthly Forecast</b> for <b>{person_name}</b> takes a wider lens — "
+        f"analysing how your Antardasha period, slower-moving planets, and house transits "
+        f"converge to shape the coming 30 days.", promo_body_style))
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph("<b>What you receive each month:</b>", promo_body_style))
+    monthly_bullets = [
+        "\u2022  <b>Antardasha Focus</b> — The dominant sub-period energy shaping your month",
+        "\u2022  <b>Full Transit Map</b> — Sun through Ketu analysed from your Moon sign",
+        "\u2022  <b>Career &amp; Finance Outlook</b> — Houses 2, 6, 10, 11 transit analysis",
+        "\u2022  <b>Relationships &amp; Health</b> — Houses 5, 7, 8 transit insights",
+        "\u2022  <b>Retrograde Alerts</b> — Which planets are retrograde and what it means for you",
+        "\u2022  <b>Monthly Guidance</b> — Strengths to leverage and cautions to heed",
+    ]
+    for b in monthly_bullets:
+        story.append(Paragraph(b, promo_bullet_style))
+    story.append(Paragraph("Get Your Monthly Forecast", promo_cta_style))
+    story.append(Paragraph("astroshuklz.com/forecast", promo_url_style))
+    story.append(Paragraph(
+        "Each forecast is uniquely generated from your natal chart — "
+        "no generic Sun-sign horoscopes. Available in English &amp; Hindi.",
+        promo_note_style))
+
+    # ── Yearly Forecast Page ──
+    story.append(PageBreak())
+    story.append(Paragraph("Yearly Forecast", promo_title_style))
+    story.append(Paragraph("Your Annual Vedic Roadmap", promo_subtitle_style))
+    story.append(Paragraph(
+        f"The <b>Yearly Forecast</b> for <b>{person_name}</b> is the big-picture view — "
+        f"a comprehensive analysis of how the Mahadasha theme, major planetary transits "
+        f"of Jupiter, Saturn, Rahu &amp; Ketu, and your chart's promise unfold across "
+        f"the entire year.", promo_body_style))
+    story.append(Spacer(1, 2*mm))
+    story.append(Paragraph("<b>What the annual forecast covers:</b>", promo_body_style))
+    yearly_bullets = [
+        "\u2022  <b>Mahadasha Theme</b> — The overarching karmic chapter and its remaining trajectory",
+        "\u2022  <b>Jupiter &amp; Saturn Transits</b> — The two great chronocrators and their house effects",
+        "\u2022  <b>Rahu-Ketu Axis</b> — Nodal transit through your houses — desires vs. destiny",
+        "\u2022  <b>Year's Strengths</b> — Periods of maximum opportunity and growth",
+        "\u2022  <b>Year's Challenges</b> — Phases requiring patience, planning, and remedies",
+        "\u2022  <b>Annual Guidance</b> — Strategic advice for career, relationships, health, and spiritual growth",
+    ]
+    for b in yearly_bullets:
+        story.append(Paragraph(b, promo_bullet_style))
+    story.append(Paragraph("Get Your Yearly Forecast", promo_cta_style))
+    story.append(Paragraph("astroshuklz.com/forecast", promo_url_style))
+    story.append(Paragraph(
+        "A personalised annual roadmap based on classical Vedic Jyotish — "
+        "not a one-size-fits-all prediction. English &amp; Hindi.",
+        promo_note_style))
 
     # ── English Disclaimer Page ─────────────────────────────────
     story.append(PageBreak())
