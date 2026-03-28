@@ -255,6 +255,134 @@ def _ordinal(n):
     return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
+# ── Graha Drishti (Planetary Aspects) ──────────────────────────────────────
+# Aspect scores: how much influence each aspecting planet exerts
+DRISHTI_SCORES = {
+    "Jupiter": +6, "Venus": +4, "Mercury": +3, "Moon": +2,
+    "Saturn": -5, "Mars": -6, "Rahu": -5, "Ketu": -4, "Sun": -2,
+}
+# Special aspects (offsets from planet's house). All planets also have 7th.
+# Rahu & Ketu get 5th and 9th (commonly used in practice).
+DRISHTI_SPECIAL = {
+    "Mars":    [4, 8],
+    "Jupiter": [5, 9],
+    "Saturn":  [3, 10],
+    "Rahu":    [5, 9],
+    "Ketu":    [5, 9],
+}
+DRISHTI_EFFECT = {
+    "Jupiter": ("Blessing / protection / wisdom", "आशीर्वाद / सुरक्षा / ज्ञान"),
+    "Venus":   ("Harmony / beauty / comfort", "सामंजस्य / सौंदर्य / सुख"),
+    "Mercury": ("Intelligence / communication", "बुद्धि / संवाद"),
+    "Moon":    ("Emotional nurturing / sensitivity", "भावनात्मक पोषण / संवेदनशीलता"),
+    "Saturn":  ("Pressure / delay / discipline", "दबाव / विलंब / अनुशासन"),
+    "Mars":    ("Aggression / energy / conflict", "आक्रामकता / ऊर्जा / संघर्ष"),
+    "Rahu":    ("Obsession / unusual karma", "जुनून / असामान्य कर्म"),
+    "Ketu":    ("Detachment / spiritual push", "वैराग्य / आध्यात्मिक प्रेरणा"),
+    "Sun":     ("Authority / ego / heat", "अधिकार / अहंकार / ताप"),
+}
+
+
+def calculate_graha_drishti(chart):
+    """
+    Calculate all planetary aspects (Graha Drishti) in the chart.
+    Returns:
+      - aspects: list of {from_planet, to_planet, aspect_type (3rd/4th/5th/7th/8th/9th/10th),
+                          score, effect_en, effect_hi, is_benefic}
+      - planet_summary: dict per planet with support_score, affliction_score, net, interpretation
+    """
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+    order = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
+
+    # Compute house for each planet
+    planet_houses = {}
+    for pname in order:
+        sidx = planets[pname]['sign_idx']
+        planet_houses[pname] = (sidx - asc_sign) % 12 + 1
+
+    # Build reverse map: house -> list of planets
+    house_occupants = {h: [] for h in range(1, 13)}
+    for pname, h in planet_houses.items():
+        house_occupants[h].append(pname)
+
+    aspects = []
+    # For each planet, calculate which houses it aspects
+    for aspector in order:
+        a_house = planet_houses[aspector]
+        # All planets aspect 7th house
+        aspected_offsets = [7]
+        # Add special aspects
+        for offset in DRISHTI_SPECIAL.get(aspector, []):
+            aspected_offsets.append(offset)
+
+        for offset in aspected_offsets:
+            target_house = (a_house + offset - 1) % 12 + 1
+            # Check which planets sit in that house
+            for target_planet in house_occupants[target_house]:
+                if target_planet == aspector:
+                    continue  # skip self
+                score = DRISHTI_SCORES.get(aspector, 0)
+                effect_en, effect_hi = DRISHTI_EFFECT.get(aspector, ("", ""))
+                aspects.append({
+                    'from': aspector,
+                    'to': target_planet,
+                    'aspect_type': f"{offset}{_ordinal(offset)}",
+                    'from_house': a_house,
+                    'to_house': target_house,
+                    'score': score,
+                    'effect_en': effect_en,
+                    'effect_hi': effect_hi,
+                    'is_benefic': score > 0,
+                })
+
+    # Sort: benefic first, then by absolute score descending
+    aspects.sort(key=lambda x: (-x['is_benefic'], -abs(x['score'])))
+
+    # Per-planet summary
+    planet_summary = {}
+    for pname in order:
+        support = 0
+        affliction = 0
+        aspectors_ben = []
+        aspectors_mal = []
+        for asp in aspects:
+            if asp['to'] == pname:
+                if asp['score'] > 0:
+                    support += asp['score']
+                    aspectors_ben.append(asp['from'])
+                else:
+                    affliction += asp['score']
+                    aspectors_mal.append(asp['from'])
+        net = support + affliction
+        if net > 3:
+            interp_en = "Well-supported \u2014 receives strong benefic influence"
+            interp_hi = "सुरक्षित \u2014 शुभ ग्रहों का मजबूत प्रभाव प्राप्त"
+        elif net > 0:
+            interp_en = "Challenged but supported \u2014 benefic influence slightly outweighs malefic"
+            interp_hi = "चुनौतीपूर्ण लेकिन सुरक्षित \u2014 शुभ प्रभाव हावी"
+        elif net == 0:
+            interp_en = "Balanced \u2014 benefic and malefic aspects neutralise each other"
+            interp_hi = "संतुलित \u2014 शुभ और अशुभ दृष्टियाँ एक-दूसरे को निष्प्रभावी करती हैं"
+        elif net > -4:
+            interp_en = "Under pressure \u2014 malefic influence slightly dominates"
+            interp_hi = "दबाव में \u2014 अशुभ प्रभाव हावी"
+        else:
+            interp_en = "Heavily afflicted \u2014 strong malefic pressure; remedies recommended"
+            interp_hi = "अत्यधिक पीड़ित \u2014 मजबूत अशुभ दबाव; उपाय आवश्यक"
+        planet_summary[pname] = {
+            'support': support,
+            'affliction': affliction,
+            'net': net,
+            'interp_en': interp_en,
+            'interp_hi': interp_hi,
+            'aspectors_ben': aspectors_ben,
+            'aspectors_mal': aspectors_mal,
+        }
+
+    return aspects, planet_summary
+
+
 # Hindi labels for strength display
 DIGNITY_HI = {
     "Exalted": "उच्च", "Own Sign": "स्वराशि", "Mulatrikona": "मूलत्रिकोण",
@@ -4412,16 +4540,17 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         ("१", "ग्रह स्थिति एवं व्याख्यात्मक टिप्पणियाँ"),
         ("२", "भवन पठन — भाव विश्लेषण"),
         ("३", "ग्रह शक्ति विश्लेषण"),
-        ("४", "परिवर्तन योग — ग्रह विनिमय"),
-        ("५", "वैदिक उपाय एवं कर्म उपाय"),
-        ("६", "नवांश (D-9) चार्ट एवं पठन"),
-        ("७", "साढ़ेसाती — विश्लेषण एवं उपाय"),
-        ("८", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
-        ("९", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
-        ("१०", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
-        ("११", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
-        ("१२", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
-        ("१३", "अस्वीकरण"),
+        ("४", "ग्रह दृष्टि — ग्रहीय पहलू"),
+        ("५", "परिवर्तन योग — ग्रह विनिमय"),
+        ("६", "वैदिक उपाय एवं कर्म उपाय"),
+        ("७", "नवांश (D-9) चार्ट एवं पठन"),
+        ("८", "साढ़ेसाती — विश्लेषण एवं उपाय"),
+        ("९", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
+        ("१०", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
+        ("११", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
+        ("१२", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
+        ("१३", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
+        ("१४", "अस्वीकरण"),
     ]
     html_parts.append('<div class="toc-page">')
     html_parts.append('<div class="toc-title">विषय सूची</div>')
@@ -4760,6 +4889,83 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         html_parts.append('<div class="reading" style="font-size:8pt; color:#666;">'
                            '<b>विधि:</b> अंक राशि गरिमा (35), भवन स्थान (20), अंश परिपक्वता (10), '
                            'दृष्टि (±15), युति (±8), अस्त (−15), वक्री (±5) पर आधारित। सीमा: 0-100।</div>')
+
+    # ── Hindi Graha Drishti Page ─────────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h2>ग्रह दृष्टि — ग्रहीय पहलू</h2>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+    html_parts.append(
+        '<div class="reading">'
+        '<b>ग्रह दृष्टि</b> किसी ग्रह की अन्य ग्रहों और भावों पर दृष्टि या प्रभाव है। '
+        'हर ग्रह अपने से 7वें भाव को देखता है। मंगल, बृहस्पति और शनि की विशेष दृष्टियाँ '
+        'उनके प्रभाव को और आगे बढ़ाती हैं। राहु और केतु भी 5वीं और 9वीं दृष्टि डालते हैं।</div>')
+    html_parts.append(
+        '<div class="reading"><b>विशेष दृष्टियाँ:</b> '
+        'मंगल \u2192 4,7,8 (आक्रामक) | '
+        'बृहस्पति \u2192 5,7,9 (सुरक्षात्मक) | '
+        'शनि \u2192 3,7,10 (अनुशासनात्मक) | '
+        'राहु/केतु \u2192 5,7,9 (कार्मिक)</div>')
+
+    hi_drishti_aspects, hi_drishti_summary = calculate_graha_drishti(chart)
+
+    if hi_drishti_aspects:
+        # Aspect table
+        html_parts.append('<table style="font-size:8.5pt; margin-top:8px;">')
+        html_parts.append(
+            '<tr style="background:#8B0000; color:white;">'
+            '<th>दृष्टिकर्ता</th><th>लक्ष्य</th><th>दृष्टि</th>'
+            '<th>अंक</th><th>प्रभाव</th></tr>')
+        for asp in hi_drishti_aspects:
+            from_hi = PLANET_HI_FULL.get(asp['from'], asp['from'])
+            to_hi = PLANET_HI_FULL.get(asp['to'], asp['to'])
+            bg = "#F0FFF4" if asp['is_benefic'] else "#FFF5F5"
+            s_color = "#006400" if asp['score'] > 0 else "#CC0000"
+            s_text = f"+{asp['score']}" if asp['score'] > 0 else str(asp['score'])
+            html_parts.append(
+                f'<tr style="background:{bg};">'
+                f'<td><b>{from_hi}</b></td>'
+                f'<td>{to_hi}</td>'
+                f'<td>{asp["aspect_type"]}</td>'
+                f'<td style="color:{s_color}; font-weight:bold;">{s_text}</td>'
+                f'<td>{asp["effect_hi"]}</td></tr>')
+        html_parts.append('</table>')
+
+        # Per-planet summary
+        html_parts.append('<h3>प्रति-ग्रह दृष्टि सारांश</h3>')
+        html_parts.append('<table style="font-size:8.5pt; margin-top:6px;">')
+        html_parts.append(
+            '<tr style="background:#8B0000; color:white;">'
+            '<th>ग्रह</th><th>सहयोग</th><th>पीड़ा</th>'
+            '<th>कुल</th><th>व्याख्या</th></tr>')
+        for pname in ["Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                       "Venus", "Saturn", "Rahu", "Ketu"]:
+            ps = hi_drishti_summary[pname]
+            if ps['support'] == 0 and ps['affliction'] == 0:
+                continue
+            p_hi = PLANET_HI_FULL.get(pname, pname)
+            net = ps['net']
+            n_color = "#006400" if net > 0 else ("#CC0000" if net < 0 else "#666")
+            n_text = f"+{net}" if net > 0 else str(net)
+            sup = f"+{ps['support']}" if ps['support'] > 0 else "0"
+            aff = str(ps['affliction']) if ps['affliction'] < 0 else "0"
+            html_parts.append(
+                f'<tr>'
+                f'<td><b>{p_hi}</b></td>'
+                f'<td style="color:#006400; font-weight:bold;">{sup}</td>'
+                f'<td style="color:#CC0000; font-weight:bold;">{aff}</td>'
+                f'<td style="color:{n_color}; font-weight:bold;">{n_text}</td>'
+                f'<td style="text-align:left;">{ps["interp_hi"]}</td></tr>')
+        html_parts.append('</table>')
+
+        html_parts.append(
+            '<div style="font-size:8pt; color:#666; margin-top:8px;">'
+            '<b>दृष्टि अंक:</b> '
+            'बृहस्पति +6 | शुक्र +4 | बुध +3 | चंद्र +2 | '
+            'सूर्य \u22122 | केतु \u22124 | शनि \u22125 | राहु \u22125 | मंगल \u22126</div>')
+    else:
+        html_parts.append(
+            '<div class="reading" style="font-style:italic; color:#666;">'
+            'इस कुण्डली में ग्रहों के बीच कोई सीधी दृष्टि नहीं पाई गई।</div>')
 
     # ── Hindi Parivartana Yoga Page ───────────────────────────
     html_parts.append('<div class="page-break"></div>')
@@ -5603,16 +5809,17 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ("1", "Planetary Position &amp; Explanatory Notes"),
         ("2", "Bhava Reading \u2014 House Analysis"),
         ("3", "Planet Strength Analysis"),
-        ("4", "Parivartana Yoga \u2014 Planetary Exchange"),
-        ("5", "Vedic Remedies &amp; Karma Remedy"),
-        ("6", "Navamsha (D-9) Chart &amp; Reading"),
-        ("7", "Sade Sati \u2014 Analysis &amp; Remedies"),
-        ("8", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
-        ("9", "Current Period Analysis &amp; Guidance"),
-        ("10", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("11", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("12", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("13", "Disclaimer"),
+        ("4", "Graha Drishti \u2014 Planetary Aspects"),
+        ("5", "Parivartana Yoga \u2014 Planetary Exchange"),
+        ("6", "Vedic Remedies &amp; Karma Remedy"),
+        ("7", "Navamsha (D-9) Chart &amp; Reading"),
+        ("8", "Sade Sati \u2014 Analysis &amp; Remedies"),
+        ("9", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
+        ("10", "Current Period Analysis &amp; Guidance"),
+        ("11", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("12", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("13", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("14", "Disclaimer"),
     ]
 
     # Build TOC as a clean table
@@ -6170,6 +6377,167 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         "⚠️ <b>Pacify</b> — Functional malefic or strong negative influence; "
         "pacify through specific rituals, fasting, and charitable acts.",
         footnote_style))
+
+    # ── Graha Drishti — Planetary Aspects ─────────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Graha Drishti \u2014 Planetary Aspects", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 2*mm))
+
+    gd_intro = ParagraphStyle('GDIntro', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        alignment=TA_JUSTIFY, leading=13, spaceAfter=3*mm)
+    gd_cell = ParagraphStyle('GDCell', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=7.5, alignment=TA_CENTER)
+    gd_cell_bold = ParagraphStyle('GDCellBold', parent=gd_cell,
+        fontName='Helvetica-Bold')
+    gd_hdr = ParagraphStyle('GDHdr', parent=gd_cell,
+        fontName='Helvetica-Bold', textColor=colors.white, fontSize=8)
+    gd_sub_head = ParagraphStyle('GDSubHead', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=10, textColor=MAROON,
+        spaceBefore=5*mm, spaceAfter=1.5*mm)
+    gd_body = ParagraphStyle('GDBody', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=8.5, textColor=colors.HexColor("#333"),
+        leading=12, spaceAfter=1.5*mm)
+
+    story.append(Paragraph(
+        "<b>Graha Drishti</b> (planetary aspect) is a planet\u2019s gaze or influence "
+        "on other planets and houses. Every planet aspects the 7th house from itself. "
+        "Mars, Jupiter, and Saturn have additional special aspects that extend their "
+        "influence further. Rahu and Ketu also cast 5th and 9th aspects.",
+        gd_intro))
+    story.append(Paragraph(
+        "<b>Special Aspects:</b> "
+        "Mars \u2192 4th, 7th, 8th (aggressive) &nbsp;|&nbsp; "
+        "Jupiter \u2192 5th, 7th, 9th (protective) &nbsp;|&nbsp; "
+        "Saturn \u2192 3rd, 7th, 10th (disciplining) &nbsp;|&nbsp; "
+        "Rahu/Ketu \u2192 5th, 7th, 9th (karmic)",
+        gd_intro))
+
+    drishti_aspects, drishti_summary = calculate_graha_drishti(chart)
+
+    if drishti_aspects:
+        # ── Aspect Table ──
+        gd_header = [
+            Paragraph('<b>From</b>', gd_hdr),
+            Paragraph('<b>To</b>', gd_hdr),
+            Paragraph('<b>Aspect</b>', gd_hdr),
+            Paragraph('<b>Score</b>', gd_hdr),
+            Paragraph('<b>Effect</b>', gd_hdr),
+        ]
+        gd_data = [gd_header]
+        for asp in drishti_aspects:
+            score_val = asp['score']
+            if score_val > 0:
+                score_text = f"+{score_val}"
+                score_color = "#006400"
+            else:
+                score_text = str(score_val)
+                score_color = "#CC0000"
+            score_para = ParagraphStyle('GDScore', parent=gd_cell,
+                fontName='Helvetica-Bold', textColor=colors.HexColor(score_color))
+            bg_color = "#F0FFF4" if asp['is_benefic'] else "#FFF5F5"
+            gd_data.append([
+                Paragraph(f"<b>{asp['from']}</b>", gd_cell_bold),
+                Paragraph(asp['to'], gd_cell),
+                Paragraph(asp['aspect_type'], gd_cell),
+                Paragraph(score_text, score_para),
+                Paragraph(asp['effect_en'], gd_cell),
+            ])
+
+        gd_table = Table(gd_data, colWidths=[65, 65, 50, 40, 155], repeatRows=1)
+        gd_style_rules = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8B0000")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]
+        # Colour-code rows
+        for ri, asp in enumerate(drishti_aspects, start=1):
+            bg = "#F0FFF4" if asp['is_benefic'] else "#FFF5F5"
+            gd_style_rules.append(('BACKGROUND', (0, ri), (-1, ri),
+                                   colors.HexColor(bg)))
+        gd_table.setStyle(TableStyle(gd_style_rules))
+        story.append(gd_table)
+
+        # ── Per-Planet Aspect Summary ──
+        story.append(Spacer(1, 4*mm))
+        story.append(Paragraph("Per-Planet Aspect Summary", gd_sub_head))
+
+        ps_header = [
+            Paragraph('<b>Planet</b>', gd_hdr),
+            Paragraph('<b>Support</b>', gd_hdr),
+            Paragraph('<b>Affliction</b>', gd_hdr),
+            Paragraph('<b>Net</b>', gd_hdr),
+            Paragraph('<b>Interpretation</b>', gd_hdr),
+        ]
+        ps_data = [ps_header]
+        planet_order = ["Sun", "Moon", "Mars", "Mercury", "Jupiter",
+                        "Venus", "Saturn", "Rahu", "Ketu"]
+        for pname in planet_order:
+            ps = drishti_summary[pname]
+            if ps['support'] == 0 and ps['affliction'] == 0:
+                continue  # skip planets with no aspects received
+            net = ps['net']
+            if net > 0:
+                net_text = f"+{net}"
+                net_color = "#006400"
+            elif net < 0:
+                net_text = str(net)
+                net_color = "#CC0000"
+            else:
+                net_text = "0"
+                net_color = "#666666"
+            sup_text = f"+{ps['support']}" if ps['support'] > 0 else "0"
+            aff_text = str(ps['affliction']) if ps['affliction'] < 0 else "0"
+            net_para = ParagraphStyle('PSNet', parent=gd_cell,
+                fontName='Helvetica-Bold', textColor=colors.HexColor(net_color))
+            sup_para = ParagraphStyle('PSSup', parent=gd_cell,
+                fontName='Helvetica-Bold', textColor=colors.HexColor("#006400"))
+            aff_para = ParagraphStyle('PSAff', parent=gd_cell,
+                fontName='Helvetica-Bold', textColor=colors.HexColor("#CC0000"))
+            interp_style = ParagraphStyle('PSInterp', parent=gd_cell,
+                fontSize=7, alignment=TA_LEFT)
+            ps_data.append([
+                Paragraph(f"<b>{pname}</b>", gd_cell_bold),
+                Paragraph(sup_text, sup_para),
+                Paragraph(aff_text, aff_para),
+                Paragraph(net_text, net_para),
+                Paragraph(ps['interp_en'], interp_style),
+            ])
+
+        ps_table = Table(ps_data, colWidths=[65, 55, 55, 45, 155], repeatRows=1)
+        ps_style_rules = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8B0000")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+            ('ALIGN', (0, 0), (3, -1), 'CENTER'),
+            ('ALIGN', (4, 1), (4, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]
+        ps_table.setStyle(TableStyle(ps_style_rules))
+        story.append(ps_table)
+
+        # Scoring legend
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph(
+            "<b>Aspect Scores:</b> "
+            "Jupiter +6 | Venus +4 | Mercury +3 | Moon +2 | "
+            "Sun \u22122 | Ketu \u22124 | Saturn \u22125 | Rahu \u22125 | Mars \u22126",
+            footnote_style))
+    else:
+        story.append(Paragraph(
+            '<i>No direct planetary aspects were found between planets in this chart.</i>',
+            gd_intro))
 
     # ── Parivartana Yoga — Planetary Exchange ─────────────────
     story.append(PageBreak())
