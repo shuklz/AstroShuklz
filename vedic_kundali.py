@@ -138,6 +138,123 @@ HOUSE_SCORES = {1:20, 4:20, 7:20, 10:20, 5:18, 9:18,
 _SIGN_RULERS_IDX = ["Mars","Venus","Mercury","Moon","Sun","Mercury",
                     "Venus","Mars","Jupiter","Saturn","Saturn","Jupiter"]
 
+# ── Parivartana Yoga (Planetary Exchange) ──────────────────────────────────
+PARIVARTANA_TYPES = {
+    "Maha": {
+        "icon": "M", "label_en": "Maha Parivartana Yoga",
+        "label_hi": "महा परिवर्तन योग",
+        "color": "#006400", "bg": "#E8F5E9",
+        "effect_en": "Highly beneficial — strengthens both houses and planets significantly",
+        "effect_hi": "अत्यंत लाभकारी — दोनों भावों और ग्रहों को महत्वपूर्ण बल प्रदान करता है",
+        "psych_en": "You naturally integrate these two life domains, creating synergy and mutual support. "
+                    "Success in one area amplifies the other.",
+        "psych_hi": "आप स्वाभाविक रूप से इन दो जीवन क्षेत्रों को एकीकृत करते हैं, "
+                    "जिससे तालमेल और पारस्परिक सहयोग बनता है। एक क्षेत्र में सफलता दूसरे को बढ़ाती है।",
+        "score_bonus": 8,
+    },
+    "Khala": {
+        "icon": "K", "label_en": "Khala Parivartana Yoga",
+        "label_hi": "खल परिवर्तन योग",
+        "color": "#B8860B", "bg": "#FFF8E1",
+        "effect_en": "Mixed results — effort-driven gains with challenges requiring perseverance",
+        "effect_hi": "मिश्रित फल — प्रयासपूर्ण लाभ, चुनौतियों में धैर्य आवश्यक",
+        "psych_en": "This exchange demands conscious effort. Gains come through courage and initiative, "
+                    "but may involve competition or struggle. Persistence is key.",
+        "psych_hi": "यह विनिमय सचेत प्रयास की माँग करता है। लाभ साहस और पहल से आता है, "
+                    "लेकिन प्रतिस्पर्धा या संघर्ष शामिल हो सकता है। दृढ़ता महत्वपूर्ण है।",
+        "score_bonus": 4,
+    },
+    "Dainya": {
+        "icon": "D", "label_en": "Dainya Parivartana Yoga",
+        "label_hi": "दैन्य परिवर्तन योग",
+        "color": "#CC0000", "bg": "#FFEBEE",
+        "effect_en": "Challenging — karmic lessons through difficulties; requires conscious remedial effort",
+        "effect_hi": "चुनौतीपूर्ण — कठिनाइयों से कर्म-शिक्षा; सचेत उपचार प्रयास आवश्यक",
+        "psych_en": "This exchange indicates karmic debts manifesting through life challenges. "
+                    "Growth comes through facing difficulties with awareness and humility.",
+        "psych_hi": "यह विनिमय जीवन की चुनौतियों के माध्यम से प्रकट होने वाले कार्मिक ऋणों को दर्शाता है। "
+                    "जागरूकता और विनम्रता से कठिनाइयों का सामना करने से विकास होता है।",
+        "score_bonus": -3,
+    },
+}
+HOUSE_THEMES = {
+    1:  ("Self / Body / Personality", "स्वयं / शरीर / व्यक्तित्व"),
+    2:  ("Wealth / Family / Speech", "धन / परिवार / वाणी"),
+    3:  ("Siblings / Courage / Effort", "भाई-बहन / साहस / प्रयास"),
+    4:  ("Home / Happiness / Mother", "गृह / सुख / माता"),
+    5:  ("Children / Intelligence / Creativity", "संतान / बुद्धि / रचनात्मकता"),
+    6:  ("Enemies / Disease / Service", "शत्रु / रोग / सेवा"),
+    7:  ("Spouse / Partnership / Business", "पति-पत्नी / साझेदारी / व्यापार"),
+    8:  ("Transformation / Longevity / Occult", "रूपांतरण / आयु / गुप्त विद्या"),
+    9:  ("Fortune / Dharma / Father", "भाग्य / धर्म / पिता"),
+    10: ("Career / Status / Karma", "कर्म / पद / कार्यक्षेत्र"),
+    11: ("Gains / Friends / Aspirations", "लाभ / मित्र / आकांक्षाएँ"),
+    12: ("Loss / Moksha / Foreign Lands", "हानि / मोक्ष / विदेश"),
+}
+_CLASSICAL_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+_DUSTHANA = {6, 8, 12}
+
+
+def detect_parivartana_yoga(chart):
+    """
+    Detect Parivartana Yoga (mutual planetary exchange) in a birth chart.
+    Only considers the 7 classical planets (excludes Rahu/Ketu).
+    Returns list of dicts sorted by type priority (Maha first).
+    """
+    planets = chart['planets']
+    asc_sign = chart['asc_sign']
+    exchanges = []
+    checked = set()
+
+    for pa in _CLASSICAL_PLANETS:
+        sign_a = planets[pa]['sign_idx']
+        ruler_of_a = _SIGN_RULERS_IDX[sign_a]  # who rules the sign Planet A sits in
+        if ruler_of_a == pa:
+            continue  # planet is in own sign, no exchange
+        for pb in _CLASSICAL_PLANETS:
+            if pb == pa or (pb, pa) in checked:
+                continue
+            checked.add((pa, pb))
+            sign_b = planets[pb]['sign_idx']
+            ruler_of_b = _SIGN_RULERS_IDX[sign_b]
+            # Mutual exchange: A is in B's sign AND B is in A's sign
+            if ruler_of_a == pb and ruler_of_b == pa:
+                house_a = (sign_a - asc_sign) % 12 + 1
+                house_b = (sign_b - asc_sign) % 12 + 1
+                # Classify type
+                if house_a in _DUSTHANA or house_b in _DUSTHANA:
+                    yoga_type = "Dainya"
+                elif house_a == 3 or house_b == 3:
+                    yoga_type = "Khala"
+                else:
+                    yoga_type = "Maha"
+                theme_a_en, theme_a_hi = HOUSE_THEMES[house_a]
+                theme_b_en, theme_b_hi = HOUSE_THEMES[house_b]
+                exchanges.append({
+                    'planet_a': pa, 'planet_b': pb,
+                    'house_a': house_a, 'house_b': house_b,
+                    'sign_a': sign_a, 'sign_b': sign_b,
+                    'yoga_type': yoga_type,
+                    'theme_en': f"{theme_a_en} \u2194 {theme_b_en}",
+                    'theme_hi': f"{theme_a_hi} \u2194 {theme_b_hi}",
+                    'effect_en': f"{house_a}{_ordinal(house_a)} house ({theme_a_en}) and "
+                                 f"{house_b}{_ordinal(house_b)} house ({theme_b_en}) synergy",
+                    'effect_hi': f"{house_a}वाँ भाव ({theme_a_hi}) और "
+                                 f"{house_b}वाँ भाव ({theme_b_hi}) का तालमेल",
+                })
+    # Sort: Maha first, then Khala, then Dainya
+    type_order = {"Maha": 0, "Khala": 1, "Dainya": 2}
+    exchanges.sort(key=lambda x: type_order[x['yoga_type']])
+    return exchanges
+
+
+def _ordinal(n):
+    """Return ordinal suffix for a number (st, nd, rd, th)."""
+    if 11 <= n % 100 <= 13:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
+
 # Hindi labels for strength display
 DIGNITY_HI = {
     "Exalted": "उच्च", "Own Sign": "स्वराशि", "Mulatrikona": "मूलत्रिकोण",
@@ -4295,15 +4412,16 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         ("१", "ग्रह स्थिति एवं व्याख्यात्मक टिप्पणियाँ"),
         ("२", "भवन पठन — भाव विश्लेषण"),
         ("३", "ग्रह शक्ति विश्लेषण"),
-        ("४", "वैदिक उपाय एवं कर्म उपाय"),
-        ("५", "नवांश (D-9) चार्ट एवं पठन"),
-        ("६", "साढ़ेसाती — विश्लेषण एवं उपाय"),
-        ("७", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
-        ("८", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
-        ("९", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
-        ("१०", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
-        ("११", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
-        ("१२", "अस्वीकरण"),
+        ("४", "परिवर्तन योग — ग्रह विनिमय"),
+        ("५", "वैदिक उपाय एवं कर्म उपाय"),
+        ("६", "नवांश (D-9) चार्ट एवं पठन"),
+        ("७", "साढ़ेसाती — विश्लेषण एवं उपाय"),
+        ("८", "विंशोत्तरी दशा — महादशा, अंतर्दशा, प्रत्यंतर एवं सूक्ष्म"),
+        ("९", "वर्तमान काल विश्लेषण एवं मार्गदर्शन"),
+        ("१०", "व्यक्तिगत साप्ताहिक पठन — सामान्य राशिफल नहीं"),
+        ("११", "व्यक्तिगत मासिक पठन — सामान्य राशिफल नहीं"),
+        ("१२", "व्यक्तिगत वार्षिक पठन — सामान्य राशिफल नहीं"),
+        ("१३", "अस्वीकरण"),
     ]
     html_parts.append('<div class="toc-page">')
     html_parts.append('<div class="toc-title">विषय सूची</div>')
@@ -4642,6 +4760,82 @@ def _generate_hindi_pdf(chart, today, strength_data=None):
         html_parts.append('<div class="reading" style="font-size:8pt; color:#666;">'
                            '<b>विधि:</b> अंक राशि गरिमा (35), भवन स्थान (20), अंश परिपक्वता (10), '
                            'दृष्टि (±15), युति (±8), अस्त (−15), वक्री (±5) पर आधारित। सीमा: 0-100।</div>')
+
+    # ── Hindi Parivartana Yoga Page ───────────────────────────
+    html_parts.append('<div class="page-break"></div>')
+    html_parts.append("<h2>परिवर्तन योग — ग्रह विनिमय</h2>")
+    html_parts.append('<div class="brand">by AstroShuklz</div>')
+    html_parts.append(
+        '<div class="reading">'
+        '<b>परिवर्तन योग</b> तब होता है जब दो ग्रह एक-दूसरे की राशियों में बैठते हैं, '
+        'जिससे शक्ति का पारस्परिक आदान-प्रदान होता है। यह उनके भावों को जोड़ता है '
+        'और उन जीवन क्षेत्रों के बीच गहरा संबंध बनाता है।</div>')
+    html_parts.append(
+        '<div class="reading">'
+        '• <b>महा परिवर्तन</b> — दोनों ग्रह शुभ भावों (1,2,4,5,7,9,10,11) के स्वामी। अत्यंत लाभकारी।<br>'
+        '• <b>खल परिवर्तन</b> — एक ग्रह तीसरे भाव का स्वामी। मिश्रित फल।<br>'
+        '• <b>दैन्य परिवर्तन</b> — कम से कम एक ग्रह दुःस्थान (6,8,12) का स्वामी। चुनौतीपूर्ण।</div>')
+
+    hi_exchanges = detect_parivartana_yoga(chart)
+
+    if hi_exchanges:
+        html_parts.append('<table style="font-size:9pt; margin-top:8px;">')
+        html_parts.append(
+            '<tr style="background:#8B0000; color:white;">'
+            '<th>ग्रह जोड़ी</th><th>भाव</th><th>प्रकार</th><th>प्रभाव</th></tr>')
+        for exch in hi_exchanges:
+            yt = PARIVARTANA_TYPES[exch['yoga_type']]
+            pa_hi = PLANET_HI_FULL.get(exch['planet_a'], exch['planet_a'])
+            pb_hi = PLANET_HI_FULL.get(exch['planet_b'], exch['planet_b'])
+            html_parts.append(
+                f'<tr style="background:{yt["bg"]};">'
+                f'<td><b>{pa_hi} \u2194 {pb_hi}</b></td>'
+                f'<td>{exch["house_a"]} \u2194 {exch["house_b"]}</td>'
+                f'<td style="color:{yt["color"]}; font-weight:bold;">'
+                f'{yt["icon"]}  {yt["label_hi"]}</td>'
+                f'<td>{exch["effect_hi"]}</td></tr>')
+        html_parts.append('</table>')
+
+        # Narrative
+        html_parts.append('<h3>विस्तृत व्याख्या</h3>')
+        for exch in hi_exchanges:
+            yt = PARIVARTANA_TYPES[exch['yoga_type']]
+            pa_hi = PLANET_HI_FULL.get(exch['planet_a'], exch['planet_a'])
+            pb_hi = PLANET_HI_FULL.get(exch['planet_b'], exch['planet_b'])
+            theme_a_hi = HOUSE_THEMES[exch['house_a']][1]
+            theme_b_hi = HOUSE_THEMES[exch['house_b']][1]
+            html_parts.append(
+                f'<div style="margin-top:8px;">'
+                f'<b style="color:#8B0000;">{pa_hi} \u2194 {pb_hi} '
+                f'(भाव {exch["house_a"]} और {exch["house_b"]}) '
+                f'\u2014 {yt["label_hi"]}</b></div>')
+            html_parts.append(
+                f'<div class="reading">'
+                f'<b>{pa_hi}</b> (भाव {exch["house_b"]} के स्वामी) भाव '
+                f'{exch["house_a"]} ({theme_a_hi}) में बैठे हैं, जबकि <b>{pb_hi}</b> '
+                f'(भाव {exch["house_a"]} के स्वामी) भाव {exch["house_b"]} '
+                f'({theme_b_hi}) में बैठे हैं। यह पारस्परिक विनिमय इन दो जीवन '
+                f'क्षेत्रों को गहराई से जोड़ता है।</div>')
+            html_parts.append(
+                f'<div class="reading"><b>मनोवैज्ञानिक व्याख्या:</b> '
+                f'{yt["psych_hi"]}</div>')
+            html_parts.append(
+                f'<div class="reading"><b>बल प्रभाव:</b> {pa_hi} और {pb_hi} '
+                f'दोनों इस विनिमय से प्रभावी बल प्राप्त करते हैं '
+                f'({yt["score_bonus"]:+d} अंक)। {yt["effect_hi"]}।</div>')
+
+        html_parts.append(
+            '<div style="font-size:8pt; color:#666; margin-top:8px;">'
+            '<b>M</b> = महा (दोनों शुभ भावों के स्वामी) &nbsp; '
+            '<b>K</b> = खल (एक तीसरे भाव का स्वामी) &nbsp; '
+            '<b>D</b> = दैन्य (एक दुःस्थान 6,8,12 का स्वामी)</div>')
+    else:
+        html_parts.append(
+            '<div class="reading" style="font-style:italic; color:#666;">'
+            'इस कुण्डली में कोई परिवर्तन योग (ग्रह भाव विनिमय) नहीं है। '
+            'यह सामान्य बात है — अधिकांश कुण्डलियों में शून्य या एक विनिमय होता है। '
+            'इस योग की अनुपस्थिति दुर्बलता नहीं दर्शाती; अन्य योग और ग्रह बल '
+            'कुण्डली की संभावनाओं को आकार देते रहते हैं।</div>')
 
     # ── Hindi Vedic Remedies Page ─────────────────────────────
     if strength_data:
@@ -5409,15 +5603,16 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         ("1", "Planetary Position &amp; Explanatory Notes"),
         ("2", "Bhava Reading \u2014 House Analysis"),
         ("3", "Planet Strength Analysis"),
-        ("4", "Vedic Remedies &amp; Karma Remedy"),
-        ("5", "Navamsha (D-9) Chart &amp; Reading"),
-        ("6", "Sade Sati \u2014 Analysis &amp; Remedies"),
-        ("7", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
-        ("8", "Current Period Analysis &amp; Guidance"),
-        ("9", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("10", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("11", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
-        ("12", "Disclaimer"),
+        ("4", "Parivartana Yoga \u2014 Planetary Exchange"),
+        ("5", "Vedic Remedies &amp; Karma Remedy"),
+        ("6", "Navamsha (D-9) Chart &amp; Reading"),
+        ("7", "Sade Sati \u2014 Analysis &amp; Remedies"),
+        ("8", "Vimshottari Dasha \u2014 Mahadasha, Antardasha, Pratyantar &amp; Sookshma"),
+        ("9", "Current Period Analysis &amp; Guidance"),
+        ("10", "Personalised Weekly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("11", "Personalised Monthly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("12", "Personalised Yearly Reading \u2014 Not Generic Per-Sign Horoscopes"),
+        ("13", "Disclaimer"),
     ]
 
     # Build TOC as a clean table
@@ -5975,6 +6170,129 @@ def generate_pdf_to_buffer(chart, svg_content=None):
         "⚠️ <b>Pacify</b> — Functional malefic or strong negative influence; "
         "pacify through specific rituals, fasting, and charitable acts.",
         footnote_style))
+
+    # ── Parivartana Yoga — Planetary Exchange ─────────────────
+    story.append(PageBreak())
+    story.append(Paragraph("Parivartana Yoga \u2014 Planetary Exchange", section_style))
+    story.append(Paragraph("by AstroShuklz", brand_style))
+    story.append(Spacer(1, 3*mm))
+
+    pv_intro_style = ParagraphStyle('PVIntro', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        alignment=TA_JUSTIFY, leading=13, spaceAfter=3*mm)
+    pv_narrative_head = ParagraphStyle('PVNarrHead', parent=styles['Normal'],
+        fontName='Helvetica-Bold', fontSize=9.5, textColor=MAROON,
+        spaceBefore=4*mm, spaceAfter=1*mm)
+    pv_narrative_body = ParagraphStyle('PVNarrBody', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=9, textColor=colors.HexColor("#333"),
+        alignment=TA_LEFT, leading=13, spaceAfter=2*mm)
+    pv_cell_style = ParagraphStyle('PVCell', parent=styles['Normal'],
+        fontName='Helvetica', fontSize=8, alignment=TA_CENTER)
+    pv_cell_bold = ParagraphStyle('PVCellBold', parent=pv_cell_style,
+        fontName='Helvetica-Bold')
+    pv_hdr_style = ParagraphStyle('PVHdr', parent=pv_cell_style,
+        fontName='Helvetica-Bold', textColor=colors.white, fontSize=8.5)
+
+    story.append(Paragraph(
+        "<b>Parivartana Yoga</b> occurs when two planets sit in each other\u2019s signs, "
+        "creating a mutual exchange of power. This links the houses they rule and creates "
+        "a deep connection between the life areas those houses represent. "
+        "The exchange is classified into three types based on the houses involved:",
+        pv_intro_style))
+    story.append(Paragraph(
+        "\u2022 <b>Maha Parivartana</b> \u2014 Both planets rule auspicious houses "
+        "(1, 2, 4, 5, 7, 9, 10, 11). Highly beneficial.<br/>"
+        "\u2022 <b>Khala Parivartana</b> \u2014 One planet rules the 3rd house. "
+        "Mixed results requiring effort.<br/>"
+        "\u2022 <b>Dainya Parivartana</b> \u2014 At least one planet rules a dusthana "
+        "(6, 8, 12). Challenging but karmically instructive.",
+        pv_intro_style))
+
+    exchanges = detect_parivartana_yoga(chart)
+
+    if exchanges:
+        # Build table
+        pv_header = [
+            Paragraph('<b>Planet Pair</b>', pv_hdr_style),
+            Paragraph('<b>Houses</b>', pv_hdr_style),
+            Paragraph('<b>Type</b>', pv_hdr_style),
+            Paragraph('<b>Effect</b>', pv_hdr_style),
+        ]
+        pv_data = [pv_header]
+        for exch in exchanges:
+            yt = PARIVARTANA_TYPES[exch['yoga_type']]
+            type_para = ParagraphStyle('PVType', parent=pv_cell_style,
+                textColor=colors.HexColor(yt['color']), fontName='Helvetica-Bold')
+            pv_data.append([
+                Paragraph(f"{exch['planet_a']} \u2194 {exch['planet_b']}", pv_cell_bold),
+                Paragraph(f"{exch['house_a']} \u2194 {exch['house_b']}", pv_cell_style),
+                Paragraph(f"{yt['icon']}  {yt['label_en']}", type_para),
+                Paragraph(exch['effect_en'], pv_cell_style),
+            ])
+
+        pv_table = Table(pv_data, colWidths=[80, 60, 130, 115], repeatRows=1)
+        pv_style_rules = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#8B0000")),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#DDDDDD")),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]
+        for ri, exch in enumerate(exchanges, start=1):
+            bg = PARIVARTANA_TYPES[exch['yoga_type']]['bg']
+            pv_style_rules.append(('BACKGROUND', (0, ri), (-1, ri),
+                                   colors.HexColor(bg)))
+        pv_table.setStyle(TableStyle(pv_style_rules))
+        story.append(pv_table)
+
+        # Narrative per exchange
+        story.append(Spacer(1, 4*mm))
+        story.append(Paragraph("Detailed Interpretation", pv_narrative_head))
+        for exch in exchanges:
+            yt = PARIVARTANA_TYPES[exch['yoga_type']]
+            pa_hi = PLANET_HI_FULL.get(exch['planet_a'], exch['planet_a'])
+            pb_hi = PLANET_HI_FULL.get(exch['planet_b'], exch['planet_b'])
+            story.append(Paragraph(
+                f"{exch['planet_a']} \u2194 {exch['planet_b']} "
+                f"(Houses {exch['house_a']} &amp; {exch['house_b']}) "
+                f"\u2014 {yt['label_en']}",
+                pv_narrative_head))
+            theme_a_en = HOUSE_THEMES[exch['house_a']][0]
+            theme_b_en = HOUSE_THEMES[exch['house_b']][0]
+            story.append(Paragraph(
+                f"<b>{exch['planet_a']}</b> (lord of house {exch['house_b']}) sits in house "
+                f"{exch['house_a']} ({theme_a_en}), while <b>{exch['planet_b']}</b> "
+                f"(lord of house {exch['house_a']}) sits in house {exch['house_b']} "
+                f"({theme_b_en}). This mutual exchange deeply links these two life domains.",
+                pv_narrative_body))
+            story.append(Paragraph(
+                f"<b>Psychological Interpretation:</b> {yt['psych_en']}",
+                pv_narrative_body))
+            story.append(Paragraph(
+                f"<b>Strength Impact:</b> Both {exch['planet_a']} and {exch['planet_b']} "
+                f"gain effective strength through this exchange ({yt['score_bonus']:+d} points), "
+                f"as each acts as though placed in its own sign. "
+                f"{yt['effect_en']}.",
+                pv_narrative_body))
+
+        # Legend
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph(
+            "<b>M</b> = Maha (both rule auspicious houses 1,2,4,5,7,9,10,11) &nbsp;&nbsp; "
+            "<b>K</b> = Khala (one rules house 3) &nbsp;&nbsp; "
+            "<b>D</b> = Dainya (one rules dusthana 6,8,12)",
+            footnote_style))
+    else:
+        story.append(Paragraph(
+            '<i>No Parivartana Yoga (planetary house exchange) is present in this chart. '
+            'This is common \u2014 most charts have zero or one exchange. The absence of '
+            'this yoga does not indicate weakness; other yogas and planetary strengths '
+            'continue to shape the chart\u2019s promise.</i>',
+            pv_intro_style))
 
     # ── Vedic Remedies Reference ─────────────────────────────
     story.append(PageBreak())
